@@ -1,65 +1,295 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+
+type Status = "live" | "won" | "lost";
+
+type Post = {
+  id: number;
+  user: string;
+  text: string;
+  game: string;
+  riders: number;
+  faders: number;
+  status: Status;
+  minutesAgo: number;
+  isUnderdog?: boolean;
+};
+
+const startingPosts: Post[] = [
+  {
+    id: 1,
+    user: "@hernk1",
+    text: "Lakers by 10. Not even close.",
+    game: "Lakers vs Warriors",
+    riders: 62,
+    faders: 55,
+    status: "live",
+    minutesAgo: 10,
+  },
+  {
+    id: 2,
+    user: "@talkking",
+    text: "Free money. Easiest win tonight.",
+    game: "Celtics vs Heat",
+    riders: 90,
+    faders: 10,
+    status: "lost",
+    minutesAgo: 3,
+  },
+  {
+    id: 3,
+    user: "@icecold",
+    text: "Knicks upset. Watch.",
+    game: "Knicks vs Bucks",
+    riders: 12,
+    faders: 40,
+    status: "won",
+    minutesAgo: 5,
+    isUnderdog: true,
+  },
+  {
+    id: 4,
+    user: "@midrange",
+    text: "Suns are frauds tonight.",
+    game: "Suns vs Mavs",
+    riders: 25,
+    faders: 22,
+    status: "live",
+    minutesAgo: 15,
+  },
+  {
+    id: 5,
+    user: "@safeplay",
+    text: "Celtics win. Boring but true.",
+    game: "Celtics vs Heat",
+    riders: 80,
+    faders: 5,
+    status: "live",
+    minutesAgo: 8,
+  },
+];
+
+function getScore(post: Post) {
+  const total = post.riders + post.faders;
+
+  const recency =
+    post.minutesAgo < 5
+      ? 1
+      : post.minutesAgo < 30
+        ? 0.8
+        : post.minutesAgo < 120
+          ? 0.6
+          : 0.2;
+
+  const engagement = Math.log(total + 1) / Math.log(100);
+
+  const conflict =
+    total === 0 ? 0 : 1 - Math.abs(post.riders - post.faders) / total;
+
+  let outcomeEnergy = 0;
+
+  if (post.status === "won") outcomeEnergy = 0.7;
+  if (post.status === "lost") outcomeEnergy = 0.9;
+  if (post.status === "won" && post.isUnderdog) outcomeEnergy += 0.3;
+  if (post.status === "lost" && post.riders > post.faders) {
+    outcomeEnergy += 0.25;
+  }
+
+  return (
+    recency * 0.35 +
+    engagement * 0.25 +
+    conflict * 0.2 +
+    Math.min(outcomeEnergy, 1) * 0.15
+  );
+}
+
+function getBadge(post: Post) {
+  if (post.status === "live") return "🟡 LIVE";
+  if (post.status === "won") return "🟢 TALK BACKED UP";
+  return "🔴 DIDN’T AGE WELL";
+}
 
 export default function Home() {
+  const [posts, setPosts] = useState<Post[]>(startingPosts);
+  const [myChoices, setMyChoices] = useState<
+    Record<number, "ride" | "fade">
+  >({});
+  const [callText, setCallText] = useState("");
+  const [gameText, setGameText] = useState("Lakers vs Warriors");
+
+  function updatePost(id: number, type: "ride" | "fade") {
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === id
+          ? {
+              ...post,
+              riders:
+                type === "ride" && myChoices[id] !== "ride"
+                  ? post.riders + 1
+                  : post.riders,
+              faders:
+                type === "fade" && myChoices[id] !== "fade"
+                  ? post.faders + 1
+                  : post.faders,
+            }
+          : post,
+      ),
+    );
+
+    setMyChoices((prev) => ({
+      ...prev,
+      [id]: type,
+    }));
+  }
+
+  function lockCall() {
+    if (!callText.trim()) return;
+
+    const newPost: Post = {
+      id: Date.now(),
+      user: "@hernk1",
+      text: callText,
+      game: gameText,
+      riders: 0,
+      faders: 0,
+      status: "live",
+      minutesAgo: 0,
+    };
+
+    setPosts([newPost, ...posts]);
+    setCallText("");
+  }
+
+  const rankedPosts = [...posts].sort((a, b) => getScore(b) - getScore(a));
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="min-h-screen bg-black text-white px-4 py-6">
+      <div className="mx-auto max-w-md">
+        <header className="mb-6">
+          <h1 className="text-3xl font-black">Smack Talk</h1>
+          <p className="text-sm text-gray-400">
+            Talk it. Lock it. Live with it.
+          </p>
+        </header>
+
+        <div className="mb-5 rounded-2xl border border-gray-800 bg-gray-950 p-4">
+          <p className="mb-3 text-sm font-bold text-gray-300">
+            Make your call
+          </p>
+
+          <select
+            value={gameText}
+            onChange={(e) => setGameText(e.target.value)}
+            className="mb-3 w-full rounded-xl border border-gray-800 bg-black p-3 text-sm text-white"
+          >
+            <option>Lakers vs Warriors</option>
+            <option>Celtics vs Heat</option>
+            <option>Knicks vs Bucks</option>
+            <option>Suns vs Mavs</option>
+          </select>
+
+          <textarea
+            value={callText}
+            onChange={(e) => setCallText(e.target.value)}
+            placeholder="Say it with your chest..."
+            className="h-24 w-full resize-none rounded-xl border border-gray-800 bg-black p-3 text-sm text-white placeholder:text-gray-600"
+          />
+
+          <button
+            onClick={lockCall}
+            className="mt-3 w-full rounded-xl bg-white py-3 text-sm font-black text-black"
+          >
+            Lock It 🔒
+          </button>
+
+          <p className="mt-2 text-center text-xs text-gray-500">
+            Locked. No switching sides.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+
+        <section className="space-y-4 pb-24">
+          {rankedPosts.map((post) => (
+            <div
+              key={post.id}
+              className="rounded-2xl border border-gray-800 bg-gray-950 p-4"
+            >
+              <div className="mb-2 flex justify-between gap-3">
+                <span className="text-sm text-gray-400">{post.user}</span>
+                <span className="text-right text-xs font-bold">
+                  {getBadge(post)}
+                </span>
+              </div>
+
+              <p className="text-xs uppercase tracking-wide text-gray-500">
+                {post.game}
+              </p>
+
+              <p className="mt-2 text-lg font-bold leading-tight">
+                “{post.text}”
+              </p>
+
+              <div className="mt-3 flex justify-between text-sm">
+                <span>🔥 {post.riders} riding</span>
+                <span>💀 {post.faders} fading</span>
+              </div>
+
+              {myChoices[post.id] && (
+                <p className="mt-3 rounded-xl bg-white/10 px-3 py-2 text-center text-xs font-bold">
+                  You&apos;re {myChoices[post.id] === "ride" ? "riding" : "fading"} this.
+                </p>
+              )}
+
+              {post.status === "live" && (
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => updatePost(post.id, "ride")}
+                    className={`rounded-xl py-2 text-sm font-bold ${
+                      myChoices[post.id] === "ride"
+                        ? "bg-green-400 text-black"
+                        : "bg-green-600"
+                    }`}
+                  >
+                    Ride
+                  </button>
+
+                  <button
+                    onClick={() => updatePost(post.id, "fade")}
+                    className={`rounded-xl py-2 text-sm font-bold ${
+                      myChoices[post.id] === "fade"
+                        ? "bg-red-400 text-black"
+                        : "bg-red-600"
+                    }`}
+                  >
+                    Fade
+                  </button>
+                </div>
+              )}
+
+              {post.status === "lost" && (
+                <p className="mt-3 text-sm text-gray-300">
+                  💀 {post.riders} people saw this collapse
+                </p>
+              )}
+
+              {post.status === "won" && (
+                <p className="mt-3 text-sm text-gray-300">
+                  Talk backed up. Receipt secured.
+                </p>
+              )}
+            </div>
+          ))}
+        </section>
+
+        <nav className="fixed bottom-0 left-0 right-0 border-t border-gray-800 bg-black/95 px-4 py-3">
+          <div className="mx-auto grid max-w-md grid-cols-4 text-center text-xs font-bold">
+            <span className="text-white">Feed</span>
+            <span className="text-gray-500">Receipts</span>
+            <span className="text-gray-500">Top Talkers</span>
+            <span className="text-gray-500">Profile</span>
+          </div>
+        </nav>
+      </div>
+    </main>
   );
 }
