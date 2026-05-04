@@ -140,7 +140,16 @@ useEffect(() => {
       const postToResolve =
         livePosts[Math.floor(Math.random() * livePosts.length)];
 
-      const result: Status = Math.random() > 0.5 ? "won" : "lost";
+      const total = postToResolve.riders + postToResolve.faders;
+
+const rideRatio =
+  total === 0 ? 0.5 : postToResolve.riders / total;
+
+// More riders = slightly better chance to win
+// More faders = slightly worse chance to win
+const winChance = Math.min(0.85, Math.max(0.15, rideRatio));
+
+const result: Status = Math.random() < winChance ? "won" : "lost";
 
       setLastUpdate(
         result === "won"
