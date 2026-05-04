@@ -121,20 +121,38 @@ export default function Home() {
   const [gameText, setGameText] = useState("Lakers vs Warriors");
   const [lastUpdate, setLastUpdate] = useState("");
 
-  useEffect(() => {
+useEffect(() => {
   const timer = setInterval(() => {
     setPosts((prev) => {
-      const firstLivePost = prev.find((post) => post.status === "live");
+      const livePosts = prev.filter((post) => post.status === "live");
 
-      if (!firstLivePost) return prev;
+      if (livePosts.length === 0) return prev;
 
-      setLastUpdate(`${firstLivePost.user} just got exposed.`);
+      // Only resolve occasionally (30% chance)
+      if (Math.random() > 0.3) {
+        return prev.map((post) => ({
+          ...post,
+          minutesAgo: post.minutesAgo + 1,
+          justResolved: false,
+        }));
+      }
+
+      const postToResolve =
+        livePosts[Math.floor(Math.random() * livePosts.length)];
+
+      const result: Status = Math.random() > 0.5 ? "won" : "lost";
+
+      setLastUpdate(
+        result === "won"
+          ? `${postToResolve.user} just backed up their talk.`
+          : `${postToResolve.user} just got exposed.`,
+      );
 
       return prev.map((post) =>
-        post.id === firstLivePost.id
+        post.id === postToResolve.id
           ? {
               ...post,
-              status: "lost",
+              status: result,
               minutesAgo: 0,
               justResolved: true,
             }
@@ -145,7 +163,7 @@ export default function Home() {
             },
       );
     });
-  }, 3000);
+  }, 9000);
 
   return () => clearInterval(timer);
 }, []);
