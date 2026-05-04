@@ -122,42 +122,33 @@ export default function Home() {
   const [lastUpdate, setLastUpdate] = useState("");
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setPosts((prev) => {
-        const livePosts = prev.filter((post) => post.status === "live");
+  const timer = setInterval(() => {
+    setPosts((prev) => {
+      const firstLivePost = prev.find((post) => post.status === "live");
 
-        if (livePosts.length === 0) return prev;
+      if (!firstLivePost) return prev;
 
-        const postToResolve =
-          livePosts[Math.floor(Math.random() * livePosts.length)];
+      setLastUpdate(`${firstLivePost.user} just got exposed.`);
 
-        const result: Status = Math.random() > 0.5 ? "won" : "lost";
+      return prev.map((post) =>
+        post.id === firstLivePost.id
+          ? {
+              ...post,
+              status: "lost",
+              minutesAgo: 0,
+              justResolved: true,
+            }
+          : {
+              ...post,
+              justResolved: false,
+              minutesAgo: post.minutesAgo + 1,
+            },
+      );
+    });
+  }, 3000);
 
-        setLastUpdate(
-          result === "won"
-            ? `${postToResolve.user} just backed up their talk.`
-            : `${postToResolve.user} just got exposed.`,
-        );
-
-        return prev.map((post) =>
-          post.id === postToResolve.id
-            ? {
-                ...post,
-                status: result,
-                minutesAgo: 0,
-                justResolved: true,
-              }
-            : {
-                ...post,
-                justResolved: false,
-                minutesAgo: post.minutesAgo + 1,
-              },
-        );
-      });
-    }, 9000);
-     
-    return () => clearInterval(timer);
-  }, []);
+  return () => clearInterval(timer);
+}, []);
 
   function updatePost(id: number, type: "ride" | "fade") {
     setPosts((prev) =>
