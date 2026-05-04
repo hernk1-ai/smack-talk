@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Status = "live" | "won" | "lost";
 
@@ -14,6 +14,7 @@ type Post = {
   status: Status;
   minutesAgo: number;
   isUnderdog?: boolean;
+  justResolved?: boolean;
 };
 
 const startingPosts: Post[] = [
@@ -95,6 +96,7 @@ function getScore(post: Post) {
   if (post.status === "lost" && post.riders > post.faders) {
     outcomeEnergy += 0.25;
   }
+  if (post.justResolved) outcomeEnergy += 0.35;
 
   return (
     recency * 0.35 +
@@ -112,11 +114,50 @@ function getBadge(post: Post) {
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>(startingPosts);
-  const [myChoices, setMyChoices] = useState<
-    Record<number, "ride" | "fade">
-  >({});
+  const [myChoices, setMyChoices] = useState<Record<number, "ride" | "fade">>(
+    {},
+  );
   const [callText, setCallText] = useState("");
   const [gameText, setGameText] = useState("Lakers vs Warriors");
+  const [lastUpdate, setLastUpdate] = useState("");
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setPosts((prev) => {
+        const livePosts = prev.filter((post) => post.status === "live");
+
+        if (livePosts.length === 0) return prev;
+
+        const postToResolve =
+          livePosts[Math.floor(Math.random() * livePosts.length)];
+
+        const result: Status = Math.random() > 0.5 ? "won" : "lost";
+
+        setLastUpdate(
+          result === "won"
+            ? `${postToResolve.user} just backed up their talk.`
+            : `${postToResolve.user} just got exposed.`,
+        );
+
+        return prev.map((post) =>
+          post.id === postToResolve.id
+            ? {
+                ...post,
+                status: result,
+                minutesAgo: 0,
+                justResolved: true,
+              }
+            : {
+                ...post,
+                justResolved: false,
+                minutesAgo: post.minutesAgo + 1,
+              },
+        );
+      });
+    }, 9000);
+     
+    return () => clearInterval(timer);
+  }, []);
 
   function updatePost(id: number, type: "ride" | "fade") {
     setPosts((prev) =>
@@ -159,7 +200,12 @@ export default function Home() {
 
     setPosts([newPost, ...posts]);
     setCallText("");
+    setLastUpdate("Your call is live. No switching sides.");
   }
+
+  const activeMyCalls = posts.filter(
+    (post) => post.user === "@hernk1" && post.status === "live",
+  ).length;
 
   const rankedPosts = [...posts].sort((a, b) => getScore(b) - getScore(a));
 
@@ -172,6 +218,22 @@ export default function Home() {
             Talk it. Lock it. Live with it.
           </p>
         </header>
+
+        <div className="mb-4 rounded-2xl border border-yellow-700/40 bg-yellow-500/10 p-4">
+          <p className="text-sm font-bold text-yellow-300">
+            🟡 You have {activeMyCalls} active calls
+          </p>
+          <p className="mt-1 text-xs text-yellow-100/70">
+            Check back soon. Somebody&apos;s about to get exposed.
+          </p>
+        </div>
+
+        {lastUpdate && (
+          <div className="mb-4 rounded-2xl border border-purple-700/40 bg-purple-500/10 p-4">
+            <p className="text-sm font-bold text-purple-200">⚡ Live update</p>
+            <p className="mt-1 text-sm text-purple-100">{lastUpdate}</p>
+          </div>
+        )}
 
         <div className="mb-5 rounded-2xl border border-gray-800 bg-gray-950 p-4">
           <p className="mb-3 text-sm font-bold text-gray-300">
@@ -212,7 +274,15 @@ export default function Home() {
           {rankedPosts.map((post) => (
             <div
               key={post.id}
-              className="rounded-2xl border border-gray-800 bg-gray-950 p-4"
+              className={`rounded-2xl border p-4 ${
+                post.justResolved
+                  ? "border-purple-500 bg-purple-950/40"
+                  : post.status === "lost"
+                    ? "border-red-900/50 bg-red-950/30"
+                    : post.status === "won"
+                      ? "border-green-900/50 bg-green-950/30"
+                      : "border-gray-800 bg-gray-950"
+              }`}
             >
               <div className="mb-2 flex justify-between gap-3">
                 <span className="text-sm text-gray-400">{post.user}</span>
@@ -236,7 +306,8 @@ export default function Home() {
 
               {myChoices[post.id] && (
                 <p className="mt-3 rounded-xl bg-white/10 px-3 py-2 text-center text-xs font-bold">
-                  You&apos;re {myChoices[post.id] === "ride" ? "riding" : "fading"} this.
+                  You&apos;re{" "}
+                  {myChoices[post.id] === "ride" ? "riding" : "fading"} this.
                 </p>
               )}
 
@@ -275,6 +346,12 @@ export default function Home() {
               {post.status === "won" && (
                 <p className="mt-3 text-sm text-gray-300">
                   Talk backed up. Receipt secured.
+                </p>
+              )}
+
+              {post.justResolved && (
+                <p className="mt-3 rounded-xl bg-purple-500/20 px-3 py-2 text-center text-xs font-black text-purple-100">
+                  JUST RESOLVED — CHECK THE RECEIPT
                 </p>
               )}
             </div>
