@@ -20,7 +20,7 @@ type Post = {
 const startingPosts: Post[] = [
   {
     id: 1,
-    user: "@hernk1",
+    user: "@hk1",
     text: "Lakers by 10. Not even close.",
     game: "Lakers vs Warriors",
     riders: 62,
