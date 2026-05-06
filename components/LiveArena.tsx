@@ -72,54 +72,54 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
           </div>
         </div>
 
-        <section className="arena-surface overflow-hidden rounded-[1.85rem] border border-white/10 p-5 shadow-[0_28px_80px_rgba(0,0,0,0.48)]">
-          <div className="arena-scoreboard rounded-[1.5rem] border border-white/10 p-4 shadow-inner">
+        <section className="arena-surface overflow-hidden rounded-[2rem] border border-white/10 p-5 shadow-[0_28px_80px_rgba(0,0,0,0.48)] sm:p-7">
+          <div className="arena-scoreboard rounded-[1.75rem] border border-white/10 px-5 py-6 shadow-inner sm:px-8 sm:py-8">
             <p className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
               NBA Playoffs · West Semifinals
             </p>
-            <div className="mt-3 flex items-center justify-center gap-2 text-xs font-black uppercase tracking-[0.12em]">
-              <span className="rounded-md bg-purple-600 px-2 py-1 text-white">Live</span>
+            <div className="mt-4 flex items-center justify-center gap-3 text-xs font-black uppercase tracking-[0.12em]">
+              <span className="rounded-md bg-purple-600 px-2.5 py-1 text-white">Live</span>
               <span className="text-gray-200">4th QTR · 3:24</span>
             </div>
 
-            <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+            <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-5 sm:gap-10">
               <TeamScore city="Los Angeles" seed="#7 seed" team="LAL" score="102" side="left" />
               <div className="grid place-items-center">
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-black text-gray-400">
+                <span className="rounded-full border border-white/10 bg-white/5 px-4 py-3 text-xs font-black text-gray-400">
                   VS
                 </span>
               </div>
               <TeamScore city="Golden State" seed="#6 seed" team="GSW" score="99" side="right" />
             </div>
 
-            <div className="mt-4 text-center">
-              <p className="inline-flex rounded-2xl border border-orange-300/15 bg-black/45 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-orange-200">
+            <div className="mt-7 text-center">
+              <p className="inline-flex rounded-2xl border border-orange-300/15 bg-black/45 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-orange-200">
                 🔥 Momentum: Lakers
               </p>
             </div>
           </div>
 
-          <div className="mt-5 rounded-3xl border border-white/10 bg-black/55 p-4">
-            <div className="mb-3 grid grid-cols-2 gap-3">
+          <div className="mt-7 rounded-3xl border border-white/10 bg-black/55 p-5 sm:p-6">
+            <div className="mb-5 grid grid-cols-2 gap-5">
               <div>
-                <p className="scoreboard-number text-4xl text-green-300">78%</p>
-                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-400">Riding LAL</p>
+                <p className="scoreboard-number text-5xl text-green-300">78%</p>
+                <p className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-gray-400">Riding LAL</p>
               </div>
               <div className="text-right">
-                <p className="scoreboard-number text-4xl text-indigo-200">22%</p>
-                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-400">Fading GSW</p>
+                <p className="scoreboard-number text-5xl text-indigo-200">22%</p>
+                <p className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-gray-400">Fading GSW</p>
               </div>
             </div>
-            <div className="flex h-4 overflow-hidden rounded-full bg-gray-950 ring-1 ring-white/10">
+            <div className="flex h-5 overflow-hidden rounded-full bg-gray-950 ring-1 ring-white/10">
               <div className="h-full w-[78%] bg-gradient-to-r from-green-400 to-teal-300" />
               <div className="h-full flex-1 bg-gradient-to-r from-purple-700 to-indigo-700" />
             </div>
-            <p className="mt-3 text-center text-xs font-black uppercase tracking-[0.12em] text-yellow-100">
+            <p className="mt-5 text-center text-xs font-black uppercase tracking-[0.12em] text-yellow-100">
               ⚠️ Public is all-in on LAL
             </p>
           </div>
 
-          <div className="mt-4 grid grid-cols-3 gap-2">
+          <div className="mt-7 grid grid-cols-3 gap-3">
             <ArenaActionButton
               active={lockedAction === "ride"}
               label="Ride LAL"
@@ -144,12 +144,12 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
           </div>
 
           {lockedAction && (
-            <p className="mt-3 rounded-xl bg-white/10 px-3 py-2 text-center text-xs font-black uppercase tracking-[0.12em]">
+            <p className="mt-5 rounded-xl bg-white/10 px-3 py-2.5 text-center text-xs font-black uppercase tracking-[0.12em]">
               Locked. No switching sides.
             </p>
           )}
 
-          <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">
+          <p className="mt-6 text-center text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">
             🔒 Locks in when the quarter ends
           </p>
         </section>
@@ -203,17 +203,17 @@ function TeamScore({
   const isLeft = side === "left";
 
   return (
-    <div className={`grid grid-cols-[auto_1fr] items-center gap-3 ${isLeft ? "" : "text-right"}`}>
+    <div className={`grid grid-cols-[auto_1fr] items-center gap-4 ${isLeft ? "justify-self-start" : "justify-self-end text-right"}`}>
       <span
-        className={`h-20 w-1.5 rounded-full ${
+        className={`h-28 w-1.5 rounded-full ${
           isLeft ? "bg-gradient-to-b from-yellow-300 to-green-300" : "order-2 bg-gradient-to-b from-sky-300 to-purple-500"
         }`}
       />
       <div className={isLeft ? "" : "order-1"}>
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-400">{city}</p>
-        <p className={`sports-display text-4xl leading-none ${isLeft ? "text-green-100" : "text-indigo-100"}`}>{team}</p>
-        <p className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-gray-500">{seed}</p>
-        <p className="scoreboard-number mt-2 text-7xl sm:text-8xl">{score}</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">{city}</p>
+        <p className={`sports-display mt-2 text-5xl leading-none ${isLeft ? "text-green-100" : "text-indigo-100"}`}>{team}</p>
+        <p className="mt-2 text-[10px] font-black uppercase tracking-[0.14em] text-gray-500">{seed}</p>
+        <p className="scoreboard-number mt-4 text-7xl sm:text-8xl">{score}</p>
       </div>
     </div>
   );
@@ -276,7 +276,7 @@ function ArenaActionButton({
   return (
     <button
       onClick={onClick}
-      className={`grid min-h-20 grid-cols-[auto_1fr] items-center gap-3 rounded-2xl border px-3 py-3 text-left text-xs font-black transition active:scale-95 ${toneClass}`}
+      className={`grid min-h-24 grid-cols-[auto_1fr] items-center gap-3 rounded-2xl border px-3 py-4 text-left text-xs font-black transition active:scale-95 sm:px-4 ${toneClass}`}
     >
       <span className="grid h-10 w-10 place-items-center rounded-full bg-white/25 text-lg">{icon}</span>
       <span>

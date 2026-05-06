@@ -41,31 +41,11 @@ export default function Home() {
         <FeedScreen onEnterArena={() => setAppView("arena")} />
 
         <nav className="fixed bottom-0 left-0 right-0 border-t border-white/10 bg-[#02040a]/95 px-4 py-3 shadow-[0_-18px_50px_rgba(0,0,0,0.45)] backdrop-blur">
-          <div className="mx-auto grid max-w-md grid-cols-5 gap-1 rounded-[1.4rem] border border-white/10 bg-white/5 p-2 text-center text-[10px] font-black uppercase">
-            <span className="grid gap-1 rounded-2xl bg-white px-1 py-2 text-black">
-              <span className="text-xl leading-none">▱</span>
-              Feed
-            </span>
-            <button
-              onClick={() => setAppView("arena")}
-              className="grid gap-1 rounded-2xl px-1 py-2 text-gray-500 transition active:scale-95"
-              type="button"
-            >
-              <span className="text-xl leading-none">◉</span>
-              Arena
-            </button>
-            <span className="grid gap-1 px-1 py-2 text-gray-500">
-              <span className="text-xl leading-none">▤</span>
-              Receipts
-            </span>
-            <span className="grid gap-1 px-1 py-2 text-gray-500">
-              <span className="text-xl leading-none">♕</span>
-              Talkers
-            </span>
-            <span className="grid gap-1 px-1 py-2 text-gray-500">
-              <span className="text-xl leading-none">♙</span>
-              Profile
-            </span>
+          <div className="mx-auto grid max-w-md grid-cols-4 gap-1 rounded-[1.4rem] border border-white/10 bg-white/5 p-2 text-center text-[10px] font-black uppercase">
+            <span className="rounded-2xl bg-white px-3 py-2 text-black">Feed</span>
+            <span className="px-2 py-2 text-gray-500">Receipts</span>
+            <span className="px-2 py-2 text-gray-500">Top Talkers</span>
+            <span className="px-2 py-2 text-gray-500">Profile</span>
           </div>
         </nav>
       </div>

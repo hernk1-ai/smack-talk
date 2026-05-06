@@ -175,27 +175,27 @@ export function FeedScreen({ onEnterArena }: { onEnterArena: () => void }) {
           </span>
         </div>
 
-        <div className="arena-scoreboard mt-4 rounded-3xl border border-white/10 p-4">
+        <div className="arena-scoreboard mt-5 rounded-3xl border border-white/10 px-5 py-5">
           <p className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-gray-400">
             West Semifinals · Live
           </p>
-          <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-end gap-3">
+          <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-end gap-5">
             <div>
               <p className="sports-display text-4xl leading-none text-green-100">LAL</p>
-              <p className="scoreboard-number mt-1 text-4xl">102</p>
+              <p className="scoreboard-number mt-3 text-5xl">102</p>
             </div>
-            <span className="pb-1 text-xs font-black text-gray-500">VS</span>
+            <span className="pb-3 text-xs font-black text-gray-500">VS</span>
             <div className="text-right">
               <p className="sports-display text-4xl leading-none text-indigo-100">GSW</p>
-              <p className="scoreboard-number mt-1 text-4xl">99</p>
+              <p className="scoreboard-number mt-3 text-5xl">99</p>
             </div>
           </div>
-          <p className="mt-3 text-center text-[10px] font-black uppercase tracking-[0.14em] text-gray-400">
+          <p className="mt-5 text-center text-[10px] font-black uppercase tracking-[0.14em] text-gray-400">
             4th QTR · 3:24
           </p>
         </div>
 
-        <div className="mt-4 grid grid-cols-[1fr_auto] items-center gap-3">
+        <div className="mt-5 grid grid-cols-[1fr_auto] items-center gap-3">
           <div className="h-2.5 overflow-hidden rounded-full bg-black/70 ring-1 ring-white/10">
             <div className="h-full w-[78%] rounded-full bg-gradient-to-r from-green-400 to-teal-300" />
           </div>
