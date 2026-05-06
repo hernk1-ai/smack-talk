@@ -181,7 +181,6 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
           {activeTab === "calls" && <CallsTab />}
         </div>
 
-        <ArenaBottomNav onBack={onBack} />
       </div>
     </main>
   );
@@ -216,36 +215,6 @@ function TeamScore({
         <p className="scoreboard-number mt-4 text-6xl sm:text-8xl">{score}</p>
       </div>
     </div>
-  );
-}
-
-function ArenaBottomNav({ onBack }: { onBack: () => void }) {
-  const items = [
-    { label: "Feed", icon: "▱", active: false, onClick: onBack },
-    { label: "Arena", icon: "◉", active: true },
-    { label: "Receipts", icon: "▤", active: false },
-    { label: "Top Talkers", icon: "♕", active: false },
-    { label: "Profile", icon: "♙", active: false },
-  ];
-
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-[#02040a]/95 py-3 shadow-[0_-18px_50px_rgba(0,0,0,0.45)] backdrop-blur">
-      <div className="bottom-nav-arena-shell grid grid-cols-5 gap-1 rounded-[1.4rem] border border-white/10 bg-white/5 p-2">
-        {items.map((item) => (
-          <button
-            key={item.label}
-            onClick={item.onClick}
-            className={`grid gap-1 rounded-2xl px-1 py-2 text-center text-[10px] font-black uppercase transition active:scale-95 ${
-              item.active ? "text-purple-300 shadow-[0_0_26px_rgba(139,92,246,0.22)]" : "text-gray-500"
-            }`}
-            type="button"
-          >
-            <span className="text-xl leading-none">{item.icon}</span>
-            <span>{item.label}</span>
-          </button>
-        ))}
-      </div>
-    </nav>
   );
 }
 

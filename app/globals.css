@@ -61,12 +61,7 @@ body {
   margin-inline: auto;
 }
 
-.bottom-nav-feed-shell {
-  width: min(100% - 24px, 760px);
-  margin-inline: auto;
-}
-
-.bottom-nav-arena-shell {
+.bottom-nav-shell {
   width: min(100% - 24px, 1120px);
   margin-inline: auto;
 }

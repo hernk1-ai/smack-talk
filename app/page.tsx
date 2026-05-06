@@ -1,22 +1,36 @@
 "use client";
 
 import { useState } from "react";
+import { BottomNav, type AppView } from "@/components/BottomNav";
 import { LiveArena } from "@/components/LiveArena";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { FeedScreen } from "@/components/screens/FeedScreen";
 
-type AppView = "feed" | "arena";
-
 export default function Home() {
   const [appView, setAppView] = useState<AppView>("feed");
 
-  if (appView === "arena") {
-    return <LiveArena onBack={() => setAppView("feed")} />;
-  }
+  const goToFeed = () => setAppView("feed");
+  const goToArena = () => setAppView("arena");
 
   return (
+    <>
+      {appView === "arena" ? (
+        <LiveArena onBack={goToFeed} />
+      ) : appView === "feed" ? (
+        <FeedView onEnterArena={goToArena} />
+      ) : (
+        <SimpleView activeView={appView} />
+      )}
+
+      <BottomNav activeView={appView} onSelect={setAppView} />
+    </>
+  );
+}
+
+function FeedView({ onEnterArena }: { onEnterArena: () => void }) {
+  return (
     <main className="min-h-screen bg-transparent py-6 text-white">
-      <div className="feed-shell">
+      <div className="feed-shell pb-28">
         <header className="mb-6 rounded-3xl border border-white/10 bg-black/35 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur">
           <div className="flex items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
@@ -38,16 +52,54 @@ export default function Home() {
           </div>
         </header>
 
-        <FeedScreen onEnterArena={() => setAppView("arena")} />
+        <FeedScreen onEnterArena={onEnterArena} />
+      </div>
+    </main>
+  );
+}
 
-        <nav className="fixed bottom-0 left-0 right-0 border-t border-white/10 bg-[#02040a]/95 py-3 shadow-[0_-18px_50px_rgba(0,0,0,0.45)] backdrop-blur">
-          <div className="bottom-nav-feed-shell grid grid-cols-4 gap-1 rounded-[1.4rem] border border-white/10 bg-white/5 p-2 text-center text-[10px] font-black uppercase">
-            <span className="rounded-2xl bg-white px-3 py-2 text-black">Feed</span>
-            <span className="px-2 py-2 text-gray-500">Receipts</span>
-            <span className="px-2 py-2 text-gray-500">Top Talkers</span>
-            <span className="px-2 py-2 text-gray-500">Profile</span>
+function SimpleView({ activeView }: { activeView: Exclude<AppView, "feed" | "arena"> }) {
+  const viewCopy = {
+    receipts: {
+      eyebrow: "Receipts",
+      title: "Receipts",
+      body: "Your locked calls and final results will live here.",
+    },
+    "top-talkers": {
+      eyebrow: "Top Talkers",
+      title: "Top Talkers",
+      body: "The reputation board is warming up.",
+    },
+    profile: {
+      eyebrow: "Profile",
+      title: "@hernk1",
+      body: "Stats, streaks, and your talker identity stay here.",
+    },
+  }[activeView];
+
+  return (
+    <main className="min-h-screen bg-transparent py-6 text-white">
+      <div className="feed-shell pb-28">
+        <header className="mb-6 rounded-3xl border border-white/10 bg-black/35 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur">
+          <div className="flex items-center gap-3">
+            <SmackTalkLogo size={52} />
+            <div>
+              <h1 className="brand-lockup text-4xl leading-none">
+                <span className="text-white">Smack</span>{" "}
+                <span className="bg-gradient-to-r from-purple-300 via-indigo-300 to-sky-300 bg-clip-text text-transparent">
+                  Talk
+                </span>
+              </h1>
+              <p className="mt-2 text-sm font-bold text-gray-400">Talk it. Lock it. Live with it.</p>
+            </div>
           </div>
-        </nav>
+        </header>
+
+        <section className="premium-card rounded-[1.75rem] border border-white/10 p-5 shadow-[0_22px_60px_rgba(0,0,0,0.36)]">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-300">{viewCopy.eyebrow}</p>
+          <h2 className="sports-display mt-3 text-4xl leading-none text-white">{viewCopy.title}</h2>
+          <p className="mt-4 text-sm font-semibold leading-6 text-gray-400">{viewCopy.body}</p>
+        </section>
       </div>
     </main>
   );
