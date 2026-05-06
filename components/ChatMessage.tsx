@@ -44,7 +44,7 @@ export function ChatMessage({
 
         <button
           onClick={onBackItUp}
-          className="mt-3 w-full rounded-2xl bg-white py-2.5 text-xs font-black text-black shadow-[0_0_22px_rgba(255,255,255,0.12)] transition active:scale-95"
+          className="mt-3 min-h-11 w-full rounded-2xl bg-white py-2.5 text-xs font-black text-black shadow-[0_0_22px_rgba(255,255,255,0.12)] transition active:scale-95"
         >
           Back It Up 🔒
         </button>
@@ -116,7 +116,7 @@ export function ChatMessage({
             <button
               key={reaction}
               onClick={() => onReact(message.id, reaction)}
-              className={`rounded-full border border-white/10 bg-black/45 px-2.5 py-1 text-xs font-black transition hover:border-white/20 active:scale-95 ${
+              className={`min-h-10 rounded-full border border-white/10 bg-black/45 px-2.5 py-1 text-xs font-black transition hover:border-white/20 active:scale-95 ${
                 reactionFlashKey === flashId
                   ? "animate-[reactionBounce_240ms_ease] border-white shadow-[0_0_16px_rgba(255,255,255,0.16)]"
                   : ""
@@ -129,16 +129,16 @@ export function ChatMessage({
       </div>
 
       <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] font-black text-gray-300">
-        <button onClick={() => onCallOut(message)} className="rounded-2xl bg-white/10 py-2 transition active:scale-95">
+        <button onClick={() => onCallOut(message)} className="min-h-11 rounded-2xl bg-white/10 py-2 transition active:scale-95">
           😈 Call Out
         </button>
         <button
           onClick={() => onReact(message.id, "fire")}
-          className="rounded-2xl bg-white/10 py-2 transition active:scale-95"
+          className="min-h-11 rounded-2xl bg-white/10 py-2 transition active:scale-95"
         >
           🔥 React
         </button>
-        <button className="rounded-2xl bg-white/10 py-2 text-gray-500 transition active:scale-95">Reply</button>
+        <button className="min-h-11 rounded-2xl bg-white/10 py-2 text-gray-500 transition active:scale-95">Reply</button>
       </div>
     </article>
   );

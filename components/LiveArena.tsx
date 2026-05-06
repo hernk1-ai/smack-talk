@@ -15,8 +15,8 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
   const [lockedAction, setLockedAction] = useState<ArenaAction>();
 
   return (
-    <main className="min-h-screen bg-transparent py-5 text-white">
-      <div className="arena-shell pb-28">
+    <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white">
+      <div className="arena-shell screen-safe-bottom">
         <header className="mb-4 border-b border-white/10 pb-4">
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
             <div className="flex items-center gap-2">
@@ -159,7 +159,7 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`rounded-xl py-2 text-xs font-black capitalize transition ${
+              className={`min-h-11 rounded-xl py-2 text-xs font-black capitalize transition ${
                 activeTab === tab ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.12)]" : "text-gray-500"
               }`}
             >
@@ -210,9 +210,9 @@ function TeamScore({
       />
       <div className={isLeft ? "" : "order-1"}>
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">{city}</p>
-        <p className={`sports-display mt-2 text-4xl leading-none sm:text-5xl ${isLeft ? "text-green-100" : "text-indigo-100"}`}>{team}</p>
+        <p className={`sports-display mt-2 text-3xl leading-none sm:text-5xl ${isLeft ? "text-green-100" : "text-indigo-100"}`}>{team}</p>
         <p className="mt-2 text-[10px] font-black uppercase tracking-[0.14em] text-gray-500">{seed}</p>
-        <p className="scoreboard-number mt-4 text-6xl sm:text-8xl">{score}</p>
+        <p className="scoreboard-number mt-4 text-5xl sm:text-8xl">{score}</p>
       </div>
     </div>
   );

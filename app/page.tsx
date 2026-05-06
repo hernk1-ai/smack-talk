@@ -29,8 +29,8 @@ export default function Home() {
 
 function FeedView({ onEnterArena }: { onEnterArena: () => void }) {
   return (
-    <main className="min-h-screen bg-transparent py-6 text-white">
-      <div className="feed-shell pb-28">
+    <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white sm:py-6">
+      <div className="feed-shell screen-safe-bottom">
         <header className="mb-6 rounded-3xl border border-white/10 bg-black/35 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur">
           <div className="flex items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
@@ -78,8 +78,8 @@ function SimpleView({ activeView }: { activeView: Exclude<AppView, "feed" | "are
   }[activeView];
 
   return (
-    <main className="min-h-screen bg-transparent py-6 text-white">
-      <div className="feed-shell pb-28">
+    <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white sm:py-6">
+      <div className="feed-shell screen-safe-bottom">
         <header className="mb-6 rounded-3xl border border-white/10 bg-black/35 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur">
           <div className="flex items-center gap-3">
             <SmackTalkLogo size={52} />

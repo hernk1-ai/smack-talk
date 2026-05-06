@@ -116,14 +116,14 @@ export function ArenaChat() {
             placeholder="Join the conversation..."
             readOnly
           />
-          <button className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-black" type="button">
+          <button className="min-h-10 rounded-full bg-white px-3 py-1.5 text-xs font-black text-black" type="button">
             Send
           </button>
         </div>
       </div>
 
       {isSheetOpen && (
-        <div className="fixed inset-0 z-40 flex items-end bg-black/75 px-4 pb-4 backdrop-blur-sm">
+        <div className="safe-bottom-sheet fixed inset-0 z-40 flex items-end bg-black/75 px-4 backdrop-blur-sm">
           <div className="arena-surface mx-auto w-full max-w-md rounded-t-[2rem] border border-white/10 p-5 shadow-2xl">
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/20" />
             <p className="sports-display text-3xl leading-none">Lock a call</p>

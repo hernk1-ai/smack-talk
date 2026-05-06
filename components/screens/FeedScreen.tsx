@@ -241,7 +241,7 @@ export function FeedScreen({ onEnterArena }: { onEnterArena: () => void }) {
         <p className="mt-2 text-center text-xs text-gray-500">Locked. No switching sides.</p>
       </div>
 
-      <section className="space-y-7 pb-24">
+      <section className="space-y-7">
         {feedSections.map((section) => (
           <section key={section.id} className="space-y-3" aria-labelledby={`${section.id}-heading`}>
             <div className="grid grid-cols-[1fr_auto] items-center gap-3 px-1">

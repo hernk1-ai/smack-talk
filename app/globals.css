@@ -25,6 +25,7 @@
 }
 
 body {
+  overflow-x: hidden;
   min-height: 100vh;
   background:
     radial-gradient(circle at 50% -10%, rgba(79, 70, 229, 0.24), transparent 32rem),
@@ -34,18 +35,28 @@ body {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+textarea {
+  touch-action: manipulation;
+}
+
 .app-shell {
-  width: min(100% - 24px, 1120px);
+  width: min(calc(100% - 24px), 1120px);
   margin-inline: auto;
 }
 
 .feed-shell {
-  width: min(100% - 24px, 760px);
+  width: min(calc(100% - 24px), 760px);
   margin-inline: auto;
 }
 
 .arena-shell {
-  width: min(100% - 24px, 1120px);
+  width: min(calc(100% - 24px), 1120px);
   margin-inline: auto;
 }
 
@@ -62,8 +73,16 @@ body {
 }
 
 .bottom-nav-shell {
-  width: min(100% - 24px, 1120px);
+  width: min(calc(100% - 24px), 1120px);
   margin-inline: auto;
+}
+
+.screen-safe-bottom {
+  padding-bottom: calc(8.5rem + env(safe-area-inset-bottom));
+}
+
+.safe-bottom-sheet {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
 }
 
 .sports-display {
