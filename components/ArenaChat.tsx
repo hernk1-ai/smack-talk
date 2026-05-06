@@ -84,8 +84,8 @@ export function ArenaChat() {
   return (
     <section className="relative space-y-3">
       <div className="flex items-center justify-between px-1">
-        <h3 className="text-sm font-black">Live Chat</h3>
-        <span className="rounded-full bg-white/10 px-2 py-1 text-[10px] font-black text-gray-300">
+        <h3 className="sports-display text-2xl leading-none">Live Chat</h3>
+        <span className="rounded-full border border-white/10 bg-white/10 px-2 py-1 text-[10px] font-black uppercase text-gray-300">
           {messageCount} live
         </span>
       </div>
@@ -105,16 +105,16 @@ export function ArenaChat() {
       </div>
 
       {isSheetOpen && (
-        <div className="fixed inset-0 z-40 flex items-end bg-black/70 px-4 pb-4">
-          <div className="mx-auto w-full max-w-md rounded-t-3xl border border-gray-800 bg-gray-950 p-5 shadow-2xl">
-            <div className="mb-4 h-1.5 w-12 rounded-full bg-gray-700 mx-auto" />
-            <p className="text-lg font-black">Lock a call</p>
+        <div className="fixed inset-0 z-40 flex items-end bg-black/75 px-4 pb-4 backdrop-blur-sm">
+          <div className="arena-surface mx-auto w-full max-w-md rounded-t-[2rem] border border-white/10 p-5 shadow-2xl">
+            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/20" />
+            <p className="sports-display text-3xl leading-none">Lock a call</p>
             <p className="mt-1 text-sm text-gray-400">Choose your side. No switching sides.</p>
 
             <div className="mt-5 grid gap-3">
               <button
                 onClick={() => lockArenaCall("Rode LAL")}
-                className="rounded-2xl bg-green-400 py-3 text-sm font-black text-black transition active:scale-95"
+                className="rounded-2xl bg-gradient-to-r from-green-400 to-teal-300 py-3 text-sm font-black text-black shadow-[0_0_24px_rgba(45,212,191,0.22)] transition active:scale-95"
               >
                 Ride LAL
               </button>

@@ -14,21 +14,34 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-black px-4 py-6 text-white">
+    <main className="min-h-screen bg-transparent px-4 py-6 text-white">
       <div className="mx-auto max-w-md">
-        <header className="mb-6">
-          <h1 className="text-3xl font-black">Smack Talk</h1>
-          <p className="text-sm text-gray-400">Talk it. Lock it. Live with it.</p>
+        <header className="mb-6 rounded-3xl border border-white/10 bg-black/35 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <h1 className="brand-lockup text-4xl leading-none">
+                <span className="text-white">Smack</span>{" "}
+                <span className="bg-gradient-to-r from-purple-300 via-indigo-300 to-sky-300 bg-clip-text text-transparent">
+                  Talk
+                </span>
+              </h1>
+              <p className="mt-2 text-sm font-bold text-gray-400">Talk it. Lock it. Live with it.</p>
+            </div>
+            <div className="rounded-2xl border border-purple-400/20 bg-purple-500/10 px-3 py-2 text-right">
+              <p className="text-[10px] font-black uppercase text-purple-200">Live</p>
+              <p className="text-xs font-black text-white">Arena Ready</p>
+            </div>
+          </div>
         </header>
 
         <FeedScreen onEnterArena={() => setAppView("arena")} />
 
-        <nav className="fixed bottom-0 left-0 right-0 border-t border-gray-800 bg-black/95 px-4 py-3">
-          <div className="mx-auto grid max-w-md grid-cols-4 text-center text-xs font-bold">
-            <span className="text-white">Feed</span>
-            <span className="text-gray-500">Receipts</span>
-            <span className="text-gray-500">Top Talkers</span>
-            <span className="text-gray-500">Profile</span>
+        <nav className="fixed bottom-0 left-0 right-0 border-t border-white/10 bg-[#02040a]/95 px-4 py-3 shadow-[0_-18px_50px_rgba(0,0,0,0.45)] backdrop-blur">
+          <div className="mx-auto grid max-w-md grid-cols-4 gap-1 text-center text-xs font-black">
+            <span className="rounded-2xl bg-white px-3 py-2 text-black">Feed</span>
+            <span className="px-2 py-2 text-gray-500">Receipts</span>
+            <span className="px-2 py-2 text-gray-500">Top Talkers</span>
+            <span className="px-2 py-2 text-gray-500">Profile</span>
           </div>
         </nav>
       </div>

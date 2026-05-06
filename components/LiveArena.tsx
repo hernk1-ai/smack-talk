@@ -13,50 +13,55 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
   const [lockedAction, setLockedAction] = useState<ArenaAction>();
 
   return (
-    <main className="min-h-screen bg-black px-4 py-5 text-white">
+    <main className="min-h-screen bg-transparent px-4 py-5 text-white">
       <div className="mx-auto max-w-md pb-8">
         <header className="mb-4 flex items-center justify-between gap-3">
           <button
             onClick={onBack}
-            className="rounded-full border border-gray-800 bg-gray-950 px-3 py-2 text-xs font-black text-gray-200 transition active:scale-95"
+            className="rounded-full border border-white/10 bg-black/50 px-3 py-2 text-xs font-black text-gray-200 shadow-[0_12px_30px_rgba(0,0,0,0.32)] transition active:scale-95"
           >
             ← Feed
           </button>
 
           <div className="text-right">
-            <p className="text-sm font-black">Smack Talk</p>
+            <p className="brand-lockup text-xl leading-none">
+              <span>Smack</span>{" "}
+              <span className="bg-gradient-to-r from-purple-300 to-sky-300 bg-clip-text text-transparent">Talk</span>
+            </p>
             <p className="text-xs text-gray-500">Live Arena</p>
           </div>
         </header>
 
-        <section className="rounded-3xl border border-gray-800 bg-gray-950 p-5 shadow-2xl">
+        <section className="arena-surface rounded-[1.85rem] border border-white/10 p-5 shadow-[0_28px_80px_rgba(0,0,0,0.48)]">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-black">🏀 NBA Playoffs ▼</p>
-            <span className="rounded-full bg-red-500/15 px-2 py-1 text-[10px] font-black text-red-200">
+            <p className="rounded-full border border-white/10 bg-black/45 px-3 py-2 text-xs font-black">🏀 NBA Playoffs ▼</p>
+            <span className="rounded-full border border-red-300/20 bg-red-500/15 px-3 py-2 text-[10px] font-black uppercase text-red-200">
               LIVE · 3:42
             </span>
           </div>
 
           <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-end gap-3">
             <div>
-              <p className="text-xs font-bold uppercase text-gray-500">LAL</p>
-              <p className="text-4xl font-black">102</p>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-green-300">LAL</p>
+              <p className="scoreboard-number text-6xl">102</p>
             </div>
-            <p className="pb-2 text-xs font-black text-gray-500">—</p>
+            <p className="pb-3 text-xl font-black text-gray-500">—</p>
             <div className="text-right">
-              <p className="text-xs font-bold uppercase text-gray-500">GSW</p>
-              <p className="text-4xl font-black">99</p>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-200">GSW</p>
+              <p className="scoreboard-number text-6xl">99</p>
             </div>
           </div>
 
-          <p className="mt-2 text-center text-xs font-black uppercase text-gray-400">LIVE · 4th QTR · 3:42</p>
+          <p className="mt-3 text-center text-xs font-black uppercase tracking-[0.16em] text-gray-400">
+            LIVE · 4th QTR · 3:42
+          </p>
 
-          <div className="mt-5 rounded-2xl bg-black p-3">
+          <div className="mt-5 rounded-3xl border border-white/10 bg-black/55 p-4">
             <div className="mb-2 flex items-center justify-between text-xs font-black">
               <span className="text-green-300">78% Riding LAL</span>
               <span className="text-indigo-200">22% Fading GSW</span>
             </div>
-            <div className="h-3 overflow-hidden rounded-full bg-gray-900">
+            <div className="h-3 overflow-hidden rounded-full bg-gray-950 ring-1 ring-white/10">
               <div className="h-full w-[78%] rounded-full bg-gradient-to-r from-green-400 to-teal-300" />
             </div>
           </div>
@@ -92,20 +97,20 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
             <p className="text-sm font-black text-purple-100">Public is leaning heavy on LAL.</p>
             <button
               onClick={() => setLockedAction("fade")}
-              className="mt-3 w-full rounded-xl bg-gradient-to-r from-purple-700 to-indigo-700 py-2 text-xs font-black text-white transition active:scale-95"
+              className="mt-3 w-full rounded-2xl bg-gradient-to-r from-purple-700 to-indigo-700 py-3 text-xs font-black text-white shadow-[0_0_24px_rgba(168,85,247,0.18)] transition active:scale-95"
             >
               Fade the Public
             </button>
           </div>
         </section>
 
-        <nav className="mt-4 grid grid-cols-3 rounded-2xl border border-gray-800 bg-gray-950 p-1">
+        <nav className="mt-4 grid grid-cols-3 rounded-2xl border border-white/10 bg-black/45 p-1 shadow-[0_18px_44px_rgba(0,0,0,0.28)]">
           {(["game", "chat", "calls"] as ArenaTab[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`rounded-xl py-2 text-xs font-black capitalize transition ${
-                activeTab === tab ? "bg-white text-black" : "text-gray-500"
+                activeTab === tab ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.12)]" : "text-gray-500"
               }`}
             >
               {tab}
@@ -142,10 +147,12 @@ function ArenaActionButton({
   onClick: () => void;
 }) {
   const toneClass = {
-    ride: active ? "bg-green-300 text-black" : "bg-green-600 text-white",
-    draw: active ? "bg-white text-black" : "bg-gray-900 text-white",
+    ride: active
+      ? "bg-green-300 text-black shadow-[0_0_24px_rgba(45,212,191,0.28)]"
+      : "bg-gradient-to-r from-green-500 to-teal-400 text-black",
+    draw: active ? "bg-white text-black" : "bg-gray-950 text-white ring-1 ring-white/10",
     fade: active
-      ? "bg-gradient-to-r from-purple-300 to-indigo-300 text-black"
+      ? "bg-gradient-to-r from-purple-300 to-indigo-300 text-black shadow-[0_0_24px_rgba(168,85,247,0.28)]"
       : "bg-gradient-to-r from-purple-700 to-indigo-700 text-white",
   }[tone];
 
@@ -161,13 +168,13 @@ function GameTab() {
     <>
       <WhoIsCooking />
 
-      <section className="rounded-2xl border border-gray-800 bg-gray-950 p-4">
-        <h3 className="text-sm font-black">Live Momentum</h3>
+      <section className="premium-card rounded-3xl border p-4">
+        <h3 className="sports-display text-2xl leading-none">Live Momentum</h3>
         <p className="mt-1 text-xs text-gray-400">Momentum shifting toward LAL</p>
 
         <div className="mt-4 space-y-3">
           {["18’ LAL Goal", "42’ GSW Answer", "57’ LAL Run", "4th QTR Crowd pressure spikes"].map((event) => (
-            <div key={event} className="flex items-center gap-3 rounded-xl bg-black p-3">
+            <div key={event} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/45 p-3">
               <span className="h-2 w-2 rounded-full bg-green-300" />
               <p className="text-sm font-bold text-gray-200">{event}</p>
             </div>
@@ -180,12 +187,12 @@ function GameTab() {
 
 function CallsTab() {
   return (
-    <section className="rounded-2xl border border-gray-800 bg-gray-950 p-4">
-      <h3 className="text-sm font-black">Top Takes</h3>
+    <section className="premium-card rounded-3xl border p-4">
+      <h3 className="sports-display text-2xl leading-none">Top Takes</h3>
 
       <div className="mt-4 space-y-3">
         {topArenaTakes.map((take) => (
-          <article key={take.handle} className="rounded-2xl bg-black p-4">
+          <article key={take.handle} className="rounded-2xl border border-white/10 bg-black/45 p-4">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-black">{take.handle}</p>
               <span

@@ -27,43 +27,45 @@ export function FeedCard({
 }) {
   return (
     <article
-      className={`rounded-2xl border p-4 transition duration-150 active:scale-[0.992] ${
+      className={`rounded-3xl border p-4 shadow-[0_18px_44px_rgba(0,0,0,0.28)] transition duration-150 active:scale-[0.992] ${
         post.justResolved
-          ? "border-purple-500 bg-purple-950/40"
+          ? "border-purple-400/60 bg-gradient-to-br from-purple-950/60 to-slate-950 shadow-[0_0_34px_rgba(168,85,247,0.18)]"
           : post.status === "lost"
-            ? "border-red-900/50 bg-red-950/30"
+            ? "border-red-500/25 bg-gradient-to-br from-red-950/35 to-slate-950"
             : post.status === "won"
-              ? "border-green-900/50 bg-green-950/30"
-              : "border-gray-800 bg-gray-950"
+              ? "border-green-400/25 bg-gradient-to-br from-green-950/35 to-slate-950"
+              : "border-white/10 bg-gradient-to-br from-slate-950 via-[#07111f] to-black"
       }`}
     >
       <div className="mb-2 flex justify-between gap-3">
-        <span className="text-sm text-gray-400">{post.user}</span>
-        <span className="text-right text-xs font-bold">{getBadge(post)}</span>
+        <span className="text-sm font-black text-gray-200">{post.user}</span>
+        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-right text-[10px] font-black uppercase">
+          {getBadge(post)}
+        </span>
       </div>
 
-      <p className="text-xs uppercase tracking-wide text-gray-500">{post.game}</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">{post.game}</p>
 
-      <p className="mt-2 text-lg font-bold leading-tight">“{post.text}”</p>
+      <p className="mt-3 text-xl font-black leading-tight text-white">“{post.text}”</p>
 
-      <div className="mt-3 grid grid-cols-[auto_auto_1fr] items-center gap-2 rounded-xl bg-white/5 p-3">
-        <span className="text-xs font-black text-gray-500">Heat Score</span>
-        <strong className="text-xs font-black text-orange-300">{getHeatScore(post)}</strong>
+      <div className="mt-4 grid grid-cols-[auto_auto_1fr] items-center gap-2 rounded-2xl border border-white/10 bg-black/45 p-3">
+        <span className="text-[10px] font-black uppercase text-gray-500">Heat</span>
+        <strong className="scoreboard-number text-xl text-orange-300">{getHeatScore(post)}</strong>
         <em
           key={post.activityText}
-          className="animate-[activityPulse_500ms_ease] justify-self-end text-right text-xs not-italic text-gray-200"
+          className="animate-[activityPulse_500ms_ease] justify-self-end text-right text-xs font-bold not-italic text-gray-200"
         >
           {post.activityText ?? "👀 Picking up traction"}
         </em>
       </div>
 
-      <div className="mt-3 flex justify-between text-sm">
-        <span>🔥 {post.riders} riding</span>
-        <span>💀 {post.faders} fading</span>
+      <div className="mt-3 grid grid-cols-2 gap-2 text-sm font-black">
+        <span className="rounded-2xl bg-green-400/10 px-3 py-2 text-green-200">🔥 {post.riders} riding</span>
+        <span className="rounded-2xl bg-purple-500/10 px-3 py-2 text-right text-purple-200">💀 {post.faders} fading</span>
       </div>
 
       {choice && (
-        <p className="mt-3 rounded-xl bg-white/10 px-3 py-2 text-center text-xs font-bold">
+        <p className="mt-3 rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-center text-xs font-black">
           You&apos;re {choice === "ride" ? "riding" : "fading"} this.
         </p>
       )}
@@ -72,8 +74,8 @@ export function FeedCard({
         <div className="mt-4 grid grid-cols-2 gap-2">
           <button
             onClick={() => onChoose(post.id, "ride")}
-            className={`rounded-xl py-2 text-sm font-bold transition hover:shadow-[0_0_18px_rgba(74,222,128,0.3)] active:scale-95 ${
-              choice === "ride" ? "bg-green-400 text-black" : "bg-green-600"
+            className={`rounded-2xl py-3 text-sm font-black transition hover:shadow-[0_0_22px_rgba(45,212,191,0.25)] active:scale-95 ${
+              choice === "ride" ? "bg-green-300 text-black" : "bg-gradient-to-r from-green-500 to-teal-400 text-black"
             }`}
           >
             Ride
@@ -81,7 +83,7 @@ export function FeedCard({
 
           <button
             onClick={() => onChoose(post.id, "fade")}
-            className={`rounded-xl py-2 text-sm font-bold transition hover:shadow-[0_0_18px_rgba(168,85,247,0.3)] active:scale-95 ${
+            className={`rounded-2xl py-3 text-sm font-black transition hover:shadow-[0_0_22px_rgba(168,85,247,0.3)] active:scale-95 ${
               choice === "fade"
                 ? "bg-gradient-to-r from-purple-300 to-indigo-300 text-black"
                 : "bg-gradient-to-r from-purple-700 to-indigo-700"
@@ -92,12 +94,20 @@ export function FeedCard({
         </div>
       )}
 
-      {post.status === "lost" && <p className="mt-3 text-sm text-gray-300">💀 {post.riders} people saw this collapse</p>}
+      {post.status === "lost" && (
+        <p className="mt-3 rounded-2xl bg-red-500/10 px-3 py-2 text-sm font-bold text-red-100">
+          💀 {post.riders} people saw this collapse
+        </p>
+      )}
 
-      {post.status === "won" && <p className="mt-3 text-sm text-gray-300">Talk backed up. Receipt secured.</p>}
+      {post.status === "won" && (
+        <p className="mt-3 rounded-2xl bg-green-400/10 px-3 py-2 text-sm font-bold text-green-100">
+          Talk backed up. Receipt secured.
+        </p>
+      )}
 
       {post.justResolved && (
-        <p className="mt-3 rounded-xl bg-purple-500/20 px-3 py-2 text-center text-xs font-black text-purple-100">
+        <p className="mt-3 rounded-2xl bg-purple-500/20 px-3 py-2 text-center text-xs font-black text-purple-100">
           JUST RESOLVED — CHECK THE RECEIPT
         </p>
       )}

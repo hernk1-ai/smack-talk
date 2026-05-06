@@ -24,8 +24,8 @@ export function ChatMessage({
 }) {
   if (message.type === "system_moment") {
     return (
-      <div className="animate-[activityPulse_420ms_ease] rounded-2xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-center">
-        <p className="text-sm font-black text-yellow-100">{message.message}</p>
+      <div className="animate-[activityPulse_420ms_ease] rounded-3xl border border-yellow-400/25 bg-gradient-to-r from-yellow-500/10 via-orange-500/10 to-yellow-500/10 px-4 py-3 text-center shadow-[0_0_28px_rgba(250,204,21,0.08)]">
+        <p className="sports-display text-xl leading-none text-yellow-100">{message.message}</p>
         <p className="mt-1 text-[11px] font-bold uppercase text-yellow-200/70">{message.timestamp}</p>
       </div>
     );
@@ -33,10 +33,10 @@ export function ChatMessage({
 
   if (message.type === "callout") {
     return (
-      <article className="animate-[activityPulse_420ms_ease] rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4 shadow-[0_0_24px_rgba(168,85,247,0.12)]">
+      <article className="animate-[activityPulse_420ms_ease] rounded-3xl border border-purple-400/35 bg-gradient-to-br from-purple-500/14 to-slate-950 p-4 shadow-[0_0_30px_rgba(168,85,247,0.13)]">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-black uppercase text-purple-200">Callout</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-200">Callout</p>
             <p className="mt-1 text-sm font-bold text-white">{message.message}</p>
           </div>
           <span className="text-[11px] font-bold text-gray-500">{message.timestamp}</span>
@@ -44,7 +44,7 @@ export function ChatMessage({
 
         <button
           onClick={onBackItUp}
-          className="mt-3 w-full rounded-xl bg-white py-2 text-xs font-black text-black transition active:scale-95"
+          className="mt-3 w-full rounded-2xl bg-white py-2.5 text-xs font-black text-black shadow-[0_0_22px_rgba(255,255,255,0.12)] transition active:scale-95"
         >
           Back It Up 🔒
         </button>
@@ -53,26 +53,31 @@ export function ChatMessage({
   }
 
   const isLockedCall = message.type === "locked_call";
+  const isFadeCall = message.actionLabel?.toLowerCase().includes("faded");
+  const lockedClass = isFadeCall
+    ? "border-purple-400/45 bg-purple-500/10 shadow-[0_0_28px_rgba(168,85,247,0.14)]"
+    : "border-green-300/45 bg-green-400/10 shadow-[0_0_28px_rgba(45,212,191,0.14)]";
+  const lockedBadgeClass = isFadeCall
+    ? "bg-gradient-to-r from-purple-300 to-indigo-300 text-black"
+    : "bg-green-300 text-black";
 
   return (
     <article
-      className={`animate-[activityPulse_420ms_ease] rounded-2xl border p-4 transition active:scale-[0.992] ${
-        isLockedCall
-          ? "border-green-400/40 bg-green-500/10 shadow-[0_0_24px_rgba(45,212,191,0.12)]"
-          : "border-gray-800 bg-gray-950"
+      className={`animate-[activityPulse_420ms_ease] rounded-3xl border p-4 transition active:scale-[0.992] ${
+        isLockedCall ? lockedClass : "border-white/10 bg-gradient-to-br from-slate-950 to-black shadow-[0_18px_44px_rgba(0,0,0,0.24)]"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm font-black">{message.handle}</p>
-            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-black uppercase text-gray-300">
+            <span className="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[10px] font-black uppercase text-gray-300">
               {message.badge}
             </span>
           </div>
 
           {isLockedCall && (
-            <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-green-400 px-3 py-1 text-[10px] font-black uppercase text-black">
+            <div className={`mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-black uppercase ${lockedBadgeClass}`}>
               CALL LOCKED
               <span className="h-1 w-1 rounded-full bg-black/60" />
               {message.actionLabel}
@@ -93,8 +98,10 @@ export function ChatMessage({
             <button
               key={reaction}
               onClick={() => onReact(message.id, reaction)}
-              className={`rounded-full border border-gray-800 bg-black px-2.5 py-1 text-xs font-black transition active:scale-95 ${
-                reactionFlashKey === flashId ? "animate-[reactionBounce_240ms_ease] border-white shadow-[0_0_16px_rgba(255,255,255,0.16)]" : ""
+              className={`rounded-full border border-white/10 bg-black/45 px-2.5 py-1 text-xs font-black transition hover:border-white/20 active:scale-95 ${
+                reactionFlashKey === flashId
+                  ? "animate-[reactionBounce_240ms_ease] border-white shadow-[0_0_16px_rgba(255,255,255,0.16)]"
+                  : ""
               }`}
             >
               {arenaReactionLabels[reaction]} {reactionCounts[reaction]}
@@ -104,16 +111,16 @@ export function ChatMessage({
       </div>
 
       <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] font-black text-gray-300">
-        <button onClick={() => onCallOut(message)} className="rounded-xl bg-white/10 py-2 transition active:scale-95">
+        <button onClick={() => onCallOut(message)} className="rounded-2xl bg-white/10 py-2 transition active:scale-95">
           😈 Call Out
         </button>
         <button
           onClick={() => onReact(message.id, "fire")}
-          className="rounded-xl bg-white/10 py-2 transition active:scale-95"
+          className="rounded-2xl bg-white/10 py-2 transition active:scale-95"
         >
           🔥 React
         </button>
-        <button className="rounded-xl bg-white/10 py-2 text-gray-500 transition active:scale-95">Reply</button>
+        <button className="rounded-2xl bg-white/10 py-2 text-gray-500 transition active:scale-95">Reply</button>
       </div>
     </article>
   );

@@ -152,27 +152,33 @@ export function FeedScreen({ onEnterArena }: { onEnterArena: () => void }) {
 
   return (
     <>
-      <div className="mb-4 rounded-2xl border border-yellow-700/40 bg-yellow-500/10 p-4">
-        <p className="text-sm font-bold text-yellow-300">🟡 You have {activeMyCalls} active calls</p>
+      <div className="premium-card mb-4 rounded-3xl border p-4">
+        <p className="text-xs font-black uppercase text-yellow-300">🟡 Active board</p>
+        <p className="mt-1 text-sm font-bold text-gray-100">You have {activeMyCalls} active calls</p>
         <p className="mt-1 text-xs text-yellow-100/70">Check back soon. Somebody&apos;s about to get exposed.</p>
       </div>
 
       <button
         onClick={onEnterArena}
-        className="mb-4 w-full rounded-3xl border border-green-400/30 bg-gradient-to-br from-gray-950 via-gray-950 to-green-950/70 p-4 text-left shadow-[0_0_28px_rgba(45,212,191,0.12)] transition active:scale-[0.99]"
+        className="arena-surface mb-4 w-full rounded-[1.75rem] border border-green-300/25 p-5 text-left shadow-[0_24px_70px_rgba(45,212,191,0.13)] transition active:scale-[0.99]"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-black uppercase text-green-300">Enter Live Arena</p>
-            <h2 className="mt-2 text-xl font-black">🏀 NBA Playoffs</h2>
-            <p className="mt-1 text-sm font-bold text-gray-200">LAL 102 — 99 GSW</p>
-            <p className="mt-1 text-xs font-black text-red-200">LIVE · 4th QTR · 3:42</p>
+            <p className="text-xs font-black uppercase text-green-300">Featured broadcast</p>
+            <h2 className="sports-display mt-2 text-3xl leading-none">Enter Live Arena</h2>
+            <p className="mt-3 text-sm font-black text-gray-200">🏀 NBA Playoffs</p>
+            <p className="scoreboard-number mt-1 text-3xl">LAL 102 — 99 GSW</p>
+            <p className="mt-2 inline-flex rounded-full bg-red-500/15 px-2 py-1 text-[10px] font-black uppercase text-red-200">
+              LIVE · 4th QTR · 3:42
+            </p>
           </div>
-          <span className="rounded-full bg-white px-3 py-2 text-xs font-black text-black">Enter</span>
+          <span className="rounded-full bg-white px-4 py-2 text-xs font-black text-black shadow-[0_0_24px_rgba(255,255,255,0.16)]">
+            Enter
+          </span>
         </div>
 
         <div className="mt-4 grid grid-cols-[1fr_auto] items-center gap-3">
-          <div className="h-2 overflow-hidden rounded-full bg-gray-900">
+          <div className="h-2.5 overflow-hidden rounded-full bg-black/70 ring-1 ring-white/10">
             <div className="h-full w-[78%] rounded-full bg-gradient-to-r from-green-400 to-teal-300" />
           </div>
           <p className="text-xs font-black text-gray-300">12.8K watching</p>
@@ -180,19 +186,19 @@ export function FeedScreen({ onEnterArena }: { onEnterArena: () => void }) {
       </button>
 
       {lastUpdate && (
-        <div className="mb-4 rounded-2xl border border-purple-700/40 bg-purple-500/10 p-4">
-          <p className="text-sm font-bold text-purple-200">⚡ Live update</p>
+        <div className="mb-4 rounded-3xl border border-purple-400/30 bg-purple-500/10 p-4 shadow-[0_0_34px_rgba(168,85,247,0.10)]">
+          <p className="text-xs font-black uppercase text-purple-200">⚡ Live update</p>
           <p className="mt-1 text-sm text-purple-100">{lastUpdate}</p>
         </div>
       )}
 
-      <div className="mb-5 rounded-2xl border border-gray-800 bg-gray-950 p-4">
-        <p className="mb-3 text-sm font-bold text-gray-300">Make your call</p>
+      <div className="premium-card mb-5 rounded-3xl border p-4">
+        <p className="mb-3 text-xs font-black uppercase text-gray-300">Make your call</p>
 
         <select
           value={gameText}
           onChange={(event) => setGameText(event.target.value)}
-          className="mb-3 w-full rounded-xl border border-gray-800 bg-black p-3 text-sm text-white"
+          className="mb-3 w-full rounded-2xl border border-white/10 bg-black/70 p-3 text-sm font-bold text-white outline-none focus:border-purple-300/60"
         >
           <option>Lakers vs Warriors</option>
           <option>Celtics vs Heat</option>
@@ -204,10 +210,13 @@ export function FeedScreen({ onEnterArena }: { onEnterArena: () => void }) {
           value={callText}
           onChange={(event) => setCallText(event.target.value)}
           placeholder="Say it with your chest..."
-          className="h-24 w-full resize-none rounded-xl border border-gray-800 bg-black p-3 text-sm text-white placeholder:text-gray-600"
+          className="h-24 w-full resize-none rounded-2xl border border-white/10 bg-black/70 p-3 text-sm text-white outline-none placeholder:text-gray-600 focus:border-purple-300/60"
         />
 
-        <button onClick={lockCall} className="mt-3 w-full rounded-xl bg-white py-3 text-sm font-black text-black">
+        <button
+          onClick={lockCall}
+          className="mt-3 w-full rounded-2xl bg-white py-3 text-sm font-black text-black shadow-[0_0_26px_rgba(255,255,255,0.12)] transition active:scale-95"
+        >
           Lock It 🔒
         </button>
 
@@ -217,11 +226,15 @@ export function FeedScreen({ onEnterArena }: { onEnterArena: () => void }) {
       <section className="space-y-7 pb-24">
         {feedSections.map((section) => (
           <section key={section.id} className="space-y-3" aria-labelledby={`${section.id}-heading`}>
-            <div className="flex items-center justify-between px-1">
-              <h2 id={`${section.id}-heading`} className="text-base font-black">
+            <div className="grid grid-cols-[1fr_auto] items-center gap-3 px-1">
+              <div className="h-px bg-gradient-to-r from-white/15 to-transparent" />
+              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">Feed</span>
+              <h2 id={`${section.id}-heading`} className="sports-display col-span-1 text-2xl leading-none">
                 {section.title}
               </h2>
-              <span className="text-xs font-bold text-gray-500">{section.posts.length} live</span>
+              <span className="justify-self-end rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-black uppercase text-gray-400">
+                {section.posts.length} live
+              </span>
             </div>
 
             <div className="space-y-4">
