@@ -15,8 +15,8 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-transparent px-4 py-6 text-white">
-      <div className="mx-auto max-w-md">
+    <main className="min-h-screen bg-transparent py-6 text-white">
+      <div className="feed-shell">
         <header className="mb-6 rounded-3xl border border-white/10 bg-black/35 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur">
           <div className="flex items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
@@ -40,8 +40,8 @@ export default function Home() {
 
         <FeedScreen onEnterArena={() => setAppView("arena")} />
 
-        <nav className="fixed bottom-0 left-0 right-0 border-t border-white/10 bg-[#02040a]/95 px-4 py-3 shadow-[0_-18px_50px_rgba(0,0,0,0.45)] backdrop-blur">
-          <div className="mx-auto grid max-w-md grid-cols-4 gap-1 rounded-[1.4rem] border border-white/10 bg-white/5 p-2 text-center text-[10px] font-black uppercase">
+        <nav className="fixed bottom-0 left-0 right-0 border-t border-white/10 bg-[#02040a]/95 py-3 shadow-[0_-18px_50px_rgba(0,0,0,0.45)] backdrop-blur">
+          <div className="bottom-nav-feed-shell grid grid-cols-4 gap-1 rounded-[1.4rem] border border-white/10 bg-white/5 p-2 text-center text-[10px] font-black uppercase">
             <span className="rounded-2xl bg-white px-3 py-2 text-black">Feed</span>
             <span className="px-2 py-2 text-gray-500">Receipts</span>
             <span className="px-2 py-2 text-gray-500">Top Talkers</span>

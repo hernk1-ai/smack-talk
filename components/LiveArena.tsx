@@ -15,8 +15,8 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
   const [lockedAction, setLockedAction] = useState<ArenaAction>();
 
   return (
-    <main className="min-h-screen bg-transparent px-4 py-5 text-white">
-      <div className="mx-auto max-w-5xl pb-28">
+    <main className="min-h-screen bg-transparent py-5 text-white">
+      <div className="arena-shell pb-28">
         <header className="mb-4 border-b border-white/10 pb-4">
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
             <div className="flex items-center gap-2">
@@ -72,8 +72,8 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
           </div>
         </div>
 
-        <section className="arena-surface overflow-hidden rounded-[2rem] border border-white/10 p-5 shadow-[0_28px_80px_rgba(0,0,0,0.48)] sm:p-7">
-          <div className="arena-scoreboard rounded-[1.75rem] border border-white/10 px-5 py-6 shadow-inner sm:px-8 sm:py-8">
+        <section className="scoreboard-shell arena-surface overflow-hidden rounded-[2rem] border border-white/10 p-5 shadow-[0_28px_80px_rgba(0,0,0,0.48)] sm:p-7">
+          <div className="scoreboard-inner arena-scoreboard rounded-[1.75rem] border border-white/10 px-5 py-6 shadow-inner sm:px-8 sm:py-8">
             <p className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
               NBA Playoffs · West Semifinals
             </p>
@@ -82,7 +82,7 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
               <span className="text-gray-200">4th QTR · 3:24</span>
             </div>
 
-            <div className="mt-8 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-5 sm:gap-10">
+            <div className="mx-auto mt-8 grid max-w-[880px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 sm:gap-8">
               <TeamScore city="Los Angeles" seed="#7 seed" team="LAL" score="102" side="left" />
               <div className="grid place-items-center">
                 <span className="rounded-full border border-white/10 bg-white/5 px-4 py-3 text-xs font-black text-gray-400">
@@ -99,7 +99,7 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
             </div>
           </div>
 
-          <div className="mt-7 rounded-3xl border border-white/10 bg-black/55 p-5 sm:p-6">
+          <div className="scoreboard-inner mt-7 rounded-3xl border border-white/10 bg-black/55 p-5 sm:p-6">
             <div className="mb-5 grid grid-cols-2 gap-5">
               <div>
                 <p className="scoreboard-number text-5xl text-green-300">78%</p>
@@ -119,7 +119,7 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
             </p>
           </div>
 
-          <div className="mt-7 grid grid-cols-3 gap-3">
+          <div className="scoreboard-inner mt-7 grid grid-cols-3 gap-3">
             <ArenaActionButton
               active={lockedAction === "ride"}
               label="Ride LAL"
@@ -203,17 +203,17 @@ function TeamScore({
   const isLeft = side === "left";
 
   return (
-    <div className={`grid grid-cols-[auto_1fr] items-center gap-4 ${isLeft ? "justify-self-start" : "justify-self-end text-right"}`}>
+    <div className={`grid grid-cols-[auto_1fr] items-center gap-3 justify-self-center ${isLeft ? "text-left" : "text-right"}`}>
       <span
-        className={`h-28 w-1.5 rounded-full ${
+        className={`h-24 w-1.5 rounded-full sm:h-28 ${
           isLeft ? "bg-gradient-to-b from-yellow-300 to-green-300" : "order-2 bg-gradient-to-b from-sky-300 to-purple-500"
         }`}
       />
       <div className={isLeft ? "" : "order-1"}>
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">{city}</p>
-        <p className={`sports-display mt-2 text-5xl leading-none ${isLeft ? "text-green-100" : "text-indigo-100"}`}>{team}</p>
+        <p className={`sports-display mt-2 text-4xl leading-none sm:text-5xl ${isLeft ? "text-green-100" : "text-indigo-100"}`}>{team}</p>
         <p className="mt-2 text-[10px] font-black uppercase tracking-[0.14em] text-gray-500">{seed}</p>
-        <p className="scoreboard-number mt-4 text-7xl sm:text-8xl">{score}</p>
+        <p className="scoreboard-number mt-4 text-6xl sm:text-8xl">{score}</p>
       </div>
     </div>
   );
@@ -229,8 +229,8 @@ function ArenaBottomNav({ onBack }: { onBack: () => void }) {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-[#02040a]/95 px-4 py-3 shadow-[0_-18px_50px_rgba(0,0,0,0.45)] backdrop-blur">
-      <div className="mx-auto grid max-w-5xl grid-cols-5 gap-1 rounded-[1.4rem] border border-white/10 bg-white/5 p-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-[#02040a]/95 py-3 shadow-[0_-18px_50px_rgba(0,0,0,0.45)] backdrop-blur">
+      <div className="bottom-nav-arena-shell grid grid-cols-5 gap-1 rounded-[1.4rem] border border-white/10 bg-white/5 p-2">
         {items.map((item) => (
           <button
             key={item.label}
