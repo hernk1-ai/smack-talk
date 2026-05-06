@@ -19,7 +19,7 @@ import {
 
 type ReactionCountsByPost = Record<number, CallReactionCounts>;
 
-export function FeedScreen() {
+export function FeedScreen({ onEnterArena }: { onEnterArena: () => void }) {
   const [posts, setPosts] = useState<Post[]>(() => createLivePosts(startingPosts));
   const [myChoices, setMyChoices] = useState<Record<number, Choice>>({});
   const [reactionCounts, setReactionCounts] = useState<ReactionCountsByPost>(() => buildReactionCounts(startingPosts));
@@ -156,6 +156,28 @@ export function FeedScreen() {
         <p className="text-sm font-bold text-yellow-300">🟡 You have {activeMyCalls} active calls</p>
         <p className="mt-1 text-xs text-yellow-100/70">Check back soon. Somebody&apos;s about to get exposed.</p>
       </div>
+
+      <button
+        onClick={onEnterArena}
+        className="mb-4 w-full rounded-3xl border border-green-400/30 bg-gradient-to-br from-gray-950 via-gray-950 to-green-950/70 p-4 text-left shadow-[0_0_28px_rgba(45,212,191,0.12)] transition active:scale-[0.99]"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase text-green-300">Enter Live Arena</p>
+            <h2 className="mt-2 text-xl font-black">🏀 NBA Playoffs</h2>
+            <p className="mt-1 text-sm font-bold text-gray-200">LAL 102 — 99 GSW</p>
+            <p className="mt-1 text-xs font-black text-red-200">LIVE · 4th QTR · 3:42</p>
+          </div>
+          <span className="rounded-full bg-white px-3 py-2 text-xs font-black text-black">Enter</span>
+        </div>
+
+        <div className="mt-4 grid grid-cols-[1fr_auto] items-center gap-3">
+          <div className="h-2 overflow-hidden rounded-full bg-gray-900">
+            <div className="h-full w-[78%] rounded-full bg-gradient-to-r from-green-400 to-teal-300" />
+          </div>
+          <p className="text-xs font-black text-gray-300">12.8K watching</p>
+        </div>
+      </button>
 
       {lastUpdate && (
         <div className="mb-4 rounded-2xl border border-purple-700/40 bg-purple-500/10 p-4">

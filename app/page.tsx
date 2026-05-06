@@ -1,8 +1,18 @@
 "use client";
 
+import { useState } from "react";
+import { LiveArena } from "@/components/LiveArena";
 import { FeedScreen } from "@/components/screens/FeedScreen";
 
+type AppView = "feed" | "arena";
+
 export default function Home() {
+  const [appView, setAppView] = useState<AppView>("feed");
+
+  if (appView === "arena") {
+    return <LiveArena onBack={() => setAppView("feed")} />;
+  }
+
   return (
     <main className="min-h-screen bg-black px-4 py-6 text-white">
       <div className="mx-auto max-w-md">
@@ -11,7 +21,7 @@ export default function Home() {
           <p className="text-sm text-gray-400">Talk it. Lock it. Live with it.</p>
         </header>
 
-        <FeedScreen />
+        <FeedScreen onEnterArena={() => setAppView("arena")} />
 
         <nav className="fixed bottom-0 left-0 right-0 border-t border-gray-800 bg-black/95 px-4 py-3">
           <div className="mx-auto grid max-w-md grid-cols-4 text-center text-xs font-bold">
