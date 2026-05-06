@@ -160,21 +160,39 @@ export function FeedScreen({ onEnterArena }: { onEnterArena: () => void }) {
 
       <button
         onClick={onEnterArena}
-        className="arena-surface mb-4 w-full rounded-[1.75rem] border border-green-300/25 p-5 text-left shadow-[0_24px_70px_rgba(45,212,191,0.13)] transition active:scale-[0.99]"
+        className="arena-surface mb-4 w-full overflow-hidden rounded-[1.75rem] border border-green-300/25 p-5 text-left shadow-[0_24px_70px_rgba(45,212,191,0.13)] transition active:scale-[0.99]"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-black uppercase text-green-300">Featured broadcast</p>
-            <h2 className="sports-display mt-2 text-3xl leading-none">Enter Live Arena</h2>
-            <p className="mt-3 text-sm font-black text-gray-200">🏀 NBA Playoffs</p>
-            <p className="scoreboard-number mt-1 text-3xl">LAL 102 — 99 GSW</p>
-            <p className="mt-2 inline-flex rounded-full bg-red-500/15 px-2 py-1 text-[10px] font-black uppercase text-red-200">
-              LIVE · 4th QTR · 3:42
+            <h2 className="sports-display mt-2 text-3xl leading-none">Live Arena</h2>
+            <p className="mt-3 inline-flex rounded-full border border-white/10 bg-black/45 px-3 py-2 text-xs font-black">
+              🏀 NBA Playoffs
             </p>
           </div>
           <span className="rounded-full bg-white px-4 py-2 text-xs font-black text-black shadow-[0_0_24px_rgba(255,255,255,0.16)]">
             Enter
           </span>
+        </div>
+
+        <div className="arena-scoreboard mt-4 rounded-3xl border border-white/10 p-4">
+          <p className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-gray-400">
+            West Semifinals · Live
+          </p>
+          <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-end gap-3">
+            <div>
+              <p className="sports-display text-4xl leading-none text-green-100">LAL</p>
+              <p className="scoreboard-number mt-1 text-4xl">102</p>
+            </div>
+            <span className="pb-1 text-xs font-black text-gray-500">VS</span>
+            <div className="text-right">
+              <p className="sports-display text-4xl leading-none text-indigo-100">GSW</p>
+              <p className="scoreboard-number mt-1 text-4xl">99</p>
+            </div>
+          </div>
+          <p className="mt-3 text-center text-[10px] font-black uppercase tracking-[0.14em] text-gray-400">
+            4th QTR · 3:24
+          </p>
         </div>
 
         <div className="mt-4 grid grid-cols-[1fr_auto] items-center gap-3">

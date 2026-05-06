@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import {
   type ArenaMessage,
@@ -46,8 +46,6 @@ export function ArenaChat() {
     return () => window.clearInterval(timer);
   }, [nextMessageIndex]);
 
-  const messageCount = useMemo(() => visibleMessages.length, [visibleMessages]);
-
   function handleReact(messageId: string, reaction: ArenaReactionKey) {
     setReactionCounts((prev) => ({
       ...prev,
@@ -83,14 +81,17 @@ export function ArenaChat() {
 
   return (
     <section className="relative space-y-3">
-      <div className="flex items-center justify-between px-1">
-        <h3 className="sports-display text-2xl leading-none">Live Chat</h3>
-        <span className="rounded-full border border-white/10 bg-white/10 px-2 py-1 text-[10px] font-black uppercase text-gray-300">
-          {messageCount} live
+      <div className="flex items-center justify-between rounded-t-3xl border border-white/10 border-b-transparent bg-black/35 px-4 py-3">
+        <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.08em]">
+          <span className="text-lg">◌</span>
+          Live Chat
+        </h3>
+        <span className="rounded-full border border-purple-300/20 bg-purple-500/15 px-3 py-1 text-[10px] font-black uppercase text-purple-200">
+          1.2K
         </span>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-3 rounded-b-3xl border border-white/10 bg-black/20 p-3 pt-0">
         {visibleMessages.map((message) => (
           <ChatMessage
             key={message.id}
@@ -102,6 +103,23 @@ export function ArenaChat() {
             onBackItUp={() => setIsSheetOpen(true)}
           />
         ))}
+      </div>
+
+      <div className="sticky bottom-3 rounded-3xl border border-white/10 bg-black/75 p-2 shadow-[0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur">
+        <div className="flex items-center gap-2 rounded-2xl bg-white/5 px-3 py-2">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-purple-400 to-sky-300 text-xs font-black text-black">
+            ST
+          </span>
+          <input
+            aria-label="Join the conversation"
+            className="min-w-0 flex-1 bg-transparent text-sm font-bold text-white outline-none placeholder:text-gray-500"
+            placeholder="Join the conversation..."
+            readOnly
+          />
+          <button className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-black" type="button">
+            Send
+          </button>
+        </div>
       </div>
 
       {isSheetOpen && (

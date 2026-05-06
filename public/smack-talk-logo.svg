@@ -1,0 +1,29 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="192" height="192" rx="44" fill="#02040A"/>
+  <rect x="12" y="12" width="168" height="168" rx="38" fill="url(#bg)" stroke="url(#rim)" stroke-width="3"/>
+  <path d="M48 54C48 43.5066 56.5066 35 67 35H133C143.493 35 152 43.5066 152 54V102C152 112.493 143.493 121 133 121H96.5L64 151V121H67C56.5066 121 48 112.493 48 102V54Z" fill="white"/>
+  <path d="M103 30L72 95H96L82 153L123 79H98L103 30Z" fill="url(#bolt)" stroke="#08111F" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M49 130L67 130L67 148" stroke="url(#accent)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M129 43H138C142.418 43 146 46.5817 146 51V62" stroke="#DCE8FF" stroke-width="4" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="bg" x1="21" y1="18" x2="178" y2="179" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#111B32"/>
+      <stop offset="0.52" stop-color="#07111F"/>
+      <stop offset="1" stop-color="#02040A"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="14" y1="14" x2="178" y2="178" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2DD4BF"/>
+      <stop offset="0.48" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#38BDF8"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="75" y1="35" x2="119" y2="147" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38BDF8"/>
+      <stop offset="0.48" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="49" y1="130" x2="67" y2="148" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2DD4BF"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+  </defs>
+</svg>

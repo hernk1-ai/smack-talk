@@ -68,24 +68,42 @@ export function ChatMessage({
       }`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-black">{message.handle}</p>
-            <span className="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[10px] font-black uppercase text-gray-300">
-              {message.badge}
-            </span>
+        <div className="flex min-w-0 items-start gap-3">
+          <div
+            className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-black text-black ${
+              isLockedCall
+                ? isFadeCall
+                  ? "bg-gradient-to-br from-purple-300 to-indigo-300"
+                  : "bg-gradient-to-br from-green-300 to-teal-300"
+                : "bg-gradient-to-br from-slate-200 to-slate-500"
+            }`}
+          >
+            {getInitials(message.handle)}
           </div>
 
-          {isLockedCall && (
-            <div className={`mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-black uppercase ${lockedBadgeClass}`}>
-              CALL LOCKED
-              <span className="h-1 w-1 rounded-full bg-black/60" />
-              {message.actionLabel}
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-black">{message.handle}</p>
+              <span className="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[10px] font-black uppercase text-gray-300">
+                {message.badge}
+              </span>
             </div>
-          )}
+
+            {isLockedCall && (
+              <div
+                className={`mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-black uppercase ${lockedBadgeClass}`}
+              >
+                CALL LOCKED
+                <span className="h-1 w-1 rounded-full bg-black/60" />
+                {message.actionLabel}
+              </div>
+            )}
+          </div>
         </div>
 
-        <span className="text-[11px] font-bold text-gray-500">{message.timestamp}</span>
+        <span className="shrink-0 rounded-full bg-white/5 px-2 py-1 text-[10px] font-black uppercase text-gray-500">
+          {message.timestamp}
+        </span>
       </div>
 
       <p className="mt-3 text-sm leading-relaxed text-gray-100">{message.message}</p>
@@ -124,4 +142,12 @@ export function ChatMessage({
       </div>
     </article>
   );
+}
+
+function getInitials(handle: string) {
+  const cleanHandle = handle.replace("@", "");
+
+  if (!cleanHandle || cleanHandle.toLowerCase() === "arena") return "ST";
+
+  return cleanHandle.slice(0, 2).toUpperCase();
 }

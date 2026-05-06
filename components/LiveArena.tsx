@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { ArenaChat } from "@/components/ArenaChat";
+import { RunTheArena } from "@/components/RunTheArena";
+import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { WhoIsCooking } from "@/components/WhoIsCooking";
 import { topArenaTakes } from "@/utils/arenaChat";
 
@@ -14,94 +16,142 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
 
   return (
     <main className="min-h-screen bg-transparent px-4 py-5 text-white">
-      <div className="mx-auto max-w-md pb-8">
-        <header className="mb-4 flex items-center justify-between gap-3">
-          <button
-            onClick={onBack}
-            className="rounded-full border border-white/10 bg-black/50 px-3 py-2 text-xs font-black text-gray-200 shadow-[0_12px_30px_rgba(0,0,0,0.32)] transition active:scale-95"
-          >
-            ← Feed
-          </button>
+      <div className="mx-auto max-w-5xl pb-28">
+        <header className="mb-4 border-b border-white/10 pb-4">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onBack}
+                className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-black/50 text-sm font-black text-gray-200 shadow-[0_12px_30px_rgba(0,0,0,0.32)] transition active:scale-95"
+                aria-label="Back to feed"
+              >
+                ←
+              </button>
+              <div className="hidden items-center gap-2 sm:flex">
+                <div className="h-9 w-9 rounded-full border border-white/10 bg-gradient-to-br from-slate-200 to-slate-600" />
+                <div>
+                  <p className="text-xs font-black text-purple-300">LVL 13</p>
+                  <p className="text-[10px] font-bold text-gray-500">4,250 XP</p>
+                </div>
+              </div>
+            </div>
 
-          <div className="text-right">
-            <p className="brand-lockup text-xl leading-none">
-              <span>Smack</span>{" "}
-              <span className="bg-gradient-to-r from-purple-300 to-sky-300 bg-clip-text text-transparent">Talk</span>
-            </p>
-            <p className="text-xs text-gray-500">Live Arena</p>
+            <div className="flex items-center justify-center gap-2">
+              <SmackTalkLogo size={42} />
+              <p className="brand-lockup text-2xl leading-none sm:text-3xl">
+                <span>Smack</span>{" "}
+                <span className="bg-gradient-to-r from-purple-300 to-sky-300 bg-clip-text text-transparent">Talk</span>
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <div className="rounded-2xl border border-white/10 bg-black/45 px-3 py-2 text-right">
+                <p className="text-xs font-black text-yellow-200">🔥 6</p>
+                <p className="text-[10px] font-black uppercase text-gray-500">Streak</p>
+              </div>
+              <div className="relative grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-black/45 text-lg">
+                ♢
+                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-purple-400" />
+              </div>
+            </div>
           </div>
         </header>
 
-        <section className="arena-surface rounded-[1.85rem] border border-white/10 p-5 shadow-[0_28px_80px_rgba(0,0,0,0.48)]">
-          <div className="flex items-center justify-between gap-3">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="sports-display text-3xl leading-none">Live Arena</h1>
+            <p className="mt-1 text-xs font-bold text-gray-500">
+              <span className="text-green-300">●</span> 12,842 online
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
             <p className="rounded-full border border-white/10 bg-black/45 px-3 py-2 text-xs font-black">🏀 NBA Playoffs ▼</p>
             <span className="rounded-full border border-red-300/20 bg-red-500/15 px-3 py-2 text-[10px] font-black uppercase text-red-200">
-              LIVE · 3:42
+              Live
             </span>
           </div>
+        </div>
 
-          <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-end gap-3">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-green-300">LAL</p>
-              <p className="scoreboard-number text-6xl">102</p>
+        <section className="arena-surface overflow-hidden rounded-[1.85rem] border border-white/10 p-5 shadow-[0_28px_80px_rgba(0,0,0,0.48)]">
+          <div className="arena-scoreboard rounded-[1.5rem] border border-white/10 p-4 shadow-inner">
+            <p className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+              NBA Playoffs · West Semifinals
+            </p>
+            <div className="mt-3 flex items-center justify-center gap-2 text-xs font-black uppercase tracking-[0.12em]">
+              <span className="rounded-md bg-purple-600 px-2 py-1 text-white">Live</span>
+              <span className="text-gray-200">4th QTR · 3:24</span>
             </div>
-            <p className="pb-3 text-xl font-black text-gray-500">—</p>
-            <div className="text-right">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-200">GSW</p>
-              <p className="scoreboard-number text-6xl">99</p>
+
+            <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+              <TeamScore city="Los Angeles" seed="#7 seed" team="LAL" score="102" side="left" />
+              <div className="grid place-items-center">
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-black text-gray-400">
+                  VS
+                </span>
+              </div>
+              <TeamScore city="Golden State" seed="#6 seed" team="GSW" score="99" side="right" />
+            </div>
+
+            <div className="mt-4 text-center">
+              <p className="inline-flex rounded-2xl border border-orange-300/15 bg-black/45 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-orange-200">
+                🔥 Momentum: Lakers
+              </p>
             </div>
           </div>
 
-          <p className="mt-3 text-center text-xs font-black uppercase tracking-[0.16em] text-gray-400">
-            LIVE · 4th QTR · 3:42
-          </p>
-
           <div className="mt-5 rounded-3xl border border-white/10 bg-black/55 p-4">
-            <div className="mb-2 flex items-center justify-between text-xs font-black">
-              <span className="text-green-300">78% Riding LAL</span>
-              <span className="text-indigo-200">22% Fading GSW</span>
+            <div className="mb-3 grid grid-cols-2 gap-3">
+              <div>
+                <p className="scoreboard-number text-4xl text-green-300">78%</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-400">Riding LAL</p>
+              </div>
+              <div className="text-right">
+                <p className="scoreboard-number text-4xl text-indigo-200">22%</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-400">Fading GSW</p>
+              </div>
             </div>
-            <div className="h-3 overflow-hidden rounded-full bg-gray-950 ring-1 ring-white/10">
-              <div className="h-full w-[78%] rounded-full bg-gradient-to-r from-green-400 to-teal-300" />
+            <div className="flex h-4 overflow-hidden rounded-full bg-gray-950 ring-1 ring-white/10">
+              <div className="h-full w-[78%] bg-gradient-to-r from-green-400 to-teal-300" />
+              <div className="h-full flex-1 bg-gradient-to-r from-purple-700 to-indigo-700" />
             </div>
+            <p className="mt-3 text-center text-xs font-black uppercase tracking-[0.12em] text-yellow-100">
+              ⚠️ Public is all-in on LAL
+            </p>
           </div>
 
           <div className="mt-4 grid grid-cols-3 gap-2">
             <ArenaActionButton
               active={lockedAction === "ride"}
               label="Ride LAL"
+              percent="78%"
               tone="ride"
               onClick={() => setLockedAction("ride")}
             />
             <ArenaActionButton
               active={lockedAction === "draw"}
               label="Draw"
+              percent="0%"
               tone="draw"
               onClick={() => setLockedAction("draw")}
             />
             <ArenaActionButton
               active={lockedAction === "fade"}
               label="Fade GSW"
+              percent="22%"
               tone="fade"
               onClick={() => setLockedAction("fade")}
             />
           </div>
 
           {lockedAction && (
-            <p className="mt-3 rounded-xl bg-white/10 px-3 py-2 text-center text-xs font-black">
+            <p className="mt-3 rounded-xl bg-white/10 px-3 py-2 text-center text-xs font-black uppercase tracking-[0.12em]">
               Locked. No switching sides.
             </p>
           )}
 
-          <div className="mt-4 rounded-2xl border border-purple-500/30 bg-purple-500/10 p-3">
-            <p className="text-sm font-black text-purple-100">Public is leaning heavy on LAL.</p>
-            <button
-              onClick={() => setLockedAction("fade")}
-              className="mt-3 w-full rounded-2xl bg-gradient-to-r from-purple-700 to-indigo-700 py-3 text-xs font-black text-white shadow-[0_0_24px_rgba(168,85,247,0.18)] transition active:scale-95"
-            >
-              Fade the Public
-            </button>
-          </div>
+          <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">
+            🔒 Locks in when the quarter ends
+          </p>
         </section>
 
         <nav className="mt-4 grid grid-cols-3 rounded-2xl border border-white/10 bg-black/45 p-1 shadow-[0_18px_44px_rgba(0,0,0,0.28)]">
@@ -118,47 +168,121 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
           ))}
         </nav>
 
-        <div className="mt-4 space-y-4">
+        <div className="mt-4">
           {activeTab === "chat" && (
-            <>
-              <WhoIsCooking />
+            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_19rem] md:items-start">
               <ArenaChat />
-            </>
+              <RunTheArena onFadePublic={() => setLockedAction("fade")} />
+            </div>
           )}
 
           {activeTab === "game" && <GameTab />}
 
           {activeTab === "calls" && <CallsTab />}
         </div>
+
+        <ArenaBottomNav onBack={onBack} />
       </div>
     </main>
+  );
+}
+
+function TeamScore({
+  city,
+  seed,
+  team,
+  score,
+  side,
+}: {
+  city: string;
+  seed: string;
+  team: string;
+  score: string;
+  side: "left" | "right";
+}) {
+  const isLeft = side === "left";
+
+  return (
+    <div className={`grid grid-cols-[auto_1fr] items-center gap-3 ${isLeft ? "" : "text-right"}`}>
+      <span
+        className={`h-20 w-1.5 rounded-full ${
+          isLeft ? "bg-gradient-to-b from-yellow-300 to-green-300" : "order-2 bg-gradient-to-b from-sky-300 to-purple-500"
+        }`}
+      />
+      <div className={isLeft ? "" : "order-1"}>
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-400">{city}</p>
+        <p className={`sports-display text-4xl leading-none ${isLeft ? "text-green-100" : "text-indigo-100"}`}>{team}</p>
+        <p className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-gray-500">{seed}</p>
+        <p className="scoreboard-number mt-2 text-7xl sm:text-8xl">{score}</p>
+      </div>
+    </div>
+  );
+}
+
+function ArenaBottomNav({ onBack }: { onBack: () => void }) {
+  const items = [
+    { label: "Feed", icon: "▱", active: false, onClick: onBack },
+    { label: "Arena", icon: "◉", active: true },
+    { label: "Receipts", icon: "▤", active: false },
+    { label: "Top Talkers", icon: "♕", active: false },
+    { label: "Profile", icon: "♙", active: false },
+  ];
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-[#02040a]/95 px-4 py-3 shadow-[0_-18px_50px_rgba(0,0,0,0.45)] backdrop-blur">
+      <div className="mx-auto grid max-w-5xl grid-cols-5 gap-1 rounded-[1.4rem] border border-white/10 bg-white/5 p-2">
+        {items.map((item) => (
+          <button
+            key={item.label}
+            onClick={item.onClick}
+            className={`grid gap-1 rounded-2xl px-1 py-2 text-center text-[10px] font-black uppercase transition active:scale-95 ${
+              item.active ? "text-purple-300 shadow-[0_0_26px_rgba(139,92,246,0.22)]" : "text-gray-500"
+            }`}
+            type="button"
+          >
+            <span className="text-xl leading-none">{item.icon}</span>
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </div>
+    </nav>
   );
 }
 
 function ArenaActionButton({
   active,
   label,
+  percent,
   tone,
   onClick,
 }: {
   active: boolean;
   label: string;
+  percent: string;
   tone: "ride" | "draw" | "fade";
   onClick: () => void;
 }) {
   const toneClass = {
     ride: active
-      ? "bg-green-300 text-black shadow-[0_0_24px_rgba(45,212,191,0.28)]"
-      : "bg-gradient-to-r from-green-500 to-teal-400 text-black",
-    draw: active ? "bg-white text-black" : "bg-gray-950 text-white ring-1 ring-white/10",
+      ? "border-green-200 bg-green-300 text-black shadow-[0_0_24px_rgba(45,212,191,0.28)]"
+      : "border-green-300/30 bg-gradient-to-r from-green-500/85 to-teal-400/85 text-black",
+    draw: active ? "border-white bg-white text-black" : "border-white/10 bg-gray-950 text-white",
     fade: active
-      ? "bg-gradient-to-r from-purple-300 to-indigo-300 text-black shadow-[0_0_24px_rgba(168,85,247,0.28)]"
-      : "bg-gradient-to-r from-purple-700 to-indigo-700 text-white",
+      ? "border-purple-200 bg-gradient-to-r from-purple-300 to-indigo-300 text-black shadow-[0_0_24px_rgba(168,85,247,0.28)]"
+      : "border-purple-300/30 bg-gradient-to-r from-purple-700/90 to-indigo-700/90 text-white",
   }[tone];
+  const icon = tone === "ride" ? "⌃" : tone === "fade" ? "😈" : "×";
 
   return (
-    <button onClick={onClick} className={`rounded-2xl py-3 text-xs font-black transition active:scale-95 ${toneClass}`}>
-      {label}
+    <button
+      onClick={onClick}
+      className={`grid min-h-20 grid-cols-[auto_1fr] items-center gap-3 rounded-2xl border px-3 py-3 text-left text-xs font-black transition active:scale-95 ${toneClass}`}
+    >
+      <span className="grid h-10 w-10 place-items-center rounded-full bg-white/25 text-lg">{icon}</span>
+      <span>
+        <span className="block text-sm">{label}</span>
+        <span className="mt-1 block text-xs opacity-75">{percent}</span>
+      </span>
     </button>
   );
 }
