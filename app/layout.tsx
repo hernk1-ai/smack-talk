@@ -16,9 +16,9 @@ export const metadata: Metadata = {
   title: "Smack Talk",
   description: "Social sports calls, receipts, and reputation.",
   icons: {
-    icon: "/smack-talk-logo.svg",
-    shortcut: "/smack-talk-logo.svg",
-    apple: "/smack-talk-logo.svg",
+    icon: "/smack-talk-logo.png",
+    shortcut: "/smack-talk-logo.png",
+    apple: "/smack-talk-logo.png",
   },
 };
 

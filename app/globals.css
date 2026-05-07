@@ -189,9 +189,11 @@ textarea {
 
 .hero-receipts {
   display: inline-block;
+  background-size: 135% 100%;
   transform: skewX(-4deg);
   transform-origin: left center;
   text-shadow: 0 0 30px rgba(132, 204, 22, 0.16), 0 0 38px rgba(168, 85, 247, 0.16);
+  animation: heroReceiptSweep 5.8s ease-in-out infinite;
 }
 
 .hero-receipts::after {
@@ -230,6 +232,21 @@ textarea {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  .hero-receipts {
+    animation: none;
+  }
+}
+
+@keyframes heroReceiptSweep {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
   }
 }
 

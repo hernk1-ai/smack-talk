@@ -41,7 +41,7 @@ export function Header() {
         >
           Claim Your Spot
           <Image
-            src="/smack-talk-logo.svg"
+            src="/smack-talk-logo.png"
             alt=""
             width={20}
             height={20}
@@ -80,7 +80,7 @@ export function Header() {
             >
               Claim Your Spot
               <Image
-                src="/smack-talk-logo.svg"
+                src="/smack-talk-logo.png"
                 alt=""
                 width={20}
                 height={20}

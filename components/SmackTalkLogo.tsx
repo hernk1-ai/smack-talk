@@ -8,7 +8,7 @@ export function SmackTalkLogo({ size = 48 }: { size?: number }) {
       aria-hidden="true"
     >
       <Image
-        src="/smack-talk-logo.svg"
+        src="/smack-talk-logo.png"
         alt=""
         width={size - 10}
         height={size - 10}
