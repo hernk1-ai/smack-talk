@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 
@@ -38,7 +39,14 @@ export function Header() {
           href="#waitlist"
           className="hidden min-h-12 items-center rounded-xl border border-lime-300/70 bg-black/45 px-5 text-xs font-black uppercase tracking-[0.12em] text-white shadow-[0_0_28px_rgba(132,204,22,0.16)] transition hover:scale-[1.02] hover:border-purple-300 hover:shadow-[0_0_34px_rgba(168,85,247,0.22)] md:inline-flex"
         >
-          Claim Your Spot <span className="ml-3 text-lg text-lime-300">⚡</span>
+          Claim Your Spot
+          <Image
+            src="/smack-talk-logo.svg"
+            alt=""
+            width={20}
+            height={20}
+            className="ml-3 rounded-md object-contain"
+          />
         </a>
 
         <button
@@ -71,6 +79,13 @@ export function Header() {
               className="mt-2 flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-lime-400 to-purple-500 px-4 text-sm font-black uppercase tracking-[0.14em] text-black"
             >
               Claim Your Spot
+              <Image
+                src="/smack-talk-logo.svg"
+                alt=""
+                width={20}
+                height={20}
+                className="ml-3 rounded-md object-contain"
+              />
             </a>
           </div>
         </div>

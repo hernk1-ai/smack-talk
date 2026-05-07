@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import {
@@ -107,8 +108,8 @@ export function ArenaChat() {
 
       <div className="sticky bottom-3 rounded-3xl border border-white/10 bg-black/75 p-2 shadow-[0_18px_50px_rgba(0,0,0,0.45)] backdrop-blur">
         <div className="flex items-center gap-2 rounded-2xl bg-white/5 px-3 py-2">
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-purple-400 to-sky-300 text-xs font-black text-black">
-            ST
+          <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full border border-white/10 bg-black/60 p-1">
+            <Image src="/smack-talk-logo.svg" alt="" width={24} height={24} className="object-contain" />
           </span>
           <input
             aria-label="Join the conversation"

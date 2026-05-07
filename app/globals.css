@@ -173,6 +173,38 @@ textarea {
   text-shadow: 0 8px 0 rgba(255, 255, 255, 0.03), 0 0 44px rgba(255, 255, 255, 0.08);
 }
 
+.hero-copy::before {
+  pointer-events: none;
+  content: "";
+  position: absolute;
+  inset: -1.75rem -1.25rem -1.25rem;
+  z-index: -1;
+  border-radius: 2rem;
+  background:
+    linear-gradient(90deg, rgba(2, 4, 10, 0.96), rgba(2, 4, 10, 0.72) 58%, rgba(2, 4, 10, 0.16) 86%, transparent),
+    radial-gradient(ellipse at 8% 28%, rgba(255, 255, 255, 0.1), transparent 32rem),
+    radial-gradient(ellipse at 18% 78%, rgba(132, 204, 22, 0.09), transparent 20rem);
+  filter: blur(0.2px);
+}
+
+.hero-receipts {
+  display: inline-block;
+  transform: skewX(-4deg);
+  transform-origin: left center;
+  text-shadow: 0 0 30px rgba(132, 204, 22, 0.16), 0 0 38px rgba(168, 85, 247, 0.16);
+}
+
+.hero-receipts::after {
+  content: "";
+  display: block;
+  height: 0.07em;
+  width: 96%;
+  margin-top: 0.03em;
+  background: linear-gradient(90deg, #84cc16 0%, #a3e635 44%, #8b5cf6 100%);
+  box-shadow: 0 0 26px rgba(132, 204, 22, 0.28);
+  clip-path: polygon(0 38%, 100% 0, 97% 72%, 3% 100%);
+}
+
 .neon-cta {
   background:
     linear-gradient(100deg, #83e600 0%, #a3ff12 28%, #8b5cf6 78%, #a855f7 100%);

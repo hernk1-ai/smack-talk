@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { FormEvent, useState } from "react";
 import { isSupabaseConfigured, supabase } from "@/utils/supabaseClient";
 import { captureLandingEvent } from "@/utils/posthogClient";
@@ -91,7 +92,20 @@ export function WaitlistForm() {
           disabled={formState === "loading"}
           className="neon-cta min-h-[3.4rem] rounded-xl px-5 text-base font-black uppercase italic tracking-[0.12em] text-black shadow-[0_0_34px_rgba(132,204,22,0.22)] transition hover:scale-[1.015] focus:outline-none focus:ring-2 focus:ring-lime-200/70 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-48"
         >
-          {formState === "loading" ? "Claiming..." : "Claim Your Spot ⚡"}
+          {formState === "loading" ? (
+            "Claiming..."
+          ) : (
+            <span className="inline-flex items-center justify-center gap-2">
+              Claim Your Spot
+              <Image
+                src="/smack-talk-logo.svg"
+                alt=""
+                width={20}
+                height={20}
+                className="rounded-md object-contain"
+              />
+            </span>
+          )}
         </button>
       </div>
 
