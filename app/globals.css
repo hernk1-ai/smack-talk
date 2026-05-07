@@ -62,6 +62,217 @@ body {
   background-size: 240px 240px, 310px 310px, 280px 280px, 100% 100%;
 }
 
+.arena-preview-bg {
+  background:
+    linear-gradient(180deg, rgba(2, 4, 10, 0.5) 0%, rgba(2, 4, 10, 0.18) 28%, rgba(2, 4, 10, 0.84) 88%),
+    radial-gradient(ellipse at 52% 8%, rgba(255, 255, 255, 0.08), transparent 34rem),
+    linear-gradient(180deg, #02040a 0%, #050716 46%, #02040a 100%);
+}
+
+.arena-preview-bg::before,
+.arena-preview-bg::after {
+  pointer-events: none;
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.arena-preview-bg::before {
+  opacity: 0.34;
+  background:
+    linear-gradient(100deg, transparent 0 24%, rgba(255, 255, 255, 0.08) 33%, transparent 45%),
+    linear-gradient(78deg, transparent 0 58%, rgba(139, 92, 246, 0.11) 68%, transparent 78%),
+    linear-gradient(118deg, transparent 0 8%, rgba(132, 204, 22, 0.08) 17%, transparent 28%);
+  mix-blend-mode: screen;
+}
+
+.arena-preview-bg::after {
+  opacity: 0.23;
+  background:
+    repeating-radial-gradient(ellipse at 50% 100%, rgba(255, 255, 255, 0.09) 0 1px, transparent 1px 18px),
+    linear-gradient(180deg, transparent 0 68%, rgba(0, 0, 0, 0.8) 100%);
+  mask-image: linear-gradient(to top, #000 0 22%, transparent 58%);
+}
+
+.arena-preview-bg__phone-glow,
+.arena-preview-bg__left-glow,
+.arena-preview-bg__spotlight,
+.arena-preview-bg__flare,
+.arena-preview-bg__streak,
+.arena-preview-bg__crowd,
+.arena-preview-bg__grain {
+  position: absolute;
+}
+
+.arena-preview-bg__phone-glow {
+  right: max(-7rem, calc(50% - 43rem));
+  top: 5rem;
+  height: 42rem;
+  width: 40rem;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 56% 38%, rgba(168, 85, 247, 0.44), transparent 18rem),
+    radial-gradient(circle at 28% 60%, rgba(59, 130, 246, 0.18), transparent 17rem);
+  filter: blur(12px);
+}
+
+.arena-preview-bg__left-glow {
+  left: max(-18rem, calc(50% - 56rem));
+  top: 26rem;
+  height: 46rem;
+  width: 33rem;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 42% 42%, rgba(132, 204, 22, 0.22), transparent 16rem),
+    radial-gradient(circle at 20% 72%, rgba(45, 212, 191, 0.1), transparent 14rem);
+  filter: blur(16px);
+}
+
+.arena-preview-bg__spotlight {
+  top: 1rem;
+  height: 48rem;
+  width: 18rem;
+  opacity: 0.46;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.11), transparent 76%);
+  filter: blur(14px);
+  transform-origin: top center;
+}
+
+.arena-preview-bg__spotlight--left {
+  left: 6%;
+  transform: rotate(23deg);
+}
+
+.arena-preview-bg__spotlight--right {
+  right: 16%;
+  transform: rotate(-19deg);
+}
+
+.arena-preview-bg__flare {
+  height: 7rem;
+  width: 7rem;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.9) 0 2px, rgba(255, 255, 255, 0.4) 3px 6px, transparent 3.5rem),
+    radial-gradient(circle, rgba(139, 92, 246, 0.28), transparent 4rem);
+  filter: blur(0.2px);
+  opacity: 0.72;
+}
+
+.arena-preview-bg__flare--left {
+  left: max(1rem, calc(50% - 36rem));
+  top: 23rem;
+}
+
+.arena-preview-bg__flare--right {
+  right: max(2rem, calc(50% - 36rem));
+  top: 9rem;
+}
+
+.arena-preview-bg__streak {
+  left: max(-6rem, calc(50% - 47rem));
+  height: 2px;
+  width: 24rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(132, 204, 22, 0.9), rgba(168, 85, 247, 0.48), transparent);
+  box-shadow: 0 0 20px rgba(132, 204, 22, 0.32);
+  filter: blur(0.25px);
+}
+
+.arena-preview-bg__streak--one {
+  top: 28rem;
+  transform: rotate(-11deg);
+}
+
+.arena-preview-bg__streak--two {
+  top: 53rem;
+  width: 18rem;
+  opacity: 0.55;
+  transform: rotate(-24deg);
+}
+
+.arena-preview-bg__crowd {
+  inset-inline: 0;
+  top: 34rem;
+  height: 30rem;
+  opacity: 0.52;
+  background:
+    radial-gradient(circle at 12% 78%, rgba(255, 255, 255, 0.16) 0 1px, transparent 2px),
+    radial-gradient(circle at 19% 84%, rgba(132, 204, 22, 0.16) 0 1px, transparent 2px),
+    radial-gradient(circle at 74% 76%, rgba(168, 85, 247, 0.2) 0 1px, transparent 2px),
+    radial-gradient(circle at 83% 82%, rgba(255, 255, 255, 0.14) 0 1px, transparent 2px),
+    repeating-linear-gradient(97deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 18px);
+  background-size: 42px 30px, 54px 34px, 46px 32px, 58px 36px, 100% 100%;
+  mask-image: linear-gradient(to top, #000 0 24%, rgba(0, 0, 0, 0.8) 42%, transparent 82%);
+}
+
+.arena-preview-bg__grain {
+  inset: 0;
+  opacity: 0.035;
+  background-image:
+    radial-gradient(circle at 30% 20%, #fff 0 0.7px, transparent 1px),
+    radial-gradient(circle at 70% 80%, #fff 0 0.6px, transparent 1px);
+  background-size: 13px 13px, 17px 17px;
+  mix-blend-mode: screen;
+}
+
+@media (max-width: 767px) {
+  .arena-preview-bg {
+    background:
+      linear-gradient(180deg, rgba(2, 4, 10, 0.78) 0%, rgba(2, 4, 10, 0.5) 36%, rgba(2, 4, 10, 0.9) 88%),
+      radial-gradient(ellipse at 52% 8%, rgba(255, 255, 255, 0.05), transparent 24rem),
+      linear-gradient(180deg, #02040a 0%, #040615 48%, #02040a 100%);
+  }
+
+  .arena-preview-bg::before {
+    opacity: 0.18;
+  }
+
+  .arena-preview-bg::after {
+    opacity: 0.16;
+  }
+
+  .arena-preview-bg__phone-glow {
+    right: -18rem;
+    top: 18rem;
+    opacity: 0.46;
+  }
+
+  .arena-preview-bg__left-glow {
+    left: -20rem;
+    top: 19rem;
+    opacity: 0.54;
+  }
+
+  .arena-preview-bg__spotlight {
+    opacity: 0.22;
+  }
+
+  .arena-preview-bg__flare {
+    opacity: 0.34;
+    transform: scale(0.7);
+  }
+
+  .arena-preview-bg__flare--right {
+    top: 18rem;
+  }
+
+  .arena-preview-bg__streak {
+    left: -8rem;
+    opacity: 0.42;
+    width: 18rem;
+  }
+
+  .arena-preview-bg__crowd {
+    top: 39rem;
+    opacity: 0.28;
+  }
+
+  .arena-preview-bg__grain {
+    opacity: 0.025;
+  }
+}
+
 * {
   box-sizing: border-box;
 }

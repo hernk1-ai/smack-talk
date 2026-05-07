@@ -75,8 +75,8 @@ export function CountdownSection() {
               </div>
             </div>
 
-            <div className="overflow-visible border-t border-white/10 pt-7 text-center lg:border-l lg:border-t-0 lg:pl-10 lg:pr-2 lg:pt-0">
-              <h2 className="sports-display overflow-visible bg-gradient-to-r from-purple-300 via-purple-500 to-lime-300 bg-clip-text px-1 pb-2 text-5xl italic leading-[1.08] text-transparent sm:text-6xl xl:text-7xl">
+            <div className="overflow-visible border-t border-white/10 px-3 pt-7 text-center lg:border-l lg:border-t-0 lg:pl-12 lg:pr-6 lg:pt-0">
+              <h2 className="sports-display mx-auto w-fit overflow-visible bg-gradient-to-r from-purple-300 via-purple-500 to-lime-300 bg-clip-text px-3 pb-2 text-5xl italic leading-[1.12] text-transparent sm:text-6xl xl:text-[4.25rem]">
                 Coming Soon
               </h2>
               <p className="mt-2 text-2xl font-black uppercase italic tracking-[0.12em] text-lime-300">Season Zero</p>
