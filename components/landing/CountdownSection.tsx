@@ -53,26 +53,35 @@ export function CountdownSection() {
   ];
 
   return (
-    <section className="border-b border-white/10 py-16 sm:py-24">
+    <section className="border-b border-white/10 py-12 sm:py-20">
       <div className="landing-shell">
-        <div className="arena-surface overflow-hidden rounded-[2rem] border border-white/10 p-6 shadow-[0_30px_90px_rgba(0,0,0,0.52)] sm:p-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="arena-surface overflow-hidden rounded-[2rem] border border-lime-300/25 p-5 shadow-[0_30px_90px_rgba(0,0,0,0.52),0_0_44px_rgba(132,204,22,0.08)] sm:p-8">
+          <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-purple-200">The Arena Opens In</p>
-              <h2 className="sports-display mt-3 text-5xl leading-none sm:text-7xl">Coming Soon</h2>
-            </div>
-            <p className="rounded-full border border-green-300/20 bg-green-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-green-100">
-              Season Zero
-            </p>
-          </div>
-
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {units.map((unit) => (
-              <div key={unit.label} className="rounded-3xl border border-white/10 bg-black/45 p-5 text-center">
-                <p className="scoreboard-number text-5xl text-white">{String(unit.value).padStart(2, "0")}</p>
-                <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">{unit.label}</p>
+              <p className="text-center text-[10px] font-black uppercase tracking-[0.34em] text-lime-300 lg:text-left">
+                The Arena Opens In
+              </p>
+              <div className="mt-6 grid grid-cols-4 gap-2 sm:gap-4">
+                {units.map((unit) => (
+                  <div key={unit.label} className="text-center">
+                    <p className="scoreboard-number text-4xl text-white sm:text-6xl">
+                      {String(unit.value).padStart(2, "0")}
+                    </p>
+                    <p className="mt-2 text-[10px] font-black uppercase tracking-[0.14em] text-gray-400">
+                      {unit.label}
+                    </p>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+
+            <div className="border-t border-white/10 pt-7 text-center lg:border-l lg:border-t-0 lg:pl-10 lg:pt-0">
+              <h2 className="sports-display bg-gradient-to-r from-purple-300 via-purple-500 to-lime-300 bg-clip-text text-5xl italic leading-none text-transparent sm:text-7xl">
+                Coming Soon
+              </h2>
+              <p className="mt-2 text-2xl font-black uppercase italic tracking-[0.12em] text-lime-300">Season Zero</p>
+              <div className="mx-auto mt-3 h-1.5 w-36 rounded-full bg-gradient-to-r from-lime-300 to-purple-500" />
+            </div>
           </div>
         </div>
       </div>

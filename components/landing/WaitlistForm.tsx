@@ -66,10 +66,12 @@ export function WaitlistForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-[1.75rem] border border-white/10 bg-black/55 p-4 shadow-[0_24px_70px_rgba(0,0,0,0.44)] backdrop-blur"
+      className="rounded-[1.75rem] border border-lime-300/35 bg-black/58 p-4 shadow-[0_24px_70px_rgba(0,0,0,0.44),0_0_44px_rgba(132,204,22,0.08)] backdrop-blur sm:p-5"
     >
-      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-green-200">Be there for opening night.</p>
-      <p className="mt-2 text-sm font-semibold text-gray-400">Join the first wave. Reserve your spot.</p>
+      <p className="text-center text-sm font-black uppercase italic tracking-[0.16em] text-lime-300 sm:text-base">
+        Be there for opening night.
+      </p>
+      <p className="mt-2 text-center text-sm font-semibold text-gray-300">Join the first wave. Reserve your spot.</p>
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row">
         <input
@@ -81,15 +83,15 @@ export function WaitlistForm() {
           }}
           type="email"
           placeholder="Enter your email"
-          className="min-h-[3.25rem] min-w-0 flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 text-sm font-bold text-white outline-none placeholder:text-gray-600 focus:border-green-300/60"
+          className="min-h-[3.4rem] min-w-0 flex-1 rounded-xl border border-white/20 bg-white/[0.055] px-4 text-base font-semibold text-white outline-none placeholder:text-gray-500 transition focus:border-lime-300/70 focus:shadow-[0_0_20px_rgba(132,204,22,0.13)]"
           aria-label="Email address"
         />
         <button
           type="submit"
           disabled={formState === "loading"}
-          className="min-h-[3.25rem] rounded-2xl bg-white px-5 text-sm font-black uppercase tracking-[0.12em] text-black shadow-[0_0_26px_rgba(255,255,255,0.14)] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+          className="neon-cta min-h-[3.4rem] rounded-xl px-5 text-base font-black uppercase italic tracking-[0.12em] text-black shadow-[0_0_34px_rgba(132,204,22,0.22)] transition hover:scale-[1.015] focus:outline-none focus:ring-2 focus:ring-lime-200/70 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-48"
         >
-          {formState === "loading" ? "Claiming..." : "Claim Your Spot"}
+          {formState === "loading" ? "Claiming..." : "Claim Your Spot ⚡"}
         </button>
       </div>
 
@@ -103,7 +105,7 @@ export function WaitlistForm() {
           You are on the list. Opening night is calling.
         </p>
       )}
-      <p className="mt-3 text-xs font-bold text-gray-500">No spam. No BS. Just early access.</p>
+      <p className="mt-4 text-center text-xs font-bold text-gray-400">🔒 No spam. No BS. Just early access.</p>
     </form>
   );
 }

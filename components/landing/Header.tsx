@@ -13,20 +13,20 @@ export function Header() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#02040a]/82 backdrop-blur-xl">
-      <div className="landing-shell flex min-h-20 items-center justify-between gap-4">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#02040a]/78 backdrop-blur-xl">
+      <div className="landing-shell flex min-h-18 items-center justify-between gap-4 py-2 sm:min-h-20">
         <a href="#about" className="flex min-w-0 items-center gap-3" aria-label="Smack Talk home">
-          <SmackTalkLogo size={46} />
+          <SmackTalkLogo size={50} />
           <div className="leading-none">
-            <p className="brand-lockup text-2xl sm:text-3xl">
+            <p className="brand-lockup text-2xl sm:text-[2rem]">
               <span>Smack</span>{" "}
               <span className="bg-gradient-to-r from-purple-300 to-sky-300 bg-clip-text text-transparent">Talk</span>
             </p>
-            <p className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">Season Zero</p>
+            <p className="mt-1 text-[9px] font-black uppercase tracking-[0.2em] text-lime-300/75">Season Zero</p>
           </div>
         </a>
 
-        <nav className="hidden items-center gap-8 text-xs font-black uppercase tracking-[0.18em] text-gray-400 md:flex">
+        <nav className="hidden items-center gap-8 text-xs font-black uppercase tracking-[0.18em] text-gray-300 md:flex">
           {navLinks.map((link) => (
             <a key={link.href} href={link.href} className="transition hover:text-white">
               {link.label}
@@ -36,9 +36,9 @@ export function Header() {
 
         <a
           href="#waitlist"
-          className="hidden rounded-full bg-white px-5 py-3 text-xs font-black uppercase tracking-[0.12em] text-black shadow-[0_0_28px_rgba(255,255,255,0.16)] transition hover:scale-[1.02] md:inline-flex"
+          className="hidden min-h-12 items-center rounded-xl border border-lime-300/70 bg-black/45 px-5 text-xs font-black uppercase tracking-[0.12em] text-white shadow-[0_0_28px_rgba(132,204,22,0.16)] transition hover:scale-[1.02] hover:border-purple-300 hover:shadow-[0_0_34px_rgba(168,85,247,0.22)] md:inline-flex"
         >
-          Claim Your Spot
+          Claim Your Spot <span className="ml-3 text-lg text-lime-300">⚡</span>
         </a>
 
         <button
@@ -68,7 +68,7 @@ export function Header() {
             <a
               href="#waitlist"
               onClick={() => setIsOpen(false)}
-              className="mt-2 flex min-h-12 items-center justify-center rounded-2xl bg-white px-4 text-sm font-black uppercase tracking-[0.14em] text-black"
+              className="mt-2 flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-lime-400 to-purple-500 px-4 text-sm font-black uppercase tracking-[0.14em] text-black"
             >
               Claim Your Spot
             </a>
