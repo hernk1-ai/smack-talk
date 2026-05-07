@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { isSupabaseConfigured, supabase } from "@/utils/supabaseClient";
+import { captureLandingEvent } from "@/utils/posthogClient";
 
 type FormState = "idle" | "loading" | "success" | "duplicate" | "error" | "invalid";
 
@@ -12,6 +13,7 @@ export function WaitlistForm() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    captureLandingEvent("claim_spot_clicked");
 
     const trimmedEmail = email.trim();
     const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail);
@@ -25,6 +27,9 @@ export function WaitlistForm() {
     if (!isSupabaseConfigured || !supabase) {
       setError("Waitlist is almost ready. Supabase env vars are missing.");
       setFormState("error");
+      captureLandingEvent("waitlist_email_error", {
+        reason: "missing_supabase_env",
+      });
       return;
     }
 
@@ -47,11 +52,15 @@ export function WaitlistForm() {
 
       setError(isDuplicate ? "You already claimed your spot." : "Couldn’t save your spot. Try again in a minute.");
       setFormState(isDuplicate ? "duplicate" : "error");
+      captureLandingEvent(isDuplicate ? "waitlist_email_duplicate" : "waitlist_email_error", {
+        code: insertError.code || "unknown",
+      });
       return;
     }
 
     setFormState("success");
     setEmail("");
+    captureLandingEvent("waitlist_email_submitted");
   }
 
   return (
