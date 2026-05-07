@@ -17,6 +17,10 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -47,6 +51,11 @@ textarea {
 
 .app-shell {
   width: min(calc(100% - 24px), 1120px);
+  margin-inline: auto;
+}
+
+.landing-shell {
+  width: min(calc(100% - 28px), 1180px);
   margin-inline: auto;
 }
 
@@ -129,8 +138,22 @@ textarea {
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
 }
 
+.landing-card {
+  background:
+    linear-gradient(145deg, rgba(15, 23, 42, 0.78), rgba(2, 6, 23, 0.96)),
+    radial-gradient(circle at 100% 0%, rgba(139, 92, 246, 0.16), transparent 14rem),
+    radial-gradient(circle at 0% 100%, rgba(45, 212, 191, 0.1), transparent 12rem);
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.32);
+}
+
 .logo-glow {
   animation: logoPulse 4.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 @keyframes logoPulse {
