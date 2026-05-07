@@ -1,15 +1,16 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { isSupabaseConfigured, supabase } from "@/utils/supabaseClient";
 
-type FormState = "idle" | "success";
+type FormState = "idle" | "loading" | "success" | "duplicate" | "error" | "invalid";
 
 export function WaitlistForm() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [formState, setFormState] = useState<FormState>("idle");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const trimmedEmail = email.trim();
@@ -17,12 +18,43 @@ export function WaitlistForm() {
 
     if (!isValidEmail) {
       setError("Drop a real email so we can hold your spot.");
-      setFormState("idle");
+      setFormState("invalid");
+      return;
+    }
+
+    if (!isSupabaseConfigured || !supabase) {
+      setError("Waitlist is almost ready. Supabase env vars are missing.");
+      setFormState("error");
       return;
     }
 
     setError("");
+    setFormState("loading");
+
+    const { error: insertError } = await supabase.from("waitlist").insert({
+      email: trimmedEmail.toLowerCase(),
+      source: "landing_page",
+    });
+
+    if (insertError) {
+      const isDuplicate =
+        insertError.code === "23505" ||
+        insertError.message.toLowerCase().includes("duplicate") ||
+        insertError.message.toLowerCase().includes("unique");
+
+      if (isDuplicate) {
+        setError("You are already on the list. We saved your spot.");
+        setFormState("duplicate");
+        return;
+      }
+
+      setError("Couldn’t save your spot. Try again in a minute.");
+      setFormState("error");
+      return;
+    }
+
     setFormState("success");
+    setEmail("");
   }
 
   return (
@@ -39,6 +71,7 @@ export function WaitlistForm() {
           onChange={(event) => {
             setEmail(event.target.value);
             setError("");
+            setFormState("idle");
           }}
           type="email"
           placeholder="Enter your email"
@@ -47,13 +80,18 @@ export function WaitlistForm() {
         />
         <button
           type="submit"
-          className="min-h-[3.25rem] rounded-2xl bg-white px-5 text-sm font-black uppercase tracking-[0.12em] text-black shadow-[0_0_26px_rgba(255,255,255,0.14)] transition active:scale-95"
+          disabled={formState === "loading"}
+          className="min-h-[3.25rem] rounded-2xl bg-white px-5 text-sm font-black uppercase tracking-[0.12em] text-black shadow-[0_0_26px_rgba(255,255,255,0.14)] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Claim Your Spot
+          {formState === "loading" ? "Claiming..." : "Claim Your Spot"}
         </button>
       </div>
 
-      {error && <p className="mt-3 text-sm font-bold text-red-200">{error}</p>}
+      {error && (
+        <p className={`mt-3 text-sm font-bold ${formState === "duplicate" ? "text-yellow-100" : "text-red-200"}`}>
+          {error}
+        </p>
+      )}
       {formState === "success" && (
         <p className="mt-3 rounded-2xl border border-green-300/20 bg-green-300/10 px-3 py-2 text-sm font-bold text-green-100">
           You are on the list. Opening night is calling.
