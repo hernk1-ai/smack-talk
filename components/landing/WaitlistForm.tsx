@@ -39,12 +39,13 @@ export function WaitlistForm() {
       });
 
     if (insertError) {
-      const isDuplicate =
-        insertError.code === "23505" ||
-        insertError.message.toLowerCase().includes("duplicate") ||
-        insertError.message.toLowerCase().includes("unique");
+      if (process.env.NODE_ENV === "development") {
+        console.error("Supabase waitlist insert error", insertError);
+      }
 
-      setError(formatSupabaseError(insertError));
+      const isDuplicate = insertError.code === "23505";
+
+      setError(isDuplicate ? "You already claimed your spot." : "Couldn’t save your spot. Try again in a minute.");
       setFormState(isDuplicate ? "duplicate" : "error");
       return;
     }
@@ -96,19 +97,4 @@ export function WaitlistForm() {
       <p className="mt-3 text-xs font-bold text-gray-500">No spam. No BS. Just early access.</p>
     </form>
   );
-}
-
-function formatSupabaseError(error: {
-  code?: string;
-  message: string;
-  details?: string;
-  hint?: string;
-}) {
-  return [
-    `Supabase error${error.code ? ` (${error.code})` : ""}: ${error.message}`,
-    error.details ? `Details: ${error.details}` : "",
-    error.hint ? `Hint: ${error.hint}` : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
 }
