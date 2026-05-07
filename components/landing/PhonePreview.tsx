@@ -11,16 +11,18 @@ export function PhonePreview() {
             <span className="text-[10px] font-black uppercase tracking-[0.12em] text-white">12.8K Watching</span>
           </div>
 
-          <div className="arena-scoreboard mt-5 rounded-3xl border border-white/10 p-4 shadow-inner">
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-[10px] font-black uppercase tracking-[0.16em] text-gray-300">
-              <span>LAL</span>
-              <span className="text-purple-300">4th QTR</span>
-              <span className="text-right">GSW</span>
+          <div className="arena-scoreboard mt-5 rounded-3xl border border-white/10 px-3.5 py-4 shadow-inner sm:px-4">
+            <div className="grid grid-cols-[1fr_minmax(4.5rem,auto)_1fr] items-center gap-x-3 text-[10px] font-black uppercase tracking-[0.16em] text-gray-300">
+              <span className="justify-self-start">LAL</span>
+              <span className="justify-self-center text-purple-300">4th QTR</span>
+              <span className="justify-self-end">GSW</span>
             </div>
-            <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-              <p className="scoreboard-number text-6xl text-white lg:text-7xl">108</p>
-              <span className="scoreboard-number text-5xl text-gray-200">2:47</span>
-              <p className="scoreboard-number text-right text-6xl text-white lg:text-7xl">103</p>
+            <div className="mt-3 grid grid-cols-[1fr_minmax(4.5rem,auto)_1fr] items-end gap-x-3">
+              <p className="scoreboard-number justify-self-start text-[3.35rem] text-white lg:text-[4rem]">108</p>
+              <span className="scoreboard-number justify-self-center pb-1 text-[2.55rem] text-gray-200 lg:text-[3rem]">
+                2:47
+              </span>
+              <p className="scoreboard-number justify-self-end text-[3.35rem] text-white lg:text-[4rem]">103</p>
             </div>
           </div>
 

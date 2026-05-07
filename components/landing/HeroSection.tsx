@@ -12,14 +12,14 @@ export function HeroSection() {
         <div className="absolute right-[-6rem] top-28 h-px w-[30rem] rotate-[18deg] bg-gradient-to-r from-transparent via-purple-400/70 to-transparent blur-[1px]" />
       </div>
 
-      <div className="landing-shell grid min-h-[calc(100dvh-4.5rem)] items-center gap-10 py-10 sm:py-14 md:grid-cols-[minmax(0,1fr)_22rem] md:gap-8 lg:grid-cols-[minmax(0,1fr)_26rem] xl:grid-cols-[minmax(0,1fr)_28rem]">
+      <div className="landing-shell grid min-h-[calc(100dvh-4.5rem)] items-center gap-10 py-10 sm:py-14 md:grid-cols-[minmax(0,1fr)_21rem] md:gap-10 lg:grid-cols-[minmax(0,1fr)_25rem] xl:grid-cols-[minmax(0,1fr)_27rem]">
         <div className="hero-copy relative max-w-4xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-lime-300/25 bg-lime-300/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-lime-200">
             <span className="h-2 w-2 rounded-full bg-green-300 shadow-[0_0_16px_rgba(45,212,191,0.9)]" />
             Coming Soon
           </div>
 
-          <h1 className="hero-title sports-display mt-5 text-[clamp(2.35rem,11.2vw,6.25rem)] leading-[0.82] tracking-[0.01em] text-white sm:text-[6.75rem] md:text-[6.45rem] lg:text-[7.65rem] xl:text-[8.35rem]">
+          <h1 className="hero-title sports-display mt-5 text-[clamp(2.15rem,10.3vw,5.95rem)] leading-[0.84] tracking-[0.01em] text-white sm:text-[6.35rem] md:text-[6.2rem] lg:text-[7.2rem] xl:text-[7.95rem]">
             <span className="block whitespace-nowrap">Talk Smack.</span>
             <span className="hero-receipts block whitespace-nowrap bg-gradient-to-r from-lime-300 via-white to-purple-500 bg-clip-text text-transparent drop-shadow-[0_0_24px_rgba(132,204,22,0.18)]">
               Show Receipts.
@@ -53,7 +53,7 @@ export function HeroSection() {
           </div>
         </div>
 
-        <div className="md:scale-[0.88] md:justify-self-end md:opacity-95 lg:scale-[0.94] xl:scale-100">
+        <div className="md:scale-[0.84] md:justify-self-end md:opacity-95 lg:scale-[0.9] xl:scale-[0.96]">
           <PhonePreview />
         </div>
       </div>
