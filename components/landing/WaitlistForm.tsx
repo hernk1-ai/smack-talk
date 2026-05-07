@@ -31,10 +31,12 @@ export function WaitlistForm() {
     setError("");
     setFormState("loading");
 
-    const { error: insertError } = await supabase.from("waitlist").insert({
-      email: trimmedEmail.toLowerCase(),
-      source: "landing_page",
-    });
+    const { error: insertError } = await supabase
+      .from("waitlist")
+      .insert({
+        email: trimmedEmail.toLowerCase(),
+        source: "landing_page",
+      });
 
     if (insertError) {
       const isDuplicate =
@@ -42,14 +44,8 @@ export function WaitlistForm() {
         insertError.message.toLowerCase().includes("duplicate") ||
         insertError.message.toLowerCase().includes("unique");
 
-      if (isDuplicate) {
-        setError("You are already on the list. We saved your spot.");
-        setFormState("duplicate");
-        return;
-      }
-
-      setError("Couldn’t save your spot. Try again in a minute.");
-      setFormState("error");
+      setError(formatSupabaseError(insertError));
+      setFormState(isDuplicate ? "duplicate" : "error");
       return;
     }
 
@@ -100,4 +96,19 @@ export function WaitlistForm() {
       <p className="mt-3 text-xs font-bold text-gray-500">No spam. No BS. Just early access.</p>
     </form>
   );
+}
+
+function formatSupabaseError(error: {
+  code?: string;
+  message: string;
+  details?: string;
+  hint?: string;
+}) {
+  return [
+    `Supabase error${error.code ? ` (${error.code})` : ""}: ${error.message}`,
+    error.details ? `Details: ${error.details}` : "",
+    error.hint ? `Hint: ${error.hint}` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
