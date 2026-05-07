@@ -171,12 +171,13 @@ body {
 
 .arena-preview-bg__streak {
   left: max(-6rem, calc(50% - 47rem));
-  height: 2px;
+  height: 1px;
   width: 24rem;
   border-radius: 999px;
-  background: linear-gradient(90deg, transparent, rgba(132, 204, 22, 0.9), rgba(168, 85, 247, 0.48), transparent);
-  box-shadow: 0 0 20px rgba(132, 204, 22, 0.32);
-  filter: blur(0.25px);
+  opacity: 0.16;
+  background: linear-gradient(90deg, transparent, rgba(132, 204, 22, 0.42), rgba(168, 85, 247, 0.2), transparent);
+  box-shadow: 0 0 26px rgba(132, 204, 22, 0.12);
+  filter: blur(2px);
 }
 
 .arena-preview-bg__streak--one {
@@ -187,7 +188,7 @@ body {
 .arena-preview-bg__streak--two {
   top: 53rem;
   width: 18rem;
-  opacity: 0.55;
+  opacity: 0.1;
   transform: rotate(-24deg);
 }
 
