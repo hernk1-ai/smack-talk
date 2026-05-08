@@ -32,10 +32,10 @@ function TikTokIcon() {
   );
 }
 
-function DiscordIcon() {
+function TwitchIcon() {
   return (
     <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M18.8 5.3A15 15 0 0 0 15.2 4l-.4.8a13.7 13.7 0 0 1 3.2 1.6 10.6 10.6 0 0 0-9.9 0 13 13 0 0 1 3.1-1.6L10.8 4a15 15 0 0 0-3.6 1.3C4.9 8.6 4.3 11.8 4.6 15a14.5 14.5 0 0 0 4.4 2.2l.9-1.4a9.3 9.3 0 0 1-1.4-.7l.3-.2a10.4 10.4 0 0 0 6.4 0l.3.2c-.4.3-.9.5-1.4.7l.9 1.4a14.5 14.5 0 0 0 4.4-2.2c.4-3.7-.6-6.8-2.6-9.7ZM9.8 13.1c-.8 0-1.4-.7-1.4-1.6s.6-1.6 1.4-1.6 1.4.7 1.4 1.6-.6 1.6-1.4 1.6Zm4.4 0c-.8 0-1.4-.7-1.4-1.6s.6-1.6 1.4-1.6 1.4.7 1.4 1.6-.6 1.6-1.4 1.6Z" />
+      <path d="M4.5 3 3.2 6.4v12h4.2V21h2.8l2.5-2.6h3.8l4.3-4.3V3H4.5Zm14 10.1-2.4 2.4h-4.2l-2.5 2.6v-2.6H6.2V5.3h12.3v7.8Zm-3.1-5.3v4.1h-2.1V7.8h2.1Zm-5.6 0v4.1H7.7V7.8h2.1Z" />
     </svg>
   );
 }
@@ -76,10 +76,11 @@ const socialLinks: SocialLink[] = [
     isExternal: true,
   },
   {
-    label: "Discord",
-    href: "#",
-    hoverClass: "hover:border-indigo-300/45 hover:shadow-[0_0_24px_rgba(129,140,248,0.16)]",
-    icon: <DiscordIcon />,
+    label: "Twitch",
+    href: "https://twitch.tv/smacktalkgg",
+    hoverClass: "hover:border-purple-300/50 hover:shadow-[0_0_24px_rgba(168,85,247,0.18)]",
+    icon: <TwitchIcon />,
+    isExternal: true,
   },
 ];
 

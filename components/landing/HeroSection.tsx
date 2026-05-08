@@ -1,6 +1,6 @@
 export function HeroSection() {
   return (
-    <section id="about" className="relative overflow-hidden border-b border-white/10">
+    <section id="about" className="hero-arena-photo relative isolate overflow-hidden border-b border-white/10">
       <div className="landing-shell grid min-h-[calc(100dvh-4.5rem)] items-center gap-10 py-10 sm:py-16 lg:grid-cols-[minmax(0,0.95fr)_minmax(22rem,0.7fr)] lg:gap-14">
         <div className="hero-copy relative max-w-4xl">
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-lime-300 sm:text-xs">
