@@ -219,34 +219,6 @@ body {
   mix-blend-mode: screen;
 }
 
-.hero-arena-photo::before,
-.hero-arena-photo::after {
-  pointer-events: none;
-  content: "";
-  position: absolute;
-  inset: 0;
-}
-
-.hero-arena-photo::before {
-  z-index: -2;
-  background-image: url("/images/arena-bg.webp");
-  background-position: 58% 44%;
-  background-size: cover;
-  opacity: 0.48;
-  filter: saturate(0.82) contrast(1.08);
-  transform: scale(1.02);
-}
-
-.hero-arena-photo::after {
-  z-index: -1;
-  background:
-    linear-gradient(90deg, rgba(2, 4, 10, 0.94) 0%, rgba(2, 4, 10, 0.86) 32%, rgba(2, 4, 10, 0.68) 58%, rgba(2, 4, 10, 0.82) 100%),
-    radial-gradient(ellipse at 75% 38%, rgba(168, 85, 247, 0.16), transparent 26rem),
-    radial-gradient(ellipse at 15% 72%, rgba(132, 204, 22, 0.08), transparent 18rem),
-    radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.38) 72%, rgba(0, 0, 0, 0.82) 100%),
-    linear-gradient(180deg, rgba(2, 4, 10, 0.54), rgba(2, 4, 10, 0.84));
-}
-
 @media (max-width: 767px) {
   .arena-preview-bg {
     background:
@@ -303,21 +275,6 @@ body {
     opacity: 0.025;
   }
 
-  .hero-arena-photo::before {
-    background-position: 62% 48%;
-    opacity: 0.24;
-    filter: blur(2px) saturate(0.72) contrast(1.06);
-    transform: scale(1.12);
-  }
-
-  .hero-arena-photo::after {
-    background:
-      linear-gradient(90deg, rgba(2, 4, 10, 0.96) 0%, rgba(2, 4, 10, 0.9) 55%, rgba(2, 4, 10, 0.86) 100%),
-      radial-gradient(ellipse at 86% 42%, rgba(168, 85, 247, 0.09), transparent 18rem),
-      radial-gradient(ellipse at 12% 76%, rgba(132, 204, 22, 0.05), transparent 14rem),
-      radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.52) 68%, rgba(0, 0, 0, 0.88) 100%),
-      linear-gradient(180deg, rgba(2, 4, 10, 0.72), rgba(2, 4, 10, 0.92));
-  }
 }
 
 * {
