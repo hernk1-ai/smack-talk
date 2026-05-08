@@ -1,50 +1,60 @@
-import { PhonePreview } from "@/components/landing/PhonePreview";
-import { WaitlistForm } from "@/components/landing/WaitlistForm";
-
 export function HeroSection() {
   return (
     <section id="about" className="relative overflow-hidden border-b border-white/10">
-      <div className="landing-shell grid min-h-[calc(100dvh-4.5rem)] items-center gap-9 py-8 sm:py-14 md:grid-cols-[minmax(0,1fr)_21rem] md:gap-10 lg:grid-cols-[minmax(0,1fr)_25rem] xl:grid-cols-[minmax(0,1fr)_27rem]">
+      <div className="landing-shell grid min-h-[calc(100dvh-4.5rem)] items-center gap-10 py-10 sm:py-16 lg:grid-cols-[minmax(0,0.95fr)_minmax(22rem,0.7fr)] lg:gap-14">
         <div className="hero-copy relative max-w-4xl">
-          <div className="inline-flex items-center gap-2 rounded-lg border border-lime-300/35 bg-black/55 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-lime-200 shadow-[0_0_22px_rgba(132,204,22,0.13)]">
-            <span className="h-1.5 w-1.5 rounded-full bg-lime-300 shadow-[0_0_14px_rgba(132,204,22,0.95)]" />
-            Arena Loading
-          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-lime-300 sm:text-xs">
+            The live social sports arena
+          </p>
 
-          <h1 className="hero-title sports-display mt-4 text-[clamp(2.42rem,11.6vw,5.95rem)] leading-[0.82] tracking-[0.01em] text-white sm:text-[6.35rem] md:text-[6.2rem] lg:text-[7.2rem] xl:text-[7.95rem]">
+          <h1 className="hero-title sports-display mt-4 text-[clamp(3rem,13vw,7.4rem)] leading-[0.83] tracking-[0.01em] text-white sm:text-[8rem] lg:text-[7.2rem] xl:text-[8.7rem]">
             <span className="block whitespace-nowrap">Talk Smack.</span>
             <span className="hero-receipts block whitespace-nowrap bg-gradient-to-r from-lime-300 via-white to-purple-500 bg-clip-text text-transparent drop-shadow-[0_0_24px_rgba(132,204,22,0.18)]">
               Show Receipts.
             </span>
           </h1>
 
-          <p className="mt-6 max-w-xl text-center text-xl font-black uppercase leading-tight tracking-[0.16em] text-gray-200 sm:text-2xl md:mt-8 md:text-left">
+          <p className="mt-7 max-w-2xl text-xl font-black uppercase leading-tight tracking-[0.12em] text-gray-200 sm:text-2xl">
             Lock your takes.
-            <span className="block">
-              Build <span className="text-lime-300">your reputation.</span>
-            </span>
-          </p>
-          <p className="mt-5 max-w-xl text-center text-base font-semibold leading-7 text-gray-400 sm:text-lg md:text-left">
-            Smack Talk turns live sports arguments into public calls, crowd pressure, and receipts that follow the
-            scoreboard.
+            <span className="block sm:inline"> Build your reputation.</span>
           </p>
 
-          <div className="mt-6 grid max-w-xl grid-cols-2 gap-3 text-center sm:grid-cols-4 md:mt-7">
-            {["Lock Your Take", "Ride or Fade", "Earn Reputation", "Get Receipts"].map((label) => (
-              <div key={label} className="border-white/10 sm:border-l sm:first:border-l-0">
-                <p className="text-2xl text-gray-200">{label === "Lock Your Take" ? "⚡" : label === "Ride or Fade" ? "👥" : label === "Earn Reputation" ? "🏆" : "🧾"}</p>
-                <p className="mt-2 text-[10px] font-black uppercase tracking-[0.1em] text-gray-400">{label}</p>
-              </div>
-            ))}
-          </div>
-
-          <div id="waitlist" className="mt-7 max-w-lg scroll-mt-28 md:mt-8">
-            <WaitlistForm />
+          <div className="mt-7 flex flex-col gap-4 sm:flex-row sm:items-center">
+            <a
+              href="#waitlist"
+              className="neon-cta inline-flex min-h-14 items-center justify-center rounded-sm px-8 text-base font-black uppercase italic tracking-[0.12em] text-black shadow-[0_0_34px_rgba(132,204,22,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_0_38px_rgba(132,204,22,0.3)] active:translate-y-0 active:scale-[0.99]"
+            >
+              Claim Your Spot
+              <span className="ml-4 text-xl leading-none">›</span>
+            </a>
+            <p className="text-sm font-semibold text-gray-300">Join the first wave of competitors.</p>
           </div>
         </div>
 
-        <div className="md:scale-[0.84] md:justify-self-end md:opacity-95 lg:scale-[0.9] xl:scale-[0.96]">
-          <PhonePreview />
+        <div className="hero-culture-card relative hidden min-h-[29rem] overflow-hidden rounded-[2rem] border border-white/10 bg-black/45 p-5 shadow-[0_34px_100px_rgba(0,0,0,0.54)] lg:block">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_54%_22%,rgba(245,158,11,0.2),transparent_13rem),radial-gradient(circle_at_82%_58%,rgba(168,85,247,0.2),transparent_15rem)]" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black via-black/70 to-transparent" />
+
+          <div className="relative ml-auto w-44 rounded-2xl border border-lime-300/25 bg-black/55 p-4 text-right shadow-[0_0_30px_rgba(132,204,22,0.1)]">
+            <p className="text-lg font-black uppercase leading-tight tracking-[0.08em] text-lime-300">Takes Don’t Lie.</p>
+            <p className="mt-3 text-lg font-black uppercase leading-tight tracking-[0.08em] text-purple-300">
+              Receipts Don’t Lie.
+            </p>
+          </div>
+
+          <div className="relative mt-24 max-w-xs">
+            <p className="sports-display text-5xl leading-none text-white/80">I called it.</p>
+            <p className="mt-2 text-3xl font-black uppercase italic tracking-[0.04em] text-lime-300">Prove me wrong.</p>
+          </div>
+
+          <div className="absolute bottom-8 left-6 right-6 grid grid-cols-3 gap-3">
+            {["BOS", "OKC", "DAL"].map((team) => (
+              <div key={team} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-center">
+                <p className="scoreboard-number text-2xl text-white">{team}</p>
+                <p className="mt-1 text-[9px] font-black uppercase tracking-[0.12em] text-gray-500">live</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

@@ -55,7 +55,7 @@ function ExternalCue() {
 
 const socialLinks: SocialLink[] = [
   {
-    label: "Twitter",
+    label: "X",
     href: "https://x.com/smacktalkgg",
     hoverClass: "hover:border-white/35 hover:shadow-[0_0_24px_rgba(255,255,255,0.12)]",
     icon: <XIcon />,
@@ -88,7 +88,7 @@ export function SocialLinks() {
     <section className="py-10">
       <div className="landing-shell">
         <div className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-5 sm:grid-cols-[1fr_auto] sm:items-center">
-          <p className="text-sm font-black uppercase italic tracking-[0.18em] text-purple-300">Follow the movement</p>
+          <p className="text-sm font-black uppercase italic tracking-[0.18em] text-purple-300">Follow Smack Talk</p>
           <div className="grid grid-cols-2 gap-2 sm:flex">
             {socialLinks.map((link) => (
               <a

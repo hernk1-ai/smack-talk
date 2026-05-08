@@ -1,5 +1,6 @@
 "use client";
 
+import { WaitlistForm } from "@/components/landing/WaitlistForm";
 import { useEffect, useState } from "react";
 
 const LAUNCH_DATE = "2026-09-05T20:00:00-07:00";
@@ -53,35 +54,35 @@ export function CountdownSection() {
   ];
 
   return (
-    <section className="border-b border-white/10 py-12 sm:py-20">
+    <section id="waitlist" className="scroll-mt-24 border-b border-white/10 py-12 sm:py-20">
       <div className="landing-shell">
-        <div className="arena-surface overflow-hidden rounded-[2rem] border border-lime-300/25 p-5 shadow-[0_30px_90px_rgba(0,0,0,0.52),0_0_44px_rgba(132,204,22,0.08)] sm:p-8">
-          <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
-            <div>
-              <p className="text-center text-[10px] font-black uppercase tracking-[0.34em] text-lime-300 lg:text-left">
-                The Arena Opens In
-              </p>
-              <div className="mt-6 grid grid-cols-4 gap-2 sm:gap-4">
-                {units.map((unit) => (
-                  <div key={unit.label} className="text-center">
-                    <p className="scoreboard-number text-4xl text-white sm:text-6xl">
-                      {String(unit.value).padStart(2, "0")}
-                    </p>
-                    <p className="mt-2 text-[10px] font-black uppercase tracking-[0.14em] text-gray-400">
-                      {unit.label}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
+        <div className="grid gap-8 lg:grid-cols-[0.85fr_1fr] lg:items-center">
+          <div>
+            <p className="text-lg font-black uppercase italic tracking-[0.12em] text-purple-300">Coming Soon</p>
+            <h2 className="sports-display mt-2 text-6xl leading-none text-white sm:text-8xl">Season Zero</h2>
+            <div className="mt-4 h-1.5 w-64 max-w-full rounded-full bg-gradient-to-r from-lime-300 to-purple-500" />
 
-            <div className="overflow-visible border-t border-white/10 px-3 pt-7 text-center lg:border-l lg:border-t-0 lg:pl-12 lg:pr-6 lg:pt-0">
-              <h2 className="sports-display mx-auto w-fit overflow-visible bg-gradient-to-r from-purple-300 via-purple-500 to-lime-300 bg-clip-text px-3 pb-2 text-5xl italic leading-[1.12] text-transparent sm:text-6xl xl:text-[4.25rem]">
-                Coming Soon
-              </h2>
-              <p className="mt-2 text-2xl font-black uppercase italic tracking-[0.12em] text-lime-300">Season Zero</p>
-              <div className="mx-auto mt-3 h-1.5 w-36 rounded-full bg-gradient-to-r from-lime-300 to-purple-500" />
+            <p className="mt-7 text-2xl font-black text-white">Be there for opening night.</p>
+            <p className="mt-4 max-w-xl text-base font-semibold leading-7 text-gray-300">
+              Smack Talk launches soon. Join now to reserve your username and lock in early access to the arena.
+            </p>
+
+            <div className="mt-8 grid grid-cols-4 gap-2 sm:max-w-md sm:gap-4">
+              {units.map((unit) => (
+                <div key={unit.label}>
+                  <p className="scoreboard-number text-4xl text-lime-300 sm:text-5xl">
+                    {String(unit.value).padStart(2, "0")}
+                  </p>
+                  <p className="mt-2 text-[10px] font-black uppercase tracking-[0.14em] text-gray-400">
+                    {unit.label}
+                  </p>
+                </div>
+              ))}
             </div>
+          </div>
+
+          <div className="arena-surface rounded-[2rem] border border-purple-400/35 p-4 shadow-[0_30px_90px_rgba(0,0,0,0.52),0_0_44px_rgba(168,85,247,0.08)] sm:p-6">
+            <WaitlistForm />
           </div>
         </div>
       </div>

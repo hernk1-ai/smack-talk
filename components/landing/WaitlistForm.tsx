@@ -70,9 +70,9 @@ export function WaitlistForm() {
       className="rounded-[1.75rem] border border-lime-300/35 bg-black/58 p-4 shadow-[0_24px_70px_rgba(0,0,0,0.44),0_0_44px_rgba(132,204,22,0.08)] backdrop-blur sm:p-5"
     >
       <p className="text-center text-sm font-black uppercase italic tracking-[0.16em] text-lime-300 sm:text-base">
-        Be there for opening night.
+        Join the first wave
       </p>
-      <p className="mt-2 text-center text-sm font-semibold text-gray-300">Join the first wave. Reserve your spot.</p>
+      <p className="mt-2 text-center text-sm font-semibold text-gray-300">Enter your email to claim your spot.</p>
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row">
         <input
@@ -83,7 +83,7 @@ export function WaitlistForm() {
             setFormState("idle");
           }}
           type="email"
-          placeholder="Enter your email"
+          placeholder="you@domain.com"
           className="min-h-[3.4rem] min-w-0 flex-1 rounded-xl border border-white/20 bg-white/[0.055] px-4 text-base font-semibold text-white outline-none placeholder:text-gray-500 transition focus:border-lime-300/70 focus:shadow-[0_0_20px_rgba(132,204,22,0.13)]"
           aria-label="Email address"
         />
@@ -119,7 +119,11 @@ export function WaitlistForm() {
           You are on the list. Opening night is calling.
         </p>
       )}
-      <p className="mt-4 text-center text-xs font-bold text-gray-400">🔒 No spam. No BS. Just early access.</p>
+      <div className="mt-5 grid grid-cols-3 gap-2 border-t border-white/10 pt-4 text-center text-[10px] font-black uppercase leading-4 tracking-[0.08em] text-gray-400">
+        <span>Reserve your username</span>
+        <span>Early access to launch</span>
+        <span>Season Zero perks</span>
+      </div>
     </form>
   );
 }

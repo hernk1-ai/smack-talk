@@ -32,8 +32,8 @@ body {
   overflow-x: hidden;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 50% -10%, rgba(79, 70, 229, 0.24), transparent 32rem),
-    radial-gradient(circle at 15% 4%, rgba(45, 212, 191, 0.14), transparent 19rem),
+    radial-gradient(circle at 50% -10%, rgba(124, 58, 237, 0.16), transparent 32rem),
+    radial-gradient(circle at 14% 6%, rgba(180, 83, 9, 0.16), transparent 20rem),
     linear-gradient(180deg, #02040a 0%, #030712 46%, #02040a 100%);
   color: var(--foreground);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -41,8 +41,9 @@ body {
 
 .landing-atmosphere {
   background:
-    radial-gradient(ellipse at 76% 14%, rgba(168, 85, 247, 0.2), transparent 24rem),
-    radial-gradient(ellipse at 6% 48%, rgba(132, 204, 22, 0.12), transparent 24rem),
+    radial-gradient(ellipse at 78% 12%, rgba(168, 85, 247, 0.13), transparent 26rem),
+    radial-gradient(ellipse at 42% 10%, rgba(245, 158, 11, 0.1), transparent 28rem),
+    radial-gradient(ellipse at 6% 48%, rgba(132, 204, 22, 0.08), transparent 24rem),
     linear-gradient(180deg, rgba(2, 4, 10, 0.3), rgba(2, 4, 10, 0.95)),
     #02040a;
 }
@@ -64,8 +65,9 @@ body {
 
 .arena-preview-bg {
   background:
-    linear-gradient(180deg, rgba(2, 4, 10, 0.5) 0%, rgba(2, 4, 10, 0.18) 28%, rgba(2, 4, 10, 0.84) 88%),
-    radial-gradient(ellipse at 52% 8%, rgba(255, 255, 255, 0.08), transparent 34rem),
+    linear-gradient(90deg, rgba(2, 4, 10, 0.94) 0%, rgba(2, 4, 10, 0.62) 48%, rgba(2, 4, 10, 0.82) 100%),
+    linear-gradient(180deg, rgba(2, 4, 10, 0.5) 0%, rgba(2, 4, 10, 0.18) 28%, rgba(2, 4, 10, 0.86) 88%),
+    radial-gradient(ellipse at 56% 8%, rgba(245, 158, 11, 0.12), transparent 34rem),
     linear-gradient(180deg, #02040a 0%, #050716 46%, #02040a 100%);
 }
 
@@ -81,8 +83,8 @@ body {
   opacity: 0.34;
   background:
     linear-gradient(100deg, transparent 0 24%, rgba(255, 255, 255, 0.08) 33%, transparent 45%),
-    linear-gradient(78deg, transparent 0 58%, rgba(139, 92, 246, 0.11) 68%, transparent 78%),
-    linear-gradient(118deg, transparent 0 8%, rgba(132, 204, 22, 0.08) 17%, transparent 28%);
+    linear-gradient(78deg, transparent 0 58%, rgba(139, 92, 246, 0.08) 68%, transparent 78%),
+    linear-gradient(118deg, transparent 0 8%, rgba(245, 158, 11, 0.08) 17%, transparent 28%);
   mix-blend-mode: screen;
 }
 
@@ -111,8 +113,8 @@ body {
   width: 40rem;
   border-radius: 999px;
   background:
-    radial-gradient(circle at 56% 38%, rgba(168, 85, 247, 0.44), transparent 18rem),
-    radial-gradient(circle at 28% 60%, rgba(59, 130, 246, 0.18), transparent 17rem);
+    radial-gradient(circle at 56% 38%, rgba(168, 85, 247, 0.24), transparent 18rem),
+    radial-gradient(circle at 28% 60%, rgba(245, 158, 11, 0.12), transparent 17rem);
   filter: blur(12px);
 }
 
@@ -123,8 +125,8 @@ body {
   width: 33rem;
   border-radius: 999px;
   background:
-    radial-gradient(circle at 42% 42%, rgba(132, 204, 22, 0.22), transparent 16rem),
-    radial-gradient(circle at 20% 72%, rgba(45, 212, 191, 0.1), transparent 14rem);
+    radial-gradient(circle at 42% 42%, rgba(132, 204, 22, 0.12), transparent 16rem),
+    radial-gradient(circle at 20% 72%, rgba(245, 158, 11, 0.08), transparent 14rem);
   filter: blur(16px);
 }
 
@@ -425,6 +427,25 @@ textarea {
     linear-gradient(100deg, #83e600 0%, #a3ff12 28%, #8b5cf6 78%, #a855f7 100%);
 }
 
+.ticker-track {
+  animation: tickerScroll 26s linear infinite;
+}
+
+.ticker-track:hover {
+  animation-play-state: paused;
+}
+
+.hero-culture-card::before {
+  pointer-events: none;
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(110deg, transparent 0 36%, rgba(255, 255, 255, 0.08) 45%, transparent 54%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 62px);
+  opacity: 0.42;
+}
+
 .phone-glow::before {
   pointer-events: none;
   content: "";
@@ -450,6 +471,10 @@ textarea {
   .hero-receipts {
     animation: none;
   }
+
+  .ticker-track {
+    animation: none;
+  }
 }
 
 @keyframes heroReceiptSweep {
@@ -460,6 +485,16 @@ textarea {
 
   50% {
     background-position: 100% 50%;
+  }
+}
+
+@keyframes tickerScroll {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
   }
 }
 
