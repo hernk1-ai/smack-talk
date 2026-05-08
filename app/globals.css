@@ -234,9 +234,9 @@ body {
   }
 
   .arena-preview-bg__phone-glow {
-    right: -18rem;
-    top: 18rem;
-    opacity: 0.46;
+    right: -22rem;
+    top: 25rem;
+    opacity: 0.24;
   }
 
   .arena-preview-bg__left-glow {
@@ -250,7 +250,7 @@ body {
   }
 
   .arena-preview-bg__flare {
-    opacity: 0.34;
+    opacity: 0;
     transform: scale(0.7);
   }
 
