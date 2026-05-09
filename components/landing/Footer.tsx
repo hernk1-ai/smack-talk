@@ -9,7 +9,9 @@ export function Footer() {
           <div>
             <p className="brand-lockup text-2xl leading-none">
               <span>Smack</span>{" "}
-              <span className="bg-gradient-to-r from-purple-300 to-sky-300 bg-clip-text text-transparent">Talk</span>
+              <span className="bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">
+                Talk
+              </span>
             </p>
             <p className="mt-1 text-xs font-black uppercase tracking-[0.18em] text-gray-500">
               Built on takes. Backed by receipts.

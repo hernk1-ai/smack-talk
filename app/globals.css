@@ -428,14 +428,6 @@ textarea {
     linear-gradient(100deg, #83e600 0%, #a3ff12 28%, #8b5cf6 78%, #a855f7 100%);
 }
 
-.ticker-track {
-  animation: tickerScroll 26s linear infinite;
-}
-
-.ticker-track:hover {
-  animation-play-state: paused;
-}
-
 .hero-culture-card::before {
   pointer-events: none;
   content: "";
@@ -473,9 +465,6 @@ textarea {
     animation: none;
   }
 
-  .ticker-track {
-    animation: none;
-  }
 }
 
 @keyframes heroReceiptSweep {
@@ -486,16 +475,6 @@ textarea {
 
   50% {
     background-position: 100% 50%;
-  }
-}
-
-@keyframes tickerScroll {
-  0% {
-    transform: translateX(0);
-  }
-
-  100% {
-    transform: translateX(-50%);
   }
 }
 

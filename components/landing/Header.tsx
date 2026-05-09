@@ -7,7 +7,7 @@ import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 const navLinks = [
   { label: "About", href: "#about" },
   { label: "Features", href: "#features" },
-  { label: "The Arena", href: "#arena" },
+  { label: "The Arena", href: "#waitlist" },
   { label: "FAQ", href: "#faq" },
 ];
 
@@ -22,7 +22,9 @@ export function Header() {
           <div className="leading-none">
             <p className="brand-lockup text-2xl sm:text-[2rem]">
               <span>Smack</span>{" "}
-              <span className="bg-gradient-to-r from-purple-300 to-sky-300 bg-clip-text text-transparent">Talk</span>
+              <span className="bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">
+                Talk
+              </span>
             </p>
             <p className="mt-1 text-[9px] font-black uppercase tracking-[0.2em] text-lime-300/75">Season Zero</p>
           </div>

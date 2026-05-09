@@ -3,7 +3,7 @@ import { PhonePreview } from "@/components/landing/PhonePreview";
 export function HeroSection() {
   return (
     <section id="about" className="relative overflow-hidden border-b border-white/10">
-      <div className="landing-shell grid min-h-[calc(100dvh-4.5rem)] items-center gap-10 py-10 sm:py-16 lg:grid-cols-[minmax(0,0.95fr)_minmax(22rem,0.7fr)] lg:gap-14">
+      <div className="landing-shell grid min-h-[calc(100dvh-4.5rem)] items-start gap-8 py-6 sm:py-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(22rem,0.7fr)] lg:gap-14 lg:pb-14 lg:pt-10">
         <div className="hero-copy relative max-w-4xl">
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-lime-300 sm:text-xs">
             The live social sports arena
@@ -30,6 +30,12 @@ export function HeroSection() {
               <span className="ml-4 text-xl leading-none">›</span>
             </a>
             <p className="text-sm font-semibold text-gray-300">Join the first wave of competitors.</p>
+          </div>
+        </div>
+
+        <div className="mx-auto h-[29rem] w-full max-w-[19rem] overflow-hidden sm:h-[32rem] sm:max-w-[21rem] lg:hidden">
+          <div className="origin-top scale-[0.86] sm:scale-[0.9]">
+            <PhonePreview />
           </div>
         </div>
 
