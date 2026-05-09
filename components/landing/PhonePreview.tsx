@@ -11,18 +11,22 @@ export function PhonePreview() {
             <span className="text-[10px] font-black uppercase tracking-[0.12em] text-white">12.8K Watching</span>
           </div>
 
-          <div className="arena-scoreboard mt-5 rounded-3xl border border-white/10 px-3.5 py-4 shadow-inner sm:px-4">
-            <div className="grid grid-cols-[1fr_minmax(4.5rem,auto)_1fr] items-center gap-x-3 text-[10px] font-black uppercase tracking-[0.16em] text-gray-300">
-              <span className="justify-self-start">LAL</span>
+          <div className="arena-scoreboard mt-5 rounded-3xl border border-white/10 px-3 py-4 shadow-inner sm:px-4">
+            <div className="grid grid-cols-[minmax(0,1fr)_4rem_minmax(0,1fr)] items-center gap-x-2 text-[10px] font-black uppercase tracking-[0.16em] text-gray-300 sm:grid-cols-[minmax(0,1fr)_4.5rem_minmax(0,1fr)] sm:gap-x-3">
+              <span className="justify-self-center sm:justify-self-start">LAL</span>
               <span className="justify-self-center text-purple-300">4th QTR</span>
-              <span className="justify-self-end">GSW</span>
+              <span className="justify-self-center sm:justify-self-end">GSW</span>
             </div>
-            <div className="mt-3 grid grid-cols-[1fr_minmax(4.5rem,auto)_1fr] items-end gap-x-3">
-              <p className="scoreboard-number justify-self-start text-[3.35rem] text-white lg:text-[4rem]">108</p>
-              <span className="scoreboard-number justify-self-center pb-1 text-[2.55rem] text-gray-200 lg:text-[3rem]">
+            <div className="mt-3 grid grid-cols-[minmax(0,1fr)_4rem_minmax(0,1fr)] items-end gap-x-2 sm:grid-cols-[minmax(0,1fr)_4.5rem_minmax(0,1fr)] sm:gap-x-3">
+              <p className="scoreboard-number justify-self-center text-[2.85rem] text-white sm:justify-self-start sm:text-[3.35rem] lg:text-[4rem]">
+                108
+              </p>
+              <span className="scoreboard-number justify-self-center pb-1 text-[2.15rem] text-gray-200 sm:text-[2.55rem] lg:text-[3rem]">
                 2:47
               </span>
-              <p className="scoreboard-number justify-self-end text-[3.35rem] text-white lg:text-[4rem]">103</p>
+              <p className="scoreboard-number justify-self-center text-[2.85rem] text-white sm:justify-self-end sm:text-[3.35rem] lg:text-[4rem]">
+                103
+              </p>
             </div>
           </div>
 
