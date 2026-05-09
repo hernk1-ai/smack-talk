@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 export function PhonePreview() {
   return (
     <div className="mx-auto w-full max-w-[22rem] md:mr-0 lg:max-w-[27rem]">
@@ -35,15 +33,7 @@ export function PhonePreview() {
           <div className="mt-5 rounded-3xl border border-white/10 bg-black/55 p-4">
             <div className="flex items-end justify-between">
               <p className="text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">62% Riding</p>
-              <span className="grid h-8 w-8 place-items-center rounded-xl border border-white/10 bg-white/5 shadow-[0_0_18px_rgba(132,204,22,0.16)]">
-                <Image
-                  src="/smack-talk-logo.png"
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="h-6 w-6 object-contain"
-                />
-              </span>
+              <span className="text-xl text-gray-300">⚡</span>
               <p className="text-right text-[10px] font-black uppercase tracking-[0.12em] text-purple-300">38% Fading</p>
             </div>
             <div className="mt-3 flex h-3 overflow-hidden rounded-full bg-white/10 shadow-[0_0_18px_rgba(132,204,22,0.14)]">
