@@ -21,7 +21,7 @@ export function PhonePreview() {
               <p className="scoreboard-number justify-self-center text-[2.85rem] text-white sm:justify-self-start sm:text-[3.35rem] lg:text-[4rem]">
                 108
               </p>
-              <span className="scoreboard-number justify-self-center pb-1 text-[2.15rem] text-gray-200 sm:text-[2.55rem] lg:text-[3rem]">
+              <span className="scoreboard-number justify-self-center pb-1 text-[1.75rem] text-gray-200 sm:text-[2.1rem] lg:text-[2.5rem]">
                 2:47
               </span>
               <p className="scoreboard-number justify-self-center text-[2.85rem] text-white sm:justify-self-end sm:text-[3.35rem] lg:text-[4rem]">
