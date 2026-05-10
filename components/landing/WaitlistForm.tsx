@@ -70,9 +70,11 @@ export function WaitlistForm() {
       className="rounded-[1.75rem] border border-lime-300/35 bg-black/58 p-4 shadow-[0_24px_70px_rgba(0,0,0,0.44),0_0_44px_rgba(132,204,22,0.08)] backdrop-blur sm:p-5"
     >
       <p className="text-center text-sm font-black uppercase italic tracking-[0.16em] text-lime-300 sm:text-base">
-        Join the first wave
+        Join The First Lock
       </p>
-      <p className="mt-2 text-center text-sm font-semibold text-gray-300">Enter your email to claim your spot.</p>
+      <p className="mt-2 text-center text-sm font-semibold text-gray-300">
+        Founding talkers get in early before the Crowd gets loud.
+      </p>
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row">
         <input
@@ -83,7 +85,7 @@ export function WaitlistForm() {
             setFormState("idle");
           }}
           type="email"
-          placeholder="you@domain.com"
+          placeholder="Enter your email"
           className="min-h-[3.4rem] min-w-0 flex-1 rounded-xl border border-white/20 bg-white/[0.055] px-4 text-base font-semibold text-white outline-none placeholder:text-gray-500 transition focus:border-lime-300/70 focus:shadow-[0_0_20px_rgba(132,204,22,0.13)]"
           aria-label="Email address"
         />
@@ -93,10 +95,10 @@ export function WaitlistForm() {
           className="neon-cta min-h-[3.4rem] rounded-xl px-5 text-base font-black uppercase italic tracking-[0.12em] text-black shadow-[0_0_34px_rgba(132,204,22,0.22)] transition hover:scale-[1.015] focus:outline-none focus:ring-2 focus:ring-lime-200/70 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-48"
         >
           {formState === "loading" ? (
-            "Claiming..."
+            "Locking..."
           ) : (
             <span className="inline-flex items-center justify-center gap-2">
-              Claim Your Spot
+              Lock My Spot
               <Image
                 src="/smack-talk-logo.png"
                 alt=""
@@ -116,13 +118,13 @@ export function WaitlistForm() {
       )}
       {formState === "success" && (
         <p className="mt-3 rounded-2xl border border-green-300/20 bg-green-300/10 px-3 py-2 text-sm font-bold text-green-100">
-          You are on the list. Opening night is calling.
+          You’re locked. Watch your inbox.
         </p>
       )}
       <div className="mt-5 grid grid-cols-3 gap-2 border-t border-white/10 pt-4 text-center text-[10px] font-black uppercase leading-4 tracking-[0.08em] text-gray-400">
-        <span>Reserve your username</span>
+        <span>Founding talker access</span>
         <span>Early access to launch</span>
-        <span>Season Zero perks</span>
+        <span>The First Lock perks</span>
       </div>
     </form>
   );

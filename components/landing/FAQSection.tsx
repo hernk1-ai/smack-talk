@@ -1,15 +1,15 @@
 const faqs = [
   {
     question: "What is Smack Talk?",
-    answer: "A live sports culture platform where takes get locked, judged by the scoreboard, and turned into receipts.",
+    answer: "A sports reputation platform where locked takes become receipts and your talk becomes your REP.",
   },
   {
     question: "Is this about money?",
-    answer: "No. Smack Talk is about reputation, rivalry, receipts, and bragging rights.",
+    answer: "No. Smack Talk is about REP, rivalry, receipts, and bragging rights. No bets. No odds.",
   },
   {
-    question: "What is Season Zero?",
-    answer: "The first wave of competitors who get early access, username priority, and launch perks.",
+    question: "What is The First Lock?",
+    answer: "The founding launch era where early talkers reserve their place before the Crowd gets loud.",
   },
 ];
 

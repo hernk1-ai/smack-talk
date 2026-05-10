@@ -24,7 +24,7 @@ export function WhoIsCooking() {
               <p className="text-xs text-gray-400">cooking right now</p>
             </div>
             <p className="text-sm font-black text-orange-200">
-              +{user.points} {user.icon}
+              +{user.rep} REP {user.icon}
             </p>
           </div>
         ))}

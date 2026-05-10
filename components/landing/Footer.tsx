@@ -14,7 +14,7 @@ export function Footer() {
               </span>
             </p>
             <p className="mt-1 text-xs font-black uppercase tracking-[0.18em] text-gray-500">
-              Built on takes. Backed by receipts.
+              Smack Talk is a sports reputation platform. No betting. No odds. Just takes, receipts, and REP.
             </p>
           </div>
         </div>

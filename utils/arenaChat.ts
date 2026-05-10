@@ -17,7 +17,7 @@ export type ArenaMessage = {
 export type CookingUser = {
   rank: number;
   handle: string;
-  points: number;
+  rep: number;
   icon: string;
 };
 
@@ -81,7 +81,7 @@ export const mockArenaMessages: ArenaMessage[] = [
     id: "msg-6",
     handle: "Arena",
     badge: "System",
-    message: "🔥 12 users called this",
+    message: "🔥 The Crowd called this",
     timestamp: "3:12",
     type: "system_moment",
   },
@@ -89,7 +89,7 @@ export const mockArenaMessages: ArenaMessage[] = [
     id: "msg-7",
     handle: "@CourtVision",
     badge: "Problem",
-    message: "Public is way too confident.",
+    message: "The Crowd is way too confident.",
     timestamp: "3:07",
     type: "normal",
   },
@@ -126,9 +126,9 @@ export const topArenaTakes = [
 ] as const;
 
 export const whoIsCookingUsers: CookingUser[] = [
-  { rank: 1, handle: "FadeKing", points: 180, icon: "😈" },
-  { rank: 2, handle: "BucketsOnly", points: 150, icon: "🔥" },
-  { rank: 3, handle: "IceColdTake", points: 120, icon: "🧠" },
+  { rank: 1, handle: "FadeKing", rep: 180, icon: "😈" },
+  { rank: 2, handle: "BucketsOnly", rep: 150, icon: "🔥" },
+  { rank: 3, handle: "IceColdTake", rep: 120, icon: "🧠" },
 ];
 
 export function createCalloutMessage(targetHandle: string): ArenaMessage {

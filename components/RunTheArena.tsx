@@ -19,7 +19,7 @@ const arenaMoves = [
   },
 ];
 
-export function RunTheArena({ onFadePublic }: { onFadePublic: () => void }) {
+export function RunTheArena({ onFadeCrowd }: { onFadeCrowd: () => void }) {
   return (
     <aside className="premium-card rounded-3xl border p-4">
       <div className="flex items-start justify-between gap-3">
@@ -69,11 +69,11 @@ export function RunTheArena({ onFadePublic }: { onFadePublic: () => void }) {
       </div>
 
       <button
-        onClick={onFadePublic}
+        onClick={onFadeCrowd}
         className="mt-4 w-full rounded-2xl border border-purple-400/30 bg-purple-500/10 px-3 py-3 text-left transition active:scale-95"
         type="button"
       >
-        <p className="text-sm font-black uppercase text-purple-100">😈 Fade the public. Prove it.</p>
+        <p className="text-sm font-black uppercase text-purple-100">😈 Fade the Crowd. Prove it.</p>
         <p className="mt-1 text-xs font-bold text-gray-400">Talk is easy. Receipts are real.</p>
       </button>
     </aside>

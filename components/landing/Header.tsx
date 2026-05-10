@@ -26,7 +26,7 @@ export function Header() {
                 Talk
               </span>
             </p>
-            <p className="mt-1 text-[9px] font-black uppercase tracking-[0.2em] text-lime-300/75">Season Zero</p>
+            <p className="mt-1 text-[9px] font-black uppercase tracking-[0.2em] text-lime-300/75">The First Lock</p>
           </div>
         </a>
 
@@ -42,7 +42,7 @@ export function Header() {
           href="#waitlist"
           className="hidden min-h-12 items-center rounded-xl border border-lime-300/70 bg-black/45 px-5 text-xs font-black uppercase tracking-[0.12em] text-white shadow-[0_0_28px_rgba(132,204,22,0.16)] transition hover:scale-[1.02] hover:border-purple-300 hover:shadow-[0_0_34px_rgba(168,85,247,0.22)] md:inline-flex"
         >
-          Coming Soon
+          Join The First Lock
           <Image
             src="/smack-talk-logo.png"
             alt=""
@@ -81,7 +81,7 @@ export function Header() {
               onClick={() => setIsOpen(false)}
               className="mt-2 flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-lime-400 to-purple-500 px-4 text-sm font-black uppercase tracking-[0.14em] text-black"
             >
-              Coming Soon
+              Join The First Lock
               <Image
                 src="/smack-talk-logo.png"
                 alt=""

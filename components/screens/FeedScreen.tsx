@@ -1,317 +1,533 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { FeedCard } from "@/components/FeedCard";
-import {
-  type CallReactionCounts,
-  type CallReactionKey,
-  type Choice,
-  type Post,
-  type Status,
-  calculateHeatScore,
-  createLivePosts,
-  defaultCallReactionCounts,
-  getRandomActivityMessage,
-  randomInt,
-  splitFeedSections,
-  startingPosts,
-} from "@/utils/liveFeed";
+import { useState } from "react";
+import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 
-type ReactionCountsByPost = Record<number, CallReactionCounts>;
+type Side = "ride" | "fade";
+
+type TrendingTake = {
+  id: string;
+  rank: number;
+  handle: string;
+  timestamp: string;
+  text: string;
+  heat: string;
+  rides: string;
+  fades: string;
+  avatar: string;
+  verified?: boolean;
+};
+
+type LiveArenaCard = {
+  id: string;
+  matchup: string;
+  quarter: string;
+  viewers: string;
+  score: string;
+  riding: string;
+  fading: string;
+  heat: string;
+  trend: string;
+  trendDirection: "up" | "down";
+};
+
+type ChaosAlert = {
+  id: string;
+  icon: string;
+  title: string;
+  detail: string;
+  time: string;
+  tone: "green" | "orange" | "purple" | "red";
+};
+
+const trendingTakes: TrendingTake[] = [
+  {
+    id: "curry-choking",
+    rank: 1,
+    handle: "@TalkHeavy23",
+    timestamp: "2m ago",
+    text: "Curry is choking.",
+    heat: "2.1K",
+    rides: "1.3K",
+    fades: "342",
+    avatar: "TH",
+    verified: true,
+  },
+  {
+    id: "knicks-upset",
+    rank: 2,
+    handle: "@MidRange",
+    timestamp: "5m ago",
+    text: "Knicks upset incoming.",
+    heat: "1.7K",
+    rides: "1.0K",
+    fades: "276",
+    avatar: "MR",
+    verified: true,
+  },
+  {
+    id: "denver-sleeping",
+    rank: 3,
+    handle: "@BucketsOnly",
+    timestamp: "7m ago",
+    text: "The Crowd is sleeping on Denver.",
+    heat: "1.3K",
+    rides: "842",
+    fades: "193",
+    avatar: "BO",
+    verified: true,
+  },
+  {
+    id: "upset-waiting",
+    rank: 4,
+    handle: "@HoopDreams",
+    timestamp: "9m ago",
+    text: "This is an upset waiting.",
+    heat: "1.1K",
+    rides: "621",
+    fades: "168",
+    avatar: "HD",
+    verified: true,
+  },
+];
+
+const liveArenas: LiveArenaCard[] = [
+  {
+    id: "lal-gsw",
+    matchup: "LAL vs GSW",
+    quarter: "Q4 2:47",
+    viewers: "12.8K",
+    score: "108 - 103",
+    riding: "62% Riding LAL",
+    fading: "38% Fading GSW",
+    heat: "3.6K",
+    trend: "Trending",
+    trendDirection: "up",
+  },
+  {
+    id: "bos-nyk",
+    matchup: "BOS vs NYK",
+    quarter: "Q3 6:12",
+    viewers: "7.3K",
+    score: "89 - 92",
+    riding: "41% Riding BOS",
+    fading: "59% Fading NYK",
+    heat: "1.9K",
+    trend: "Fade Surge",
+    trendDirection: "down",
+  },
+  {
+    id: "mia-atl",
+    matchup: "MIA vs ATL",
+    quarter: "Q2 3:38",
+    viewers: "5.1K",
+    score: "64 - 58",
+    riding: "72% Riding MIA",
+    fading: "28% Fading ATL",
+    heat: "1.2K",
+    trend: "Ride Surge",
+    trendDirection: "up",
+  },
+];
+
+const chaosAlerts: ChaosAlert[] = [
+  {
+    id: "alpha-fade",
+    icon: "◎",
+    title: "94% rode Team Alpha.",
+    detail: "Fade opportunity?",
+    time: "2m ago",
+    tone: "green",
+  },
+  {
+    id: "collapse",
+    icon: "▲",
+    title: "Crowd collapse incoming.",
+    detail: "Momentum shifting fast.",
+    time: "4m ago",
+    tone: "orange",
+  },
+  {
+    id: "buckets-hit",
+    icon: "ϟ",
+    title: "BucketsOnly just hit again.",
+    detail: "3 for 3 today.",
+    time: "6m ago",
+    tone: "purple",
+  },
+  {
+    id: "toxic",
+    icon: "☠",
+    title: "Arena turning toxic.",
+    detail: "Tempers high. Watch your back.",
+    time: "8m ago",
+    tone: "red",
+  },
+  {
+    id: "omega",
+    icon: "↗",
+    title: "Sharp crowd fading Omega.",
+    detail: "Insiders moving.",
+    time: "11m ago",
+    tone: "green",
+  },
+];
 
 export function FeedScreen({ onEnterArena }: { onEnterArena: () => void }) {
-  const [posts, setPosts] = useState<Post[]>(() => createLivePosts(startingPosts));
-  const [myChoices, setMyChoices] = useState<Record<number, Choice>>({});
-  const [reactionCounts, setReactionCounts] = useState<ReactionCountsByPost>(() => buildReactionCounts(startingPosts));
-  const [reactionFlashKey, setReactionFlashKey] = useState<string>();
-  const [callText, setCallText] = useState("");
-  const [gameText, setGameText] = useState("Lakers vs Warriors");
-  const [lastUpdate, setLastUpdate] = useState("");
+  const [takeChoices, setTakeChoices] = useState<Record<string, Side>>({});
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setPosts((prev) => {
-        const livePosts = prev.filter((post) => post.status === "live");
-
-        if (livePosts.length === 0) return prev;
-
-        if (Math.random() > 0.3) {
-          return simulateMomentum(
-            prev.map((post) => ({
-              ...post,
-              minutesAgo: post.minutesAgo + 1,
-              justResolved: false,
-            })),
-          );
-        }
-
-        const postToResolve = livePosts[Math.floor(Math.random() * livePosts.length)];
-        const total = postToResolve.riders + postToResolve.faders;
-        const rideRatio = total === 0 ? 0.5 : postToResolve.riders / total;
-        const winChance = Math.min(0.85, Math.max(0.15, rideRatio));
-        const result: Status = Math.random() < winChance ? "won" : "lost";
-
-        setLastUpdate(
-          result === "won"
-            ? `${postToResolve.user} just backed up their talk.`
-            : `${postToResolve.user} just got exposed.`,
-        );
-
-        return simulateMomentum(
-          prev.map((post) =>
-            post.id === postToResolve.id
-              ? {
-                  ...post,
-                  status: result,
-                  minutesAgo: 0,
-                  justResolved: true,
-                }
-              : {
-                  ...post,
-                  justResolved: false,
-                  minutesAgo: post.minutesAgo + 1,
-                },
-          ),
-        );
-      });
-    }, randomInt(3000, 6000));
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const feedSections = useMemo(() => splitFeedSections(posts), [posts]);
-  const activeMyCalls = posts.filter((post) => post.user === "@hernk1" && post.status === "live").length;
-
-  function updatePost(id: number, type: Choice) {
-    setPosts((prev) =>
-      prev.map((post) => {
-        if (post.id !== id) return post;
-
-        const updatedPost = {
-          ...post,
-          riders: type === "ride" && myChoices[id] !== "ride" ? post.riders + 1 : post.riders,
-          faders: type === "fade" && myChoices[id] !== "fade" ? post.faders + 1 : post.faders,
-          activityBoost: (post.activityBoost ?? 0) + 3,
-          activityText: type === "ride" ? "🔥 12 people just rode" : "💀 Getting faded hard",
-        };
-
-        return {
-          ...updatedPost,
-          heatScore: calculateHeatScore(updatedPost),
-        };
-      }),
-    );
-
-    setMyChoices((prev) => ({
-      ...prev,
-      [id]: type,
-    }));
-  }
-
-  function handleCallReaction(id: number, reaction: CallReactionKey) {
-    setReactionCounts((prev) => ({
-      ...prev,
-      [id]: {
-        ...(prev[id] ?? defaultCallReactionCounts),
-        [reaction]: (prev[id]?.[reaction] ?? defaultCallReactionCounts[reaction]) + 1,
-      },
-    }));
-    setReactionFlashKey(`${id}-${reaction}`);
-    window.setTimeout(() => setReactionFlashKey(undefined), 260);
-  }
-
-  function lockCall() {
-    if (!callText.trim()) return;
-
-    const newPost: Post = {
-      id: Date.now(),
-      user: "@hernk1",
-      text: callText,
-      game: gameText,
-      riders: 0,
-      faders: 0,
-      status: "live",
-      minutesAgo: 0,
-      activityBoost: 6,
-      activityText: "👀 Picking up traction",
-    };
-
-    const livePost = {
-      ...newPost,
-      heatScore: calculateHeatScore(newPost),
-    };
-
-    setPosts((prev) => [livePost, ...prev]);
-    setReactionCounts((prev) => ({
-      ...prev,
-      [newPost.id]: defaultCallReactionCounts,
-    }));
-    setCallText("");
-    setLastUpdate("Your call is live. No switching sides.");
+  function chooseTake(id: string, side: Side) {
+    setTakeChoices((current) => ({ ...current, [id]: side }));
   }
 
   return (
-    <>
-      <div className="premium-card mb-4 rounded-3xl border p-4">
-        <p className="text-xs font-black uppercase text-yellow-300">🟡 Active board</p>
-        <p className="mt-1 text-sm font-bold text-gray-100">You have {activeMyCalls} active calls</p>
-        <p className="mt-1 text-xs text-yellow-100/70">Check back soon. Somebody&apos;s about to get exposed.</p>
-      </div>
-
-      <button
-        onClick={onEnterArena}
-        className="arena-surface mb-4 w-full overflow-hidden rounded-[1.75rem] border border-green-300/25 p-5 text-left shadow-[0_24px_70px_rgba(45,212,191,0.13)] transition active:scale-[0.99]"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-black uppercase text-green-300">Featured broadcast</p>
-            <h2 className="sports-display mt-2 text-3xl leading-none">Live Arena</h2>
-            <p className="mt-3 inline-flex rounded-full border border-white/10 bg-black/45 px-3 py-2 text-xs font-black">
-              🏀 NBA Playoffs
-            </p>
-          </div>
-          <span className="rounded-full bg-white px-4 py-2 text-xs font-black text-black shadow-[0_0_24px_rgba(255,255,255,0.16)]">
-            Enter
-          </span>
-        </div>
-
-        <div className="arena-scoreboard mt-5 rounded-3xl border border-white/10 px-5 py-5">
-          <p className="text-center text-[10px] font-black uppercase tracking-[0.18em] text-gray-400">
-            West Semifinals · Live
-          </p>
-          <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-end gap-5">
-            <div>
-              <p className="sports-display text-4xl leading-none text-green-100">LAL</p>
-              <p className="scoreboard-number mt-3 text-5xl">102</p>
-            </div>
-            <span className="pb-3 text-xs font-black text-gray-500">VS</span>
-            <div className="text-right">
-              <p className="sports-display text-4xl leading-none text-indigo-100">GSW</p>
-              <p className="scoreboard-number mt-3 text-5xl">99</p>
-            </div>
-          </div>
-          <p className="mt-5 text-center text-[10px] font-black uppercase tracking-[0.14em] text-gray-400">
-            4th QTR · 3:24
-          </p>
-        </div>
-
-        <div className="mt-5 grid grid-cols-[1fr_auto] items-center gap-3">
-          <div className="h-2.5 overflow-hidden rounded-full bg-black/70 ring-1 ring-white/10">
-            <div className="h-full w-[78%] rounded-full bg-gradient-to-r from-green-400 to-teal-300" />
-          </div>
-          <p className="text-xs font-black text-gray-300">12.8K watching</p>
-        </div>
-      </button>
-
-      {lastUpdate && (
-        <div className="mb-4 rounded-3xl border border-purple-400/30 bg-purple-500/10 p-4 shadow-[0_0_34px_rgba(168,85,247,0.10)]">
-          <p className="text-xs font-black uppercase text-purple-200">⚡ Live update</p>
-          <p className="mt-1 text-sm text-purple-100">{lastUpdate}</p>
-        </div>
-      )}
-
-      <div className="premium-card mb-5 rounded-3xl border p-4">
-        <p className="mb-3 text-xs font-black uppercase text-gray-300">Make your call</p>
-
-        <select
-          value={gameText}
-          onChange={(event) => setGameText(event.target.value)}
-          className="mb-3 w-full rounded-2xl border border-white/10 bg-black/70 p-3 text-sm font-bold text-white outline-none focus:border-purple-300/60"
-        >
-          <option>Lakers vs Warriors</option>
-          <option>Celtics vs Heat</option>
-          <option>Knicks vs Bucks</option>
-          <option>Suns vs Mavs</option>
-        </select>
-
-        <textarea
-          value={callText}
-          onChange={(event) => setCallText(event.target.value)}
-          placeholder="Say it with your chest..."
-          className="h-24 w-full resize-none rounded-2xl border border-white/10 bg-black/70 p-3 text-sm text-white outline-none placeholder:text-gray-600 focus:border-purple-300/60"
-        />
-
-        <button
-          onClick={lockCall}
-          className="mt-3 w-full rounded-2xl bg-white py-3 text-sm font-black text-black shadow-[0_0_26px_rgba(255,255,255,0.12)] transition active:scale-95"
-        >
-          Lock It 🔒
-        </button>
-
-        <p className="mt-2 text-center text-xs text-gray-500">Locked. No switching sides.</p>
-      </div>
-
-      <section className="space-y-7">
-        {feedSections.map((section) => (
-          <section key={section.id} className="space-y-3" aria-labelledby={`${section.id}-heading`}>
-            <div className="grid grid-cols-[1fr_auto] items-center gap-3 px-1">
-              <div className="h-px bg-gradient-to-r from-white/15 to-transparent" />
-              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">Feed</span>
-              <h2 id={`${section.id}-heading`} className="sports-display col-span-1 text-2xl leading-none">
-                {section.title}
-              </h2>
-              <span className="justify-self-end rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-black uppercase text-gray-400">
-                {section.posts.length} live
-              </span>
-            </div>
-
-            <div className="space-y-4">
-              {section.posts.map((post) => (
-                <FeedCard
-                  key={post.id}
-                  post={post}
-                  choice={myChoices[post.id]}
-                  reactionCounts={reactionCounts[post.id] ?? defaultCallReactionCounts}
-                  reactionFlashKey={reactionFlashKey}
-                  onChoose={updatePost}
-                  onCallReaction={handleCallReaction}
-                />
-              ))}
-            </div>
-          </section>
-        ))}
-      </section>
-    </>
+    <div className="space-y-5">
+      <FeedHeader />
+      <FeaturedArenaCard onEnterArena={onEnterArena} />
+      <TrendingTakes choices={takeChoices} onChoose={chooseTake} />
+      <LiveArenas onEnterArena={onEnterArena} />
+      <ChaosAlerts />
+    </div>
   );
 }
 
-function buildReactionCounts(posts: Post[]) {
-  return posts.reduce<ReactionCountsByPost>((counts, post, index) => {
-    counts[post.id] = {
-      fire: defaultCallReactionCounts.fire + (index % 4),
-      cooked: defaultCallReactionCounts.cooked + (index % 3),
-      sharp: defaultCallReactionCounts.sharp + (index % 5),
-    };
-    return counts;
-  }, {});
+function FeedHeader() {
+  return (
+    <header className="rounded-[1.75rem] border border-white/10 bg-black/35 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur">
+      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <SmackTalkLogo size={58} />
+          <div className="min-w-0">
+            <h1 className="brand-lockup text-[2rem] leading-[0.82] sm:text-4xl">
+              <span className="block text-white">Smack</span>
+              <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">
+                Talk
+              </span>
+            </h1>
+          </div>
+        </div>
+
+        <div className="min-w-0">
+          <p className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.08em] text-gray-200">
+            <span className="h-2.5 w-2.5 rounded-full bg-lime-400 shadow-[0_0_16px_rgba(132,204,22,0.75)]" />
+            12.8K <span className="text-gray-400">Online</span>
+          </p>
+          <p className="mt-1 text-xs font-semibold text-gray-400 sm:text-sm">Real talk. Live takes. All heat.</p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="relative grid h-12 w-12 place-items-center rounded-2xl border border-white/15 bg-white/[0.04] text-xl text-white shadow-[0_0_22px_rgba(255,255,255,0.06)] transition active:scale-95"
+            aria-label="Notifications"
+          >
+            ♧
+            <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-purple-500 text-[10px] font-black text-white">
+              3
+            </span>
+          </button>
+          <button
+            type="button"
+            className="grid h-12 w-12 place-items-center rounded-2xl border border-purple-300/25 bg-purple-500/10 text-2xl text-purple-300 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition active:scale-95"
+            aria-label="Quick action"
+          >
+            ϟ
+          </button>
+        </div>
+      </div>
+    </header>
+  );
 }
 
-function simulateMomentum(posts: Post[]) {
-  if (!posts.length) return posts;
+function FeaturedArenaCard({ onEnterArena }: { onEnterArena: () => void }) {
+  return (
+    <section className="arena-scoreboard overflow-hidden rounded-[1.75rem] border border-lime-300/25 p-4 shadow-[0_26px_80px_rgba(0,0,0,0.56),0_0_34px_rgba(132,204,22,0.08)]">
+      <div className="flex items-center justify-between gap-3">
+        <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.1em] text-lime-300">
+          <span className="h-2.5 w-2.5 rounded-full bg-lime-400 shadow-[0_0_16px_rgba(132,204,22,0.75)]" />
+          Featured Live Arena
+        </p>
+        <span className="rounded-md border border-red-400/60 bg-red-500/10 px-2.5 py-1 text-xs font-black uppercase text-red-300">
+          ▷ Live
+        </span>
+      </div>
 
-  const targetCount = Math.random() > 0.75 ? 2 : 1;
-  const targetIds = new Set<number>();
+      <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-end gap-3 text-center">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-gray-300">Team LAL</p>
+          <p className="scoreboard-number mt-2 text-6xl text-white">108</p>
+        </div>
+        <div className="pb-1">
+          <p className="text-xs font-black uppercase text-purple-300">4th QTR</p>
+          <p className="scoreboard-number mt-1 text-4xl text-white">2:47</p>
+          <p className="mt-2 flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-gray-300">
+            <span className="h-2 w-2 rounded-full bg-lime-400" /> 12.8K Watching
+          </p>
+          <span className="mx-auto mt-2 grid h-7 w-7 place-items-center rounded-full border border-white/20 bg-black/55 text-[10px] font-black text-gray-300">
+            VS
+          </span>
+        </div>
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-gray-300">Team GSW</p>
+          <p className="scoreboard-number mt-2 text-6xl text-white">103</p>
+        </div>
+      </div>
 
-  while (targetIds.size < Math.min(targetCount, posts.length)) {
-    targetIds.add(posts[Math.floor(Math.random() * posts.length)].id);
-  }
+      <div className="mt-5">
+        <div className="flex items-center justify-between gap-3 text-xs font-black uppercase">
+          <span className="text-lime-300">62% Riding LAL</span>
+          <span className="text-purple-300">38% Fading GSW</span>
+        </div>
+        <div className="mt-2 flex h-3 overflow-hidden rounded-full bg-white/10">
+          <div className="w-[62%] bg-gradient-to-r from-lime-400 to-lime-300" />
+          <div className="w-3 bg-white/30" />
+          <div className="flex-1 bg-gradient-to-r from-purple-700 to-purple-400" />
+        </div>
+      </div>
 
-  return posts.map((post) => {
-    if (!targetIds.has(post.id) || post.status !== "live") return post;
+      <div className="mt-5 grid grid-cols-3 items-center rounded-2xl border border-white/10 bg-black/45 p-3">
+        <div>
+          <p className="text-[10px] font-black uppercase text-gray-400">Heat on the line</p>
+          <p className="mt-1 text-2xl font-black text-orange-300">🔥 3.6K</p>
+        </div>
+        <div className="border-x border-white/10 px-3 text-center">
+          <p className="text-[10px] font-black uppercase text-gray-400">Momentum</p>
+          <Sparkline />
+        </div>
+        <div className="text-right">
+          <p className="scoreboard-number text-3xl text-lime-300">LAL +21%</p>
+          <p className="mt-1 text-[10px] font-black uppercase text-gray-400">Last 5 min</p>
+        </div>
+      </div>
 
-    const rideJump = Math.random() > 0.48 ? randomInt(1, 4) : 0;
-    const fadeJump = rideJump === 0 ? randomInt(1, 4) : Math.random() > 0.7 ? 1 : 0;
-    const updatedPost = {
-      ...post,
-      riders: post.riders + rideJump,
-      faders: post.faders + fadeJump,
-      activityBoost: Math.min((post.activityBoost ?? 0) + randomInt(1, 8), 32),
-      activityText: getRandomActivityMessage(),
-    };
+      <button
+        type="button"
+        onClick={onEnterArena}
+        className="mt-4 min-h-14 w-full rounded-2xl border border-purple-300/70 bg-purple-500/10 text-sm font-black uppercase tracking-[0.16em] text-purple-200 shadow-[0_0_24px_rgba(168,85,247,0.18)] transition hover:bg-purple-500/15 active:scale-[0.98]"
+      >
+        ϟ Enter Arena
+      </button>
+    </section>
+  );
+}
 
-    return {
-      ...updatedPost,
-      heatScore: calculateHeatScore(updatedPost),
-    };
-  });
+function TrendingTakes({
+  choices,
+  onChoose,
+}: {
+  choices: Record<string, Side>;
+  onChoose: (id: string, side: Side) => void;
+}) {
+  return (
+    <FeedSection title="Trending Takes" icon="🔥" action="See all">
+      <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
+        {trendingTakes.map((take) => (
+          <article
+            key={take.id}
+            className="premium-card min-w-[10.25rem] snap-start rounded-2xl border border-white/10 p-3 shadow-[0_18px_45px_rgba(0,0,0,0.34)]"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-lime-400 text-xs font-black text-black">
+                  {take.rank}
+                </span>
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-orange-300 via-purple-500 to-black text-[10px] font-black text-white">
+                  {take.avatar}
+                </span>
+              </div>
+            </div>
+            <p className="mt-3 truncate text-[11px] font-black text-gray-200">
+              {take.handle} {take.verified && <span className="text-sky-300">◆</span>}
+            </p>
+            <p className="text-[10px] font-bold text-gray-500">{take.timestamp}</p>
+            <h3 className="mt-3 min-h-14 text-xl font-black leading-tight text-white">{take.text}</h3>
+            <p className="mt-3 text-sm font-black text-orange-300">🔥 {take.heat} <span className="text-xs uppercase text-gray-500">Heat</span></p>
+            <div className="mt-3 flex items-center justify-between text-sm font-black">
+              <span className="text-lime-300">👍 {take.rides}</span>
+              <span className="text-purple-300">👎 {take.fades}</span>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <TakeButton active={choices[take.id] === "ride"} side="ride" onClick={() => onChoose(take.id, "ride")} />
+              <TakeButton active={choices[take.id] === "fade"} side="fade" onClick={() => onChoose(take.id, "fade")} />
+            </div>
+          </article>
+        ))}
+      </div>
+    </FeedSection>
+  );
+}
+
+function LiveArenas({ onEnterArena }: { onEnterArena: () => void }) {
+  return (
+    <FeedSection title="Live Arenas" icon="≋" action="See all">
+      <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
+        {liveArenas.map((arena) => {
+          const [left, right] = arena.matchup.split(" vs ");
+          const [leftScore, rightScore] = arena.score.split(" - ");
+
+          return (
+            <article
+              key={arena.id}
+              className="arena-surface min-w-[16.5rem] snap-start rounded-2xl border border-lime-300/20 p-4 shadow-[0_18px_45px_rgba(0,0,0,0.34)]"
+            >
+              <div className="flex items-center justify-between text-[10px] font-black uppercase text-gray-300">
+                <span className="rounded-md border border-lime-300/70 px-2 py-1 text-lime-300">Live</span>
+                <span>{arena.quarter}</span>
+                <span>👥 {arena.viewers}</span>
+              </div>
+              <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-end gap-3 text-center">
+                <div>
+                  <p className="sports-display text-3xl leading-none text-white">{left}</p>
+                  <p className="scoreboard-number mt-2 text-4xl text-white">{leftScore}</p>
+                </div>
+                <span className="pb-3 text-xs font-black text-purple-200">VS</span>
+                <div>
+                  <p className="sports-display text-3xl leading-none text-white">{right}</p>
+                  <p className="scoreboard-number mt-2 text-4xl text-white">{rightScore}</p>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-between gap-2 text-[10px] font-black uppercase">
+                <span className="text-lime-300">{arena.riding}</span>
+                <span className="text-purple-300">{arena.fading}</span>
+              </div>
+              <div className="mt-4 flex items-center justify-between text-xs font-black uppercase">
+                <span className="text-orange-300">🔥 {arena.heat} Heat</span>
+                <span className={arena.trendDirection === "up" ? "text-lime-300" : "text-purple-300"}>
+                  {arena.trend} {arena.trendDirection === "up" ? "↑" : "↓"}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={onEnterArena}
+                className="mt-4 min-h-11 w-full rounded-xl border border-lime-300/30 bg-lime-400/5 text-sm font-black uppercase text-lime-300 transition active:scale-[0.98]"
+              >
+                Enter Arena
+              </button>
+            </article>
+          );
+        })}
+      </div>
+    </FeedSection>
+  );
+}
+
+function ChaosAlerts() {
+  return (
+    <FeedSection title="Chaos Alerts" icon="▴" action="See all">
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/35">
+        {chaosAlerts.map((alert) => (
+          <button
+            key={alert.id}
+            type="button"
+            className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 border-b border-white/10 px-3 py-3 text-left last:border-b-0 active:bg-white/5"
+          >
+            <span className={`grid h-9 w-9 place-items-center rounded-full text-xl ${toneClass(alert.tone, "bg")}`}>
+              {alert.icon}
+            </span>
+            <span className="min-w-0">
+              <span className={`block truncate text-sm font-black ${toneClass(alert.tone, "text")}`}>{alert.title}</span>
+              <span className="block truncate text-xs font-semibold text-gray-400">{alert.detail}</span>
+            </span>
+            <span className="flex items-center gap-2 text-xs font-bold text-gray-500">
+              {alert.time}
+              <span className="text-lg text-gray-400">›</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </FeedSection>
+  );
+}
+
+function FeedSection({
+  title,
+  icon,
+  action,
+  children,
+}: {
+  title: string;
+  icon: string;
+  action: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-[1.75rem] border border-white/10 bg-black/30 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.34)] backdrop-blur">
+      <div className="mb-3 flex items-center justify-between gap-3 px-1">
+        <h2 className="sports-display text-2xl italic leading-none text-white">
+          <span className="mr-2 not-italic">{icon}</span>
+          {title}
+        </h2>
+        <button type="button" className="text-xs font-black uppercase text-purple-300">
+          {action} ›
+        </button>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function TakeButton({ active, side, onClick }: { active: boolean; side: Side; onClick: () => void }) {
+  const isRide = side === "ride";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`min-h-11 rounded-xl border text-sm font-black uppercase transition active:scale-95 ${
+        isRide
+          ? active
+            ? "border-lime-300 bg-lime-400 text-black shadow-[0_0_20px_rgba(132,204,22,0.24)]"
+            : "border-lime-300/45 bg-lime-400/5 text-lime-300"
+          : active
+            ? "border-purple-300 bg-purple-500 text-white shadow-[0_0_20px_rgba(168,85,247,0.28)]"
+            : "border-purple-300/55 bg-purple-500/10 text-purple-300"
+      }`}
+    >
+      {isRide ? "Ride" : "Fade"}
+    </button>
+  );
+}
+
+function Sparkline() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 140 42" className="mt-2 h-11 w-full">
+      <defs>
+        <linearGradient id="sparklineGradient" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0%" stopColor="#a3e635" />
+          <stop offset="58%" stopColor="#84cc16" />
+          <stop offset="100%" stopColor="#a855f7" />
+        </linearGradient>
+      </defs>
+      <polyline
+        points="0,32 8,31 14,23 19,25 25,13 31,8 38,21 44,16 50,27 58,24 65,32 72,26 80,30 88,18 94,13 101,20 108,29 114,24 121,28 128,23 136,27"
+        fill="none"
+        stroke="url(#sparklineGradient)"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="3"
+      />
+    </svg>
+  );
+}
+
+function toneClass(tone: ChaosAlert["tone"], target: "text" | "bg") {
+  const classes = {
+    green: {
+      text: "text-lime-300",
+      bg: "bg-lime-400/10 text-lime-300",
+    },
+    orange: {
+      text: "text-orange-300",
+      bg: "bg-orange-400/10 text-orange-300",
+    },
+    purple: {
+      text: "text-purple-300",
+      bg: "bg-purple-500/10 text-purple-300",
+    },
+    red: {
+      text: "text-red-300",
+      bg: "bg-red-500/10 text-red-300",
+    },
+  };
+
+  return classes[tone][target];
 }

@@ -1,8 +1,8 @@
 const steps = [
-  { icon: "⚡", title: "Lock Your Take", text: "Make the call before the moment flips." },
-  { icon: "😈", title: "Ride or Fade", text: "Back the take or call it cooked." },
-  { icon: "🏆", title: "Earn Reputation", text: "Correct calls move your name up." },
-  { icon: "🧾", title: "Get Your Receipts", text: "The final score writes the story." },
+  { icon: "⚡", title: "Lock a Take", text: "Say it before the result. No switching sides after." },
+  { icon: "😈", title: "Ride or Fade", text: "Back the take or go against the Crowd." },
+  { icon: "🧾", title: "Collect Receipts", text: "Every outcome builds your history." },
+  { icon: "🏆", title: "Build REP", text: "Your talk becomes your reputation." },
 ];
 
 export function HowItWorks() {

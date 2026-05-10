@@ -54,32 +54,32 @@ function TrophyIcon() {
 const features: Feature[] = [
   {
     icon: <ShieldIcon />,
-    title: "Lock Your Takes",
-    text: "Post your predictions before the game. No edits. No excuses.",
+    title: "Lock It.",
+    text: "Make your take public before the game, the run, or the meltdown. Once it’s locked, it lives.",
     tone: "lime",
   },
   {
     icon: <RankIcon />,
-    title: "Earn Reputation",
-    text: "Build your rep with every correct take. Climb the rankings. Earn respect.",
+    title: "Ride or Fade",
+    text: "Back a take, fade the Crowd, or call out your opps when the game flips.",
     tone: "purple",
   },
   {
     icon: <RivalIcon />,
-    title: "Rival. Compete. Win.",
-    text: "Challenge friends and opponents. Bragging rights are forever.",
+    title: "Build REP",
+    text: "Every lock, ride, fade, and receipt shapes your reputation.",
     tone: "lime",
   },
   {
     icon: <ReceiptIcon />,
-    title: "Receipts Don’t Lie",
-    text: "We track everything. Your takes. Their results. The truth lives here.",
+    title: "Show Receipts",
+    text: "Receipts track who talked, who stood on it, and who got cooked.",
     tone: "purple",
   },
   {
     icon: <TrophyIcon />,
-    title: "Become Legendary",
-    text: "Top competitors go down in Smack Talk history. Your name. Your legacy.",
+    title: "Top Talkers",
+    text: "Climb the board and prove your Smack IQ when the Crowd is loud.",
     tone: "lime",
   },
 ];

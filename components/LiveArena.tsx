@@ -1,309 +1,636 @@
 "use client";
 
 import { useState } from "react";
-import { ArenaChat } from "@/components/ArenaChat";
-import { RunTheArena } from "@/components/RunTheArena";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
-import { WhoIsCooking } from "@/components/WhoIsCooking";
-import { topArenaTakes } from "@/utils/arenaChat";
 
-type ArenaTab = "game" | "chat" | "calls";
-type ArenaAction = "ride" | "draw" | "fade";
+type ArenaTab = "chat" | "calls" | "control-room" | "top-talkers";
+type Side = "ride" | "fade";
+
+type ChatTake = {
+  id: string;
+  handle: string;
+  avatar: string;
+  timestamp: string;
+  text: string;
+  heat: number;
+  tag?: Side;
+};
+
+type TopTalker = {
+  rank: number;
+  handle: string;
+  heat: string;
+  avatar: string;
+};
+
+const chatTakes: ChatTake[] = [
+  {
+    id: "talk-heavy",
+    handle: "@TalkHeavy23",
+    avatar: "TH",
+    timestamp: "1m ago",
+    text: "Curry can’t buy a bucket right now 😂",
+    heat: 128,
+  },
+  {
+    id: "mid-range",
+    handle: "@MidRange",
+    avatar: "MR",
+    timestamp: "1m ago",
+    text: "Momentum is all LAL. Crowd smells blood.",
+    heat: 96,
+  },
+  {
+    id: "fade-king",
+    handle: "@FadeKing",
+    avatar: "FK",
+    timestamp: "just now",
+    text: "The Crowd is heavy on LAL... trap game incoming.",
+    heat: 212,
+    tag: "fade",
+  },
+  {
+    id: "hoop-dreams",
+    handle: "@HoopDreams",
+    avatar: "HD",
+    timestamp: "just now",
+    text: "I’m riding with the crowd. LAL dont fold!",
+    heat: 74,
+    tag: "ride",
+  },
+  {
+    id: "no-mercy",
+    handle: "@NoMercy",
+    avatar: "NM",
+    timestamp: "just now",
+    text: "Draymond about to change everything.",
+    heat: 52,
+  },
+];
+
+const liveCalls = [
+  {
+    handle: "@BucketsOnly",
+    text: "LAL closing this. Warriors cooked.",
+    rides: "2.1K",
+    fades: "842",
+    status: "Locked",
+  },
+  {
+    handle: "@FadeKing",
+    text: "Too much Crowd pressure. GSW still has one push.",
+    rides: "488",
+    fades: "1.4K",
+    status: "Fade",
+  },
+  {
+    handle: "@HoopDreams",
+    text: "LAL defense is winning the last three minutes.",
+    rides: "912",
+    fades: "215",
+    status: "Ride",
+  },
+];
+
+const topTalkers: TopTalker[] = [
+  { rank: 1, handle: "@TalkHeavy23", heat: "3.6K", avatar: "TH" },
+  { rank: 2, handle: "@BucketsOnly", heat: "3.1K", avatar: "BO" },
+  { rank: 3, handle: "@FadeKing", heat: "2.7K", avatar: "FK" },
+  { rank: 4, handle: "@MidRange", heat: "2.4K", avatar: "MR" },
+  { rank: 5, handle: "@HoopDreams", heat: "2.1K", avatar: "HD" },
+];
 
 export function LiveArena({ onBack }: { onBack: () => void }) {
   const [activeTab, setActiveTab] = useState<ArenaTab>("chat");
-  const [lockedAction, setLockedAction] = useState<ArenaAction>();
+  const [lockedSide, setLockedSide] = useState<Side>();
+  const [takeText, setTakeText] = useState("");
+
+  function lockTake(side?: Side) {
+    setLockedSide(side ?? "ride");
+    setTakeText("");
+  }
 
   return (
-    <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white">
-      <div className="arena-shell screen-safe-bottom">
-        <header className="mb-4 border-b border-white/10 pb-4">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={onBack}
-                className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-black/50 text-sm font-black text-gray-200 shadow-[0_12px_30px_rgba(0,0,0,0.32)] transition active:scale-95"
-                aria-label="Back to feed"
-              >
-                ←
-              </button>
-              <div className="hidden items-center gap-2 sm:flex">
-                <div className="h-9 w-9 rounded-full border border-white/10 bg-gradient-to-br from-slate-200 to-slate-600" />
-                <div>
-                  <p className="text-xs font-black text-purple-300">LVL 13</p>
-                  <p className="text-[10px] font-bold text-gray-500">4,250 XP</p>
-                </div>
-              </div>
-            </div>
+    <main className="min-h-dvh overflow-x-hidden bg-transparent pb-4 pt-[calc(1rem+env(safe-area-inset-top))] text-white sm:pb-5 sm:pt-5">
+      <div className="arena-shell screen-safe-bottom space-y-5">
+        <ArenaHeader onBack={onBack} />
+        <ArenaScoreboard />
+        <ArenaTabs activeTab={activeTab} onSelect={setActiveTab} />
 
-            <div className="flex items-center justify-center gap-2">
-              <SmackTalkLogo size={42} />
-              <p className="brand-lockup text-2xl leading-none sm:text-3xl">
-                <span>Smack</span>{" "}
-                <span className="bg-gradient-to-r from-purple-300 to-sky-300 bg-clip-text text-transparent">Talk</span>
-              </p>
-            </div>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+          <section className="space-y-4">
+            {activeTab === "chat" && <ChatPanel />}
+            {activeTab === "calls" && <CallsPanel onChoose={lockTake} />}
+            {activeTab === "control-room" && <ControlRoomPanel />}
+            {activeTab === "top-talkers" && <TopTalkersPanel />}
+          </section>
 
-            <div className="flex items-center justify-end gap-2">
-              <div className="rounded-2xl border border-white/10 bg-black/45 px-3 py-2 text-right">
-                <p className="text-xs font-black text-yellow-200">🔥 6</p>
-                <p className="text-[10px] font-black uppercase text-gray-500">Streak</p>
-              </div>
-              <div className="relative grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-black/45 text-lg">
-                ♢
-                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-purple-400" />
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="sports-display text-3xl leading-none">Live Arena</h1>
-            <p className="mt-1 text-xs font-bold text-gray-500">
-              <span className="text-green-300">●</span> 12,842 online
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <p className="rounded-full border border-white/10 bg-black/45 px-3 py-2 text-xs font-black">🏀 NBA Playoffs ▼</p>
-            <span className="rounded-full border border-red-300/20 bg-red-500/15 px-3 py-2 text-[10px] font-black uppercase text-red-200">
-              Live
-            </span>
-          </div>
+          <aside className="space-y-4">
+            {activeTab !== "control-room" && <ControlRoomPanel />}
+            {activeTab !== "top-talkers" && <TopTalkersPanel />}
+            <ArenaVibePanel />
+          </aside>
         </div>
 
-        <section className="scoreboard-shell arena-surface overflow-hidden rounded-[2rem] border border-white/10 p-5 shadow-[0_28px_80px_rgba(0,0,0,0.48)] sm:p-7">
-          <div className="scoreboard-inner arena-scoreboard rounded-[1.75rem] border border-white/10 px-5 py-6 shadow-inner sm:px-8 sm:py-8">
-            <p className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
-              NBA Playoffs · West Semifinals
-            </p>
-            <div className="mt-4 flex items-center justify-center gap-3 text-xs font-black uppercase tracking-[0.12em]">
-              <span className="rounded-md bg-purple-600 px-2.5 py-1 text-white">Live</span>
-              <span className="text-gray-200">4th QTR · 3:24</span>
-            </div>
-
-            <div className="mx-auto mt-8 grid max-w-[880px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 sm:gap-8">
-              <TeamScore city="Los Angeles" seed="#7 seed" team="LAL" score="102" side="left" />
-              <div className="grid place-items-center">
-                <span className="rounded-full border border-white/10 bg-white/5 px-4 py-3 text-xs font-black text-gray-400">
-                  VS
-                </span>
-              </div>
-              <TeamScore city="Golden State" seed="#6 seed" team="GSW" score="99" side="right" />
-            </div>
-
-            <div className="mt-7 text-center">
-              <p className="inline-flex rounded-2xl border border-orange-300/15 bg-black/45 px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-orange-200">
-                🔥 Momentum: Lakers
-              </p>
-            </div>
-          </div>
-
-          <div className="scoreboard-inner mt-7 rounded-3xl border border-white/10 bg-black/55 p-5 sm:p-6">
-            <div className="mb-5 grid grid-cols-2 gap-5">
-              <div>
-                <p className="scoreboard-number text-5xl text-green-300">78%</p>
-                <p className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-gray-400">Riding LAL</p>
-              </div>
-              <div className="text-right">
-                <p className="scoreboard-number text-5xl text-indigo-200">22%</p>
-                <p className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-gray-400">Fading GSW</p>
-              </div>
-            </div>
-            <div className="flex h-5 overflow-hidden rounded-full bg-gray-950 ring-1 ring-white/10">
-              <div className="h-full w-[78%] bg-gradient-to-r from-green-400 to-teal-300" />
-              <div className="h-full flex-1 bg-gradient-to-r from-purple-700 to-indigo-700" />
-            </div>
-            <p className="mt-5 text-center text-xs font-black uppercase tracking-[0.12em] text-yellow-100">
-              ⚠️ Public is all-in on LAL
-            </p>
-          </div>
-
-          <div className="scoreboard-inner mt-7 grid grid-cols-3 gap-3">
-            <ArenaActionButton
-              active={lockedAction === "ride"}
-              label="Ride LAL"
-              percent="78%"
-              tone="ride"
-              onClick={() => setLockedAction("ride")}
-            />
-            <ArenaActionButton
-              active={lockedAction === "draw"}
-              label="Draw"
-              percent="0%"
-              tone="draw"
-              onClick={() => setLockedAction("draw")}
-            />
-            <ArenaActionButton
-              active={lockedAction === "fade"}
-              label="Fade GSW"
-              percent="22%"
-              tone="fade"
-              onClick={() => setLockedAction("fade")}
-            />
-          </div>
-
-          {lockedAction && (
-            <p className="mt-5 rounded-xl bg-white/10 px-3 py-2.5 text-center text-xs font-black uppercase tracking-[0.12em]">
-              Locked. No switching sides.
-            </p>
-          )}
-
-          <p className="mt-6 text-center text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">
-            🔒 Locks in when the quarter ends
-          </p>
-        </section>
-
-        <nav className="mt-4 grid grid-cols-3 rounded-2xl border border-white/10 bg-black/45 p-1 shadow-[0_18px_44px_rgba(0,0,0,0.28)]">
-          {(["game", "chat", "calls"] as ArenaTab[]).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`min-h-11 rounded-xl py-2 text-xs font-black capitalize transition ${
-                activeTab === tab ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.12)]" : "text-gray-500"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </nav>
-
-        <div className="mt-4">
-          {activeTab === "chat" && (
-            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_19rem] md:items-start">
-              <ArenaChat />
-              <RunTheArena onFadePublic={() => setLockedAction("fade")} />
-            </div>
-          )}
-
-          {activeTab === "game" && <GameTab />}
-
-          {activeTab === "calls" && <CallsTab />}
-        </div>
-
+        <LockTakePanel
+          value={takeText}
+          lockedSide={lockedSide}
+          onChange={setTakeText}
+          onLock={() => lockTake("ride")}
+        />
       </div>
     </main>
   );
 }
 
-function TeamScore({
-  city,
-  seed,
-  team,
-  score,
-  side,
-}: {
-  city: string;
-  seed: string;
-  team: string;
-  score: string;
-  side: "left" | "right";
-}) {
-  const isLeft = side === "left";
-
+function ArenaHeader({ onBack }: { onBack: () => void }) {
   return (
-    <div className={`grid grid-cols-[auto_1fr] items-center gap-3 justify-self-center ${isLeft ? "text-left" : "text-right"}`}>
-      <span
-        className={`h-24 w-1.5 rounded-full sm:h-28 ${
-          isLeft ? "bg-gradient-to-b from-yellow-300 to-green-300" : "order-2 bg-gradient-to-b from-sky-300 to-purple-500"
-        }`}
-      />
-      <div className={isLeft ? "" : "order-1"}>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">{city}</p>
-        <p className={`sports-display mt-2 text-3xl leading-none sm:text-5xl ${isLeft ? "text-green-100" : "text-indigo-100"}`}>{team}</p>
-        <p className="mt-2 text-[10px] font-black uppercase tracking-[0.14em] text-gray-500">{seed}</p>
-        <p className="scoreboard-number mt-4 text-5xl sm:text-8xl">{score}</p>
+    <header className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-[1.5rem] border border-white/10 bg-black/30 p-2 shadow-[0_18px_48px_rgba(0,0,0,0.3)] backdrop-blur sm:gap-3 sm:p-3">
+      <button
+        type="button"
+        onClick={onBack}
+        className="grid h-12 w-12 place-items-center rounded-2xl border border-white/10 bg-black/45 text-2xl font-black text-white shadow-[0_14px_34px_rgba(0,0,0,0.34)] transition active:scale-95"
+        aria-label="Back to feed"
+      >
+        ‹
+      </button>
+
+      <div className="flex min-w-0 items-center gap-3">
+        <SmackTalkLogo size={54} />
+        <div className="min-w-0">
+          <h1 className="brand-lockup text-[2rem] leading-[0.82] sm:text-4xl">
+            <span className="block text-white">Smack</span>
+            <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">
+              Talk
+            </span>
+          </h1>
+          <p className="mt-1 hidden items-center gap-2 text-xs font-black uppercase tracking-[0.1em] text-gray-300 sm:flex">
+            <span className="h-2.5 w-2.5 rounded-full bg-lime-400 shadow-[0_0_16px_rgba(132,204,22,0.75)]" />
+            12.8K <span className="text-gray-500">Online</span>
+          </p>
+        </div>
       </div>
-    </div>
+
+      <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+        <HeaderIcon label="Notifications" badge="3">
+          ♧
+        </HeaderIcon>
+        <HeaderIcon label="Share">⇧</HeaderIcon>
+        <HeaderIcon label="More">•••</HeaderIcon>
+      </div>
+    </header>
   );
 }
 
-function ArenaActionButton({
-  active,
+function HeaderIcon({
   label,
-  percent,
-  tone,
-  onClick,
+  badge,
+  children,
 }: {
-  active: boolean;
   label: string;
-  percent: string;
-  tone: "ride" | "draw" | "fade";
-  onClick: () => void;
+  badge?: string;
+  children: React.ReactNode;
 }) {
-  const toneClass = {
-    ride: active
-      ? "border-green-200 bg-green-300 text-black shadow-[0_0_24px_rgba(45,212,191,0.28)]"
-      : "border-green-300/30 bg-gradient-to-r from-green-500/85 to-teal-400/85 text-black",
-    draw: active ? "border-white bg-white text-black" : "border-white/10 bg-gray-950 text-white",
-    fade: active
-      ? "border-purple-200 bg-gradient-to-r from-purple-300 to-indigo-300 text-black shadow-[0_0_24px_rgba(168,85,247,0.28)]"
-      : "border-purple-300/30 bg-gradient-to-r from-purple-700/90 to-indigo-700/90 text-white",
-  }[tone];
-  const icon = tone === "ride" ? "⌃" : tone === "fade" ? "😈" : "×";
-
   return (
     <button
-      onClick={onClick}
-      className={`grid min-h-24 grid-cols-[auto_1fr] items-center gap-3 rounded-2xl border px-3 py-4 text-left text-xs font-black transition active:scale-95 sm:px-4 ${toneClass}`}
+      type="button"
+      className="relative grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-black/45 text-lg text-white shadow-[0_14px_34px_rgba(0,0,0,0.28)] transition active:scale-95 sm:h-12 sm:w-12 sm:text-xl"
+      aria-label={label}
     >
-      <span className="grid h-10 w-10 place-items-center rounded-full bg-white/25 text-lg">{icon}</span>
-      <span>
-        <span className="block text-sm">{label}</span>
-        <span className="mt-1 block text-xs opacity-75">{percent}</span>
-      </span>
+      {children}
+      {badge && (
+        <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-purple-500 text-[10px] font-black text-white">
+          {badge}
+        </span>
+      )}
     </button>
   );
 }
 
-function GameTab() {
+function ArenaScoreboard() {
   return (
-    <>
-      <WhoIsCooking />
+    <section className="arena-scoreboard overflow-hidden rounded-[1.75rem] border border-white/10 p-4 pt-5 shadow-[0_26px_80px_rgba(0,0,0,0.56),0_0_34px_rgba(168,85,247,0.08)] sm:p-5">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2 text-center sm:gap-3">
+        <ScoreTeam team="LAL" score="108" label="Team LAL" tone="ride" />
 
-      <section className="premium-card rounded-3xl border p-4">
-        <h3 className="sports-display text-2xl leading-none">Live Momentum</h3>
-        <p className="mt-1 text-xs text-gray-400">Momentum shifting toward LAL</p>
-
-        <div className="mt-4 space-y-3">
-          {["18’ LAL Goal", "42’ GSW Answer", "57’ LAL Run", "4th QTR Crowd pressure spikes"].map((event) => (
-            <div key={event} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/45 p-3">
-              <span className="h-2 w-2 rounded-full bg-green-300" />
-              <p className="text-sm font-bold text-gray-200">{event}</p>
-            </div>
-          ))}
+        <div className="pb-1">
+          <span className="rounded-md border border-red-400/60 bg-red-500/10 px-2.5 py-1 text-xs font-black uppercase text-red-300">
+            ▷ Live
+          </span>
+          <p className="mt-3 text-xs font-black uppercase text-purple-300">4th QTR</p>
+          <p className="scoreboard-number mt-1 text-4xl text-white">2:47</p>
+          <p className="mt-2 flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-gray-300">
+            <span className="h-2 w-2 rounded-full bg-lime-400" /> 12.8K Watching
+          </p>
+          <span className="mx-auto mt-3 grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/60 text-[10px] font-black text-gray-300">
+            VS
+          </span>
         </div>
-      </section>
-    </>
+
+        <ScoreTeam team="GSW" score="103" label="Team GSW" tone="fade" />
+      </div>
+
+      <div className="mt-5">
+        <div className="flex items-center justify-between gap-3 text-xs font-black uppercase">
+          <span className="text-lime-300">62% Riding LAL</span>
+          <span className="text-purple-300">38% Fading GSW</span>
+        </div>
+        <div className="mt-2 flex h-3 overflow-hidden rounded-full bg-white/10">
+          <div className="w-[62%] bg-gradient-to-r from-lime-400 to-lime-300" />
+          <div className="w-3 bg-white/30" />
+          <div className="flex-1 bg-gradient-to-r from-purple-700 to-purple-400" />
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-black/50 p-3.5 sm:grid-cols-[0.8fr_1.25fr_0.85fr] sm:items-center">
+        <div>
+          <p className="text-[10px] font-black uppercase text-gray-400">Heat Level</p>
+          <p className="mt-1 text-2xl font-black text-orange-300">🔥 3.6K</p>
+          <p className="text-[10px] font-black uppercase text-red-300">Very Hot</p>
+        </div>
+        <div className="border-y border-white/10 py-3 text-center sm:border-x sm:border-y-0 sm:px-4 sm:py-0">
+          <p className="text-[10px] font-black uppercase text-gray-400">Momentum</p>
+          <Sparkline />
+          <p className="mt-1 text-xs font-black uppercase text-lime-300">↑ LAL</p>
+        </div>
+        <div className="text-left sm:text-right">
+          <p className="text-[10px] font-black uppercase text-gray-400">Upset Threat</p>
+          <p className="scoreboard-number mt-1 text-4xl text-purple-300">68%</p>
+        </div>
+      </div>
+    </section>
   );
 }
 
-function CallsTab() {
+function ScoreTeam({
+  team,
+  score,
+  label,
+  tone,
+}: {
+  team: string;
+  score: string;
+  label: string;
+  tone: "ride" | "fade";
+}) {
+  const toneClass = tone === "ride" ? "text-lime-300" : "text-purple-300";
+
   return (
-    <section className="premium-card rounded-3xl border p-4">
-      <h3 className="sports-display text-2xl leading-none">Top Takes</h3>
+    <div>
+      <p className={`text-[10px] font-black uppercase tracking-[0.14em] ${toneClass}`}>{label}</p>
+      <p className="sports-display mt-2 text-4xl leading-none text-white sm:mt-3 sm:text-5xl">{team}</p>
+      <p className="scoreboard-number mt-2 text-[3.65rem] text-white sm:text-7xl">{score}</p>
+    </div>
+  );
+}
+
+function ArenaTabs({ activeTab, onSelect }: { activeTab: ArenaTab; onSelect: (tab: ArenaTab) => void }) {
+  const tabs: { id: ArenaTab; label: string; count?: string }[] = [
+    { id: "chat", label: "Chat" },
+    { id: "calls", label: "Calls", count: "132" },
+    { id: "control-room", label: "Control Room" },
+    { id: "top-talkers", label: "Top Talkers" },
+  ];
+
+  return (
+    <nav className="grid grid-cols-4 gap-1 rounded-[1.5rem] border border-white/10 bg-black/35 p-1.5 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          onClick={() => onSelect(tab.id)}
+          className={`min-h-12 rounded-2xl border px-1 text-[9px] font-black uppercase leading-tight transition active:scale-95 min-[390px]:text-[10px] sm:text-xs ${
+            activeTab === tab.id
+              ? "border-purple-300/60 bg-purple-500/20 text-white shadow-[0_0_20px_rgba(168,85,247,0.16),inset_0_-2px_0_rgba(168,85,247,0.95)]"
+              : "border-transparent text-gray-500"
+          }`}
+        >
+          {tab.label}
+          {tab.count && (
+            <span className="ml-1 rounded-full border border-white/10 bg-white/10 px-1.5 py-0.5 text-[9px] text-gray-300">
+              {tab.count}
+            </span>
+          )}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function ChatPanel() {
+  return (
+    <section className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/30 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
+      <PinnedCall />
+
+      <div className="divide-y divide-white/10">
+        {chatTakes.map((take) => (
+          <ChatRow key={take.id} take={take} />
+        ))}
+      </div>
+
+      <div className="border-t border-white/10 p-4">
+        <p className="text-sm font-black text-gray-400">⌛ Slow Mode is On</p>
+        <p className="mt-1 text-xs font-semibold text-gray-500">You can send a message every 10 seconds.</p>
+      </div>
+    </section>
+  );
+}
+
+function PinnedCall() {
+  return (
+    <article className="border-b border-purple-400/35 bg-purple-500/10 p-4 shadow-[0_0_34px_rgba(168,85,247,0.12)]">
+      <div className="flex items-center justify-between gap-3">
+        <p className="sports-display text-xl italic leading-none text-purple-200">📌 Pinned Call</p>
+        <p className="min-w-0 truncate text-xs font-bold text-gray-300">
+          @BucketsOnly <span className="text-purple-300">◆</span> <span className="text-gray-500">7m ago</span>
+        </p>
+      </div>
+      <div className="mt-3 grid grid-cols-[1fr_auto] items-center gap-3">
+        <h2 className="sports-display text-2xl italic leading-tight text-white sm:text-3xl">
+          LAL closing this. Warriors cooked.
+        </h2>
+        <span className="text-3xl text-gray-300">›</span>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-3 text-sm font-black uppercase">
+        <span className="rounded-md border border-purple-300/35 bg-purple-500/10 px-2 py-1 text-purple-200">Locked</span>
+        <span className="text-lime-300">👍 2.1K Riding</span>
+        <span className="text-purple-300">👎 842 Fading</span>
+      </div>
+    </article>
+  );
+}
+
+function ChatRow({ take }: { take: ChatTake }) {
+  return (
+    <article className="grid grid-cols-[auto_1fr_auto] gap-3 p-4">
+      <span className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-gradient-to-br from-orange-300 via-purple-500 to-black text-xs font-black text-white">
+        {take.avatar}
+      </span>
+      <div className="min-w-0">
+        <p className="truncate text-sm font-black text-white">
+          {take.handle} <span className="text-purple-300">◆</span>{" "}
+          <span className="font-semibold text-gray-500">{take.timestamp}</span>
+        </p>
+        <p className="mt-1 text-sm font-semibold leading-6 text-gray-200">{take.text}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-black text-orange-300">🔥 {take.heat}</span>
+          {take.tag && (
+            <span
+              className={`rounded-md border px-2 py-0.5 text-[10px] font-black uppercase ${
+                take.tag === "ride"
+                  ? "border-lime-300/50 bg-lime-400/10 text-lime-300"
+                  : "border-purple-300/50 bg-purple-500/10 text-purple-300"
+              }`}
+            >
+              {take.tag}
+            </span>
+          )}
+        </div>
+      </div>
+      <button
+        type="button"
+        className="grid h-10 w-10 place-items-center self-center rounded-full border border-white/10 bg-white/[0.03] text-xl text-gray-500 transition active:scale-95"
+        aria-label={`React to ${take.handle}`}
+      >
+        ☺+
+      </button>
+    </article>
+  );
+}
+
+function CallsPanel({ onChoose }: { onChoose: (side: Side) => void }) {
+  return (
+    <section className="space-y-3 rounded-[1.5rem] border border-white/10 bg-black/30 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
+      {liveCalls.map((call) => (
+        <article key={call.handle} className="rounded-2xl border border-white/10 bg-black/40 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-black text-white">{call.handle}</p>
+            <span className="rounded-md border border-purple-300/35 bg-purple-500/10 px-2 py-1 text-[10px] font-black uppercase text-purple-200">
+              {call.status}
+            </span>
+          </div>
+          <p className="mt-3 text-lg font-black leading-tight text-gray-100">{call.text}</p>
+          <div className="mt-4 flex items-center justify-between text-sm font-black">
+            <span className="text-lime-300">👍 {call.rides}</span>
+            <span className="text-purple-300">👎 {call.fades}</span>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <ArenaChoiceButton label="Ride" tone="ride" onClick={() => onChoose("ride")} />
+            <ArenaChoiceButton label="Fade" tone="fade" onClick={() => onChoose("fade")} />
+          </div>
+        </article>
+      ))}
+    </section>
+  );
+}
+
+function ControlRoomPanel() {
+  return (
+    <section className="rounded-[1.5rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
+      <PanelHeader title="Control Room" />
+      <p className="mt-4 text-[10px] font-black uppercase text-gray-400">Crowd Sentiment</p>
+      <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+        <div>
+          <p className="scoreboard-number text-4xl text-lime-300">62%</p>
+          <p className="text-[10px] font-black uppercase text-lime-300">Riding LAL</p>
+        </div>
+        <div className="relative h-16 w-16 rounded-full bg-[conic-gradient(#84cc16_0_62%,#a855f7_62%_100%)]">
+          <div className="absolute inset-3 rounded-full bg-black" />
+        </div>
+        <div className="text-right">
+          <p className="scoreboard-number text-4xl text-purple-300">38%</p>
+          <p className="text-[10px] font-black uppercase text-purple-300">Fading GSW</p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3 border-y border-white/10 py-4">
+        <StatBlock label="Ride Surge" value="+18%" detail="Last 2 min" tone="ride" />
+        <StatBlock label="Fade Surge" value="+9%" detail="Last 2 min" tone="fade" />
+      </div>
 
       <div className="mt-4 space-y-3">
-        {topArenaTakes.map((take) => (
-          <article key={take.handle} className="rounded-2xl border border-white/10 bg-black/45 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-black">{take.handle}</p>
-              <span
-                className={`rounded-full px-2 py-1 text-[10px] font-black ${
-                  take.tone === "ride"
-                    ? "bg-green-400 text-black"
-                    : take.tone === "fade"
-                      ? "bg-gradient-to-r from-purple-700 to-indigo-700 text-white"
-                      : "bg-gray-800 text-gray-200"
-                }`}
-              >
-                {take.action}
-              </span>
-            </div>
-            <p className="mt-3 text-sm leading-relaxed text-gray-200">“{take.text}”</p>
-          </article>
+        <SignalRow icon="◉" label="Crowd Confidence" value="85%" note="Very high" tone="ride" />
+        <SignalRow icon="🔥" label="Overcommitment" value="72%" note="LAL side" tone="orange" />
+        <SignalRow icon="ϟ" label="Momentum Shift" value="LAL ↑" note="Strong" tone="ride" />
+        <SignalRow icon="☿" label="Upset Threat" value="68%" note="High" tone="fade" />
+      </div>
+    </section>
+  );
+}
+
+function TopTalkersPanel() {
+  return (
+    <section className="rounded-[1.5rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
+      <PanelHeader title="Top Talkers" />
+      <div className="mt-4 space-y-2">
+        {topTalkers.map((talker) => (
+          <div key={talker.handle} className="grid grid-cols-[auto_auto_1fr_auto] items-center gap-2">
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-white/10 text-xs font-black text-gray-300">
+              {talker.rank}
+            </span>
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-orange-300 via-purple-500 to-black text-[10px] font-black text-white">
+              {talker.avatar}
+            </span>
+            <p className="truncate text-sm font-black text-white">{talker.handle}</p>
+            <p className="text-xs font-black text-orange-300">🔥 {talker.heat}</p>
+          </div>
         ))}
       </div>
     </section>
+  );
+}
+
+function ArenaVibePanel() {
+  return (
+    <section className="rounded-[1.5rem] border border-purple-300/35 bg-purple-500/10 p-5 text-center shadow-[0_0_34px_rgba(168,85,247,0.16)]">
+      <p className="text-xs font-black uppercase tracking-[0.16em] text-purple-200">Arena Vibe</p>
+      <p className="sports-display mt-2 text-5xl italic leading-none text-purple-300">Toxic ☠</p>
+      <p className="mt-3 text-sm font-semibold text-gray-300">Emotions high. Watch your back.</p>
+    </section>
+  );
+}
+
+function LockTakePanel({
+  value,
+  lockedSide,
+  onChange,
+  onLock,
+}: {
+  value: string;
+  lockedSide?: Side;
+  onChange: (value: string) => void;
+  onLock: () => void;
+}) {
+  return (
+    <section className="rounded-[1.75rem] border border-white/10 bg-black/55 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34),0_0_26px_rgba(168,85,247,0.08)] backdrop-blur">
+      <p className="mb-3 text-center text-xs font-black uppercase tracking-[0.16em] text-purple-300">Lock Your Take</p>
+      <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-stretch">
+        <label className="relative">
+          <span className="sr-only">Type your take</span>
+          <textarea
+            value={value}
+            onChange={(event) => onChange(event.target.value.slice(0, 150))}
+            placeholder="Type your take..."
+            className="min-h-24 w-full resize-none rounded-2xl border border-purple-300/60 bg-black/55 p-4 pr-16 text-base font-semibold text-white outline-none placeholder:text-gray-500 focus:border-purple-200 sm:min-h-20"
+          />
+          <span className="absolute bottom-4 right-4 text-xs font-semibold text-gray-500">{value.length}/150</span>
+        </label>
+        <button
+          type="button"
+          onClick={onLock}
+          className="min-h-16 rounded-2xl border border-purple-300/70 bg-purple-500/15 px-8 text-sm font-black uppercase tracking-[0.12em] text-purple-200 shadow-[0_0_24px_rgba(168,85,247,0.18)] transition active:scale-[0.98]"
+        >
+          Lock Take 🔒
+        </button>
+      </div>
+      {lockedSide && (
+        <p className="mt-3 rounded-xl bg-white/10 px-3 py-2 text-center text-xs font-black uppercase tracking-[0.1em] text-gray-200">
+          Locked. No switching sides.
+        </p>
+      )}
+      <div className="mt-4 grid gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 text-xs font-semibold text-gray-400 sm:grid-cols-3">
+        <p>◉ Locked & permanent. Everyone will see this.</p>
+        <p>◌ Ride or Fade. The Crowd will react.</p>
+        <p>▣ No switching sides. Receipts don’t lie.</p>
+      </div>
+    </section>
+  );
+}
+
+function PanelHeader({ title }: { title: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <h3 className="sports-display text-2xl italic leading-none text-white">
+        <span className="text-lime-300">●</span> {title}
+      </h3>
+      <span className="flex items-center gap-1 text-[10px] font-black uppercase text-lime-300">
+        <span className="h-2 w-2 rounded-full bg-lime-400" /> Live
+      </span>
+    </div>
+  );
+}
+
+function StatBlock({
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  tone: Side;
+}) {
+  return (
+    <div>
+      <p className="text-[10px] font-black uppercase text-gray-400">{label}</p>
+      <p className={`scoreboard-number mt-1 text-3xl ${tone === "ride" ? "text-lime-300" : "text-purple-300"}`}>
+        {value}
+      </p>
+      <p className="text-[10px] font-black uppercase text-gray-500">{detail}</p>
+    </div>
+  );
+}
+
+function SignalRow({
+  icon,
+  label,
+  value,
+  note,
+  tone,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  note: string;
+  tone: Side | "orange";
+}) {
+  const toneClass = tone === "ride" ? "text-lime-300" : tone === "fade" ? "text-purple-300" : "text-orange-300";
+
+  return (
+    <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2 text-xs font-black uppercase">
+      <span className={toneClass}>{icon}</span>
+      <span className="truncate text-gray-400">{label}</span>
+      <span className={toneClass}>{value}</span>
+      <span className="text-[10px] text-gray-500">{note}</span>
+    </div>
+  );
+}
+
+function ArenaChoiceButton({ label, tone, onClick }: { label: string; tone: Side; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`min-h-11 rounded-xl border text-sm font-black uppercase transition active:scale-95 ${
+        tone === "ride"
+          ? "border-lime-300/45 bg-lime-400/5 text-lime-300"
+          : "border-purple-300/55 bg-purple-500/10 text-purple-300"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function Sparkline() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 140 42" className="mx-auto mt-2 h-11 w-full max-w-56">
+      <defs>
+        <linearGradient id="arenaSparklineGradient" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0%" stopColor="#a3e635" />
+          <stop offset="58%" stopColor="#84cc16" />
+          <stop offset="100%" stopColor="#a855f7" />
+        </linearGradient>
+      </defs>
+      <polyline
+        points="0,32 8,31 14,23 19,25 25,13 31,8 38,21 44,16 50,27 58,24 65,32 72,26 80,30 88,18 94,13 101,20 108,29 114,24 121,28 128,23 136,27"
+        fill="none"
+        stroke="url(#arenaSparklineGradient)"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="3"
+      />
+    </svg>
   );
 }

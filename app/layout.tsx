@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { DevRoutePanel } from "@/components/DevRoutePanel";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,8 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Smack Talk",
-  description: "Social sports calls, receipts, and reputation.",
+  title: "Smack Talk — Talk Smack. Show Receipts.",
+  description:
+    "Lock your takes, ride or fade the Crowd, build REP, and show receipts on the sports reputation platform built for real fans.",
   icons: {
     icon: "/smack-talk-logo.png",
     shortcut: "/smack-talk-logo.png",
@@ -32,7 +34,10 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <DevRoutePanel />
+      </body>
     </html>
   );
 }

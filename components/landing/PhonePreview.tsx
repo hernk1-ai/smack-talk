@@ -71,7 +71,7 @@ export function PhonePreview() {
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.16em] text-red-300">Chaos Alert</p>
                 <p className="mt-2 text-sm font-bold leading-5 text-white">97% rode Lakers.</p>
-                <p className="mt-1 text-xs font-semibold text-gray-400">Public collapse incoming.</p>
+                <p className="mt-1 text-xs font-semibold text-gray-400">Crowd collapse incoming.</p>
               </div>
             </div>
           </div>

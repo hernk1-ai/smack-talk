@@ -59,12 +59,12 @@ export function CountdownSection() {
         <div className="grid gap-8 lg:grid-cols-[0.85fr_1fr] lg:items-center">
           <div>
             <p className="text-lg font-black uppercase italic tracking-[0.12em] text-purple-300">Coming Soon</p>
-            <h2 className="sports-display mt-2 text-6xl leading-none text-white sm:text-8xl">Season Zero</h2>
+            <h2 className="sports-display mt-2 text-6xl leading-none text-white sm:text-8xl">The First Lock</h2>
             <div className="mt-4 h-1.5 w-64 max-w-full rounded-full bg-gradient-to-r from-lime-300 to-purple-500" />
 
-            <p className="mt-7 text-2xl font-black text-white">Be there for opening night.</p>
+            <p className="mt-7 text-2xl font-black text-white">Join The First Lock.</p>
             <p className="mt-4 max-w-xl text-base font-semibold leading-7 text-gray-300">
-              Smack Talk launches soon. Join now to reserve your username and lock in early access to the arena.
+              Founding talkers get in early before the Crowd gets loud. Your first receipts start here.
             </p>
 
             <div className="mt-8 grid grid-cols-4 gap-2 sm:max-w-md sm:gap-4">
