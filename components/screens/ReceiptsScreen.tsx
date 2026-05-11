@@ -476,7 +476,7 @@ function RecentReceiptCard({ receipt }: { receipt: RecentReceipt }) {
       </div>
 
       <div className="mt-3 flex items-center gap-2">
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-orange-300 via-purple-500 to-black text-[10px] font-black text-white">
+        <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-lime-300 via-purple-500 to-black text-[10px] font-black text-white">
           {receipt.avatar}
         </span>
         <p className="truncate text-xs font-black text-white">
@@ -485,7 +485,7 @@ function RecentReceiptCard({ receipt }: { receipt: RecentReceipt }) {
       </div>
 
       <h3 className="mt-3 min-h-14 text-xl font-black leading-tight text-white">{receipt.take}</h3>
-      <p className="text-xs font-black uppercase text-orange-300">{receipt.arena}</p>
+      <p className="text-xs font-black uppercase text-lime-300">{receipt.arena}</p>
 
       <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-end gap-3 text-center">
         <ScoreMini team={receipt.leftTeam} score={receipt.leftScore} />
@@ -540,7 +540,7 @@ function ViralReceiptCard({ receipt }: { receipt: ViralReceipt }) {
         </div>
 
         <div className="mt-4 flex items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-orange-300 via-purple-500 to-black text-[10px] font-black text-white">
+          <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-lime-300 via-purple-500 to-black text-[10px] font-black text-white">
             {receipt.avatar}
           </span>
           <p className="truncate text-xs font-black text-white">
@@ -549,7 +549,7 @@ function ViralReceiptCard({ receipt }: { receipt: ViralReceipt }) {
         </div>
 
         <h3 className="mt-3 min-h-16 text-xl font-black leading-tight text-white">{receipt.take}</h3>
-        <p className="text-xs font-black uppercase text-orange-300">{receipt.arena}</p>
+        <p className="text-xs font-black uppercase text-lime-300">{receipt.arena}</p>
 
         <p className="scoreboard-number mt-5 text-5xl text-gray-200">
           ◉ {receipt.views}

@@ -50,7 +50,7 @@ export function FeedCard({
 
       <div className="mt-4 grid grid-cols-[auto_auto_1fr] items-center gap-2 rounded-2xl border border-white/10 bg-black/45 p-3">
         <span className="text-[10px] font-black uppercase text-gray-500">Heat</span>
-        <strong className="scoreboard-number text-xl text-orange-300">{getHeatScore(post)}</strong>
+        <strong className="scoreboard-number text-xl text-lime-300">{getHeatScore(post)}</strong>
         <em
           key={post.activityText}
           className="animate-[activityPulse_500ms_ease] justify-self-end text-right text-xs font-bold not-italic text-gray-200"

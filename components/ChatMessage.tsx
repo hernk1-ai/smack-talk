@@ -24,9 +24,9 @@ export function ChatMessage({
 }) {
   if (message.type === "system_moment") {
     return (
-      <div className="animate-[activityPulse_420ms_ease] rounded-3xl border border-yellow-400/25 bg-gradient-to-r from-yellow-500/10 via-orange-500/10 to-yellow-500/10 px-4 py-3 text-center shadow-[0_0_28px_rgba(250,204,21,0.08)]">
-        <p className="sports-display text-xl leading-none text-yellow-100">{message.message}</p>
-        <p className="mt-1 text-[11px] font-bold uppercase text-yellow-200/70">{message.timestamp}</p>
+      <div className="animate-[activityPulse_420ms_ease] rounded-3xl border border-lime-400/25 bg-gradient-to-r from-lime-500/10 via-purple-500/10 to-purple-500/10 px-4 py-3 text-center shadow-[0_0_28px_rgba(132,204,22,0.08)]">
+        <p className="sports-display text-xl leading-none text-lime-100">{message.message}</p>
+        <p className="mt-1 text-[11px] font-bold uppercase text-lime-200/70">{message.timestamp}</p>
       </div>
     );
   }

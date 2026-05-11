@@ -2,10 +2,10 @@ import { whoIsCookingUsers } from "@/utils/arenaChat";
 
 export function WhoIsCooking() {
   return (
-    <section className="rounded-3xl border border-orange-400/20 bg-gradient-to-br from-orange-500/12 to-slate-950 p-4 shadow-[0_18px_44px_rgba(0,0,0,0.28)]">
+    <section className="rounded-3xl border border-lime-400/20 bg-gradient-to-br from-lime-500/12 to-slate-950 p-4 shadow-[0_18px_44px_rgba(0,0,0,0.28)]">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="sports-display text-2xl leading-none">🔥 Who&apos;s Cooking</h3>
-        <span className="rounded-full border border-orange-300/20 bg-black/40 px-2 py-1 text-[10px] font-black uppercase text-orange-200">
+        <span className="rounded-full border border-lime-300/20 bg-black/40 px-2 py-1 text-[10px] font-black uppercase text-lime-200">
           Arena
         </span>
       </div>
@@ -23,7 +23,7 @@ export function WhoIsCooking() {
               <p className="text-sm font-black">{user.handle}</p>
               <p className="text-xs text-gray-400">cooking right now</p>
             </div>
-            <p className="text-sm font-black text-orange-200">
+            <p className="text-sm font-black text-lime-200">
               +{user.rep} REP {user.icon}
             </p>
           </div>

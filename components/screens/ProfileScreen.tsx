@@ -10,7 +10,7 @@ type ProfileStat = {
   label: string;
   value: string;
   detail?: string;
-  tone: "green" | "purple" | "orange" | "white";
+  tone: "green" | "purple" | "white";
 };
 
 type RecentTake = {
@@ -36,7 +36,7 @@ type Badge = {
   name: string;
   subtitle: string;
   icon: string;
-  tone: "green" | "purple" | "orange" | "blue" | "red" | "teal";
+  tone: "green" | "purple" | "blue" | "red" | "teal";
 };
 
 const profileTabs: { id: ProfileTab; label: string; icon: string }[] = [
@@ -60,7 +60,7 @@ const stats: ProfileStat[] = [
   { label: "Hits", value: "68%", tone: "white" },
   { label: "Losses", value: "59", detail: "27%", tone: "purple" },
   { label: "Difference", value: "+2,840", tone: "green" },
-  { label: "Heat", value: "28.6K", detail: "🔥", tone: "orange" },
+  { label: "Heat", value: "28.6K", detail: "🔥", tone: "green" },
   { label: "Followers", value: "4.2K", tone: "white" },
   { label: "Following", value: "312", tone: "white" },
 ];
@@ -83,7 +83,7 @@ const favoriteArenas: ArenaRecord[] = [
 const badges: Badge[] = [
   { name: "Top Talker", subtitle: "Top 1%", icon: "◉", tone: "green" },
   { name: "Receipt King", subtitle: "100+ Wins", icon: "☠", tone: "purple" },
-  { name: "Streak King", subtitle: "10+ Streak", icon: "ϟ", tone: "orange" },
+  { name: "Streak King", subtitle: "10+ Streak", icon: "ϟ", tone: "green" },
   { name: "Viral King", subtitle: "1M+ Views", icon: "▰", tone: "blue" },
   { name: "Accuracy God", subtitle: "65%+ Hit Rate", icon: "◎", tone: "red" },
   { name: "Crowd Rider", subtitle: "Ride Master", icon: "☍", tone: "teal" },
@@ -185,7 +185,7 @@ function ProfileHero() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(132,204,22,0.22),transparent_30%),radial-gradient(circle_at_80%_22%,rgba(168,85,247,0.2),transparent_34%)]" />
       <div className="relative grid gap-5 md:grid-cols-[auto_1fr_auto] md:items-center">
         <div className="relative mx-auto md:mx-0">
-          <div className="grid h-28 w-28 place-items-center rounded-full border border-lime-300/60 bg-gradient-to-br from-orange-300 via-purple-500 to-black text-2xl font-black text-white shadow-[0_0_34px_rgba(132,204,22,0.35)] ring-4 ring-lime-300/10">
+          <div className="grid h-28 w-28 place-items-center rounded-full border border-lime-300/60 bg-gradient-to-br from-lime-300 via-purple-500 to-black text-2xl font-black text-white shadow-[0_0_34px_rgba(132,204,22,0.35)] ring-4 ring-lime-300/10">
             TH
           </div>
           <span className="absolute bottom-2 right-0 h-5 w-5 rounded-full border-2 border-black bg-lime-400 shadow-[0_0_18px_rgba(132,204,22,0.9)]" />
@@ -289,7 +289,6 @@ function ProfileStatCard({ stat }: { stat: ProfileStat }) {
   const toneClass = {
     green: "text-lime-300",
     purple: "text-purple-300",
-    orange: "text-orange-300",
     white: "text-white",
   }[stat.tone];
 
@@ -511,7 +510,7 @@ function TakeRow({ take }: { take: RecentTake }) {
         </div>
         <div>
           <p className="text-[8px] font-black uppercase text-gray-500">Heat</p>
-          <p className="text-sm font-black text-orange-300">🔥 {take.heat}</p>
+          <p className="text-sm font-black text-lime-300">🔥 {take.heat}</p>
         </div>
         <span className="text-2xl text-gray-400">›</span>
       </div>
@@ -555,7 +554,7 @@ function ArenaRow({ arena }: { arena: ArenaRecord }) {
 
 function ArenaIcon({ label }: { label: string }) {
   return (
-    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-sky-300/40 bg-gradient-to-br from-orange-300 via-purple-500 to-black text-[10px] font-black text-white">
+    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-sky-300/40 bg-gradient-to-br from-lime-300 via-purple-500 to-black text-[10px] font-black text-white">
       {label}
     </span>
   );
@@ -578,7 +577,6 @@ function BadgeCard({ badge }: { badge: Badge }) {
   const toneClass = {
     green: "border-lime-300/30 text-lime-300 shadow-[0_0_24px_rgba(132,204,22,0.12)]",
     purple: "border-purple-300/30 text-purple-300 shadow-[0_0_24px_rgba(168,85,247,0.12)]",
-    orange: "border-orange-300/30 text-orange-300 shadow-[0_0_24px_rgba(251,146,60,0.1)]",
     blue: "border-blue-300/30 text-blue-300 shadow-[0_0_24px_rgba(96,165,250,0.1)]",
     red: "border-red-300/30 text-red-300 shadow-[0_0_24px_rgba(248,113,113,0.1)]",
     teal: "border-teal-300/30 text-teal-300 shadow-[0_0_24px_rgba(45,212,191,0.1)]",

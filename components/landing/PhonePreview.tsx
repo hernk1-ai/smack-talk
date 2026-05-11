@@ -53,7 +53,7 @@ export function PhonePreview() {
                 </span>
                 <p className="truncate text-xs font-bold text-gray-200">@TalkHeavy23</p>
               </div>
-              <p className="shrink-0 text-sm font-black text-orange-300">🔥 2.1K</p>
+              <p className="shrink-0 text-sm font-black text-lime-300">🔥 2.1K</p>
             </div>
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button className="min-h-12 rounded-xl border border-lime-300/60 bg-lime-400/10 text-sm font-black uppercase italic tracking-[0.1em] text-lime-300 shadow-[0_0_18px_rgba(132,204,22,0.12)]">

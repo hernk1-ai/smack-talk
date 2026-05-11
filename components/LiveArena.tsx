@@ -245,7 +245,7 @@ function ArenaScoreboard() {
       <div className="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-black/50 p-3.5 sm:grid-cols-[0.8fr_1.25fr_0.85fr] sm:items-center">
         <div>
           <p className="text-[10px] font-black uppercase text-gray-400">Heat Level</p>
-          <p className="mt-1 text-2xl font-black text-orange-300">🔥 3.6K</p>
+          <p className="mt-1 text-2xl font-black text-lime-300">🔥 3.6K</p>
           <p className="text-[10px] font-black uppercase text-red-300">Very Hot</p>
         </div>
         <div className="border-y border-white/10 py-3 text-center sm:border-x sm:border-y-0 sm:px-4 sm:py-0">
@@ -363,7 +363,7 @@ function PinnedCall() {
 function ChatRow({ take }: { take: ChatTake }) {
   return (
     <article className="grid grid-cols-[auto_1fr_auto] gap-3 p-4">
-      <span className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-gradient-to-br from-orange-300 via-purple-500 to-black text-xs font-black text-white">
+      <span className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-gradient-to-br from-lime-300 via-purple-500 to-black text-xs font-black text-white">
         {take.avatar}
       </span>
       <div className="min-w-0">
@@ -373,7 +373,7 @@ function ChatRow({ take }: { take: ChatTake }) {
         </p>
         <p className="mt-1 text-sm font-semibold leading-6 text-gray-200">{take.text}</p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-black text-orange-300">🔥 {take.heat}</span>
+          <span className="text-xs font-black text-lime-300">🔥 {take.heat}</span>
           {take.tag && (
             <span
               className={`rounded-md border px-2 py-0.5 text-[10px] font-black uppercase ${
@@ -450,7 +450,7 @@ function ControlRoomPanel() {
 
       <div className="mt-4 space-y-3">
         <SignalRow icon="◉" label="Crowd Confidence" value="85%" note="Very high" tone="ride" />
-        <SignalRow icon="🔥" label="Overcommitment" value="72%" note="LAL side" tone="orange" />
+        <SignalRow icon="🔥" label="Overcommitment" value="72%" note="LAL side" tone="ride" />
         <SignalRow icon="ϟ" label="Momentum Shift" value="LAL ↑" note="Strong" tone="ride" />
         <SignalRow icon="☿" label="Upset Threat" value="68%" note="High" tone="fade" />
       </div>
@@ -468,11 +468,11 @@ function TopTalkersPanel() {
             <span className="grid h-6 w-6 place-items-center rounded-full bg-white/10 text-xs font-black text-gray-300">
               {talker.rank}
             </span>
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-orange-300 via-purple-500 to-black text-[10px] font-black text-white">
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-lime-300 via-purple-500 to-black text-[10px] font-black text-white">
               {talker.avatar}
             </span>
             <p className="truncate text-sm font-black text-white">{talker.handle}</p>
-            <p className="text-xs font-black text-orange-300">🔥 {talker.heat}</p>
+            <p className="text-xs font-black text-lime-300">🔥 {talker.heat}</p>
           </div>
         ))}
       </div>
@@ -583,9 +583,9 @@ function SignalRow({
   label: string;
   value: string;
   note: string;
-  tone: Side | "orange";
+  tone: Side;
 }) {
-  const toneClass = tone === "ride" ? "text-lime-300" : tone === "fade" ? "text-purple-300" : "text-orange-300";
+  const toneClass = tone === "ride" ? "text-lime-300" : "text-purple-300";
 
   return (
     <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2 text-xs font-black uppercase">

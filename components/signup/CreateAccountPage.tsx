@@ -68,21 +68,19 @@ export function CreateAccountPage() {
       <div className="relative z-10 mx-auto flex min-h-dvh w-[min(100%-24px,1180px)] flex-col">
         <SignupHeader />
 
-        <section className="grid flex-1 items-center gap-8 py-8 sm:py-10 lg:grid-cols-[17rem_minmax(0,1fr)_17rem] lg:gap-8 lg:py-12">
-          <PhoneMockup side="left" />
-
+        <section className="flex flex-1 items-center justify-center py-5 sm:py-7 lg:py-7">
           <div className="mx-auto w-full max-w-2xl text-center">
             <p className="text-[0.7rem] font-black uppercase italic tracking-[0.22em] text-lime-300">
               Built on takes. <span className="text-purple-400">Backed by receipts.</span>
             </p>
-            <h1 className="sports-display mt-5 text-[5rem] italic leading-[0.78] tracking-tight text-white drop-shadow-[0_10px_28px_rgba(255,255,255,0.16)] min-[390px]:text-[6rem] sm:text-[8rem] lg:text-[9rem]">
+            <h1 className="sports-display mt-4 text-[5rem] italic leading-[0.78] tracking-tight text-white drop-shadow-[0_10px_28px_rgba(255,255,255,0.16)] min-[390px]:text-[6rem] sm:text-[8rem] lg:text-[9rem]">
               Enter
               <span className="block bg-gradient-to-r from-purple-500 via-purple-300 to-lime-300 bg-clip-text text-transparent">
                 The Arena
               </span>
             </h1>
-            <div className="mx-auto mt-4 h-1.5 w-56 rounded-full bg-gradient-to-r from-lime-300 via-white/50 to-purple-500 shadow-[0_0_24px_rgba(168,85,247,0.34)]" />
-            <p className="mt-5 text-base font-black uppercase tracking-[0.12em] text-gray-300 sm:text-xl">
+            <div className="mx-auto mt-3 h-1.5 w-56 rounded-full bg-gradient-to-r from-lime-300 via-white/50 to-purple-500 shadow-[0_0_24px_rgba(168,85,247,0.34)]" />
+            <p className="mt-4 text-base font-black uppercase tracking-[0.12em] text-gray-300 sm:text-xl">
               Lock your takes. Build your REP.
             </p>
 
@@ -99,8 +97,6 @@ export function CreateAccountPage() {
               onSubmit={handleSubmit}
             />
           </div>
-
-          <PhoneMockup side="right" />
         </section>
 
         <FeatureRow />
@@ -175,9 +171,9 @@ function SignupCard({
   return (
     <form
       onSubmit={onSubmit}
-      className="mx-auto mt-8 max-w-xl rounded-[1.75rem] border border-white/15 bg-black/55 p-5 text-left shadow-[0_24px_80px_rgba(0,0,0,0.55),0_0_36px_rgba(168,85,247,0.12)] backdrop-blur-xl sm:p-7"
+      className="mx-auto mt-6 max-w-xl rounded-[1.75rem] border border-white/15 bg-black/55 p-5 text-left shadow-[0_24px_80px_rgba(0,0,0,0.55),0_0_36px_rgba(168,85,247,0.12)] backdrop-blur-xl sm:p-6"
     >
-      <div className="mb-6 flex items-center gap-4">
+      <div className="mb-5 flex items-center gap-4">
         <div className="h-px flex-1 bg-gradient-to-r from-transparent to-purple-500/70" />
         <h2 className="text-center text-sm font-black uppercase tracking-[0.22em] text-purple-300">Create Your Account</h2>
         <div className="h-px flex-1 bg-gradient-to-l from-transparent to-purple-500/70" />
@@ -197,7 +193,7 @@ function SignupCard({
         </div>
       </label>
 
-      <label className="mt-5 block">
+      <label className="mt-4 block">
         <span className="text-xs font-black uppercase tracking-[0.22em] text-white">Password</span>
         <div className="mt-3 grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl border border-white/15 bg-white/[0.08] px-4 py-3 shadow-inner shadow-black/35 transition focus-within:border-lime-300/55 focus-within:bg-white/[0.1]">
           <span className="text-lime-300">▣</span>
@@ -219,7 +215,7 @@ function SignupCard({
         </div>
       </label>
 
-      <label className="mt-5 flex items-start gap-3 text-sm font-semibold text-gray-300">
+      <label className="mt-4 flex items-start gap-3 text-sm font-semibold text-gray-300">
         <input
           checked={termsAccepted}
           className="mt-0.5 h-5 w-5 rounded border-white/20 bg-black accent-lime-300"
@@ -247,12 +243,12 @@ function SignupCard({
 
       <button
         type="submit"
-        className="mt-6 min-h-14 w-full rounded-xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-lg font-black uppercase italic tracking-[0.12em] text-black shadow-[0_0_34px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_46px_rgba(168,85,247,0.34)] active:scale-[0.99]"
+        className="mt-5 min-h-14 w-full rounded-xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-lg font-black uppercase italic tracking-[0.12em] text-black shadow-[0_0_34px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_46px_rgba(168,85,247,0.34)] active:scale-[0.99]"
       >
         Lock My Spot →
       </button>
 
-      <p id="login" className="mt-5 text-center text-sm font-semibold text-gray-400">
+      <p id="login" className="mt-4 text-center text-sm font-semibold text-gray-400">
         Already have an account?{" "}
         <a className="font-black text-purple-300 transition hover:text-lime-300" href="#login">
           Log in
@@ -262,89 +258,9 @@ function SignupCard({
   );
 }
 
-function PhoneMockup({ side }: { side: "left" | "right" }) {
-  const isLeft = side === "left";
-
-  return (
-    <aside
-      className={`pointer-events-none hidden lg:block ${
-        isLeft ? "-rotate-6 justify-self-start scale-[0.88]" : "rotate-6 justify-self-end scale-[1.06]"
-      }`}
-      aria-hidden="true"
-    >
-      <div className={`${isLeft ? "w-56" : "w-64"} rounded-[2.25rem] border border-white/15 bg-[#050713] p-3 shadow-[0_30px_90px_rgba(0,0,0,0.68),0_0_40px_rgba(168,85,247,0.18)]`}>
-        <div className="rounded-[1.75rem] border border-white/10 bg-black p-4">
-          <div className="mb-4 flex items-center justify-between">
-            <SmackTalkLogo size={34} />
-            <div className="flex gap-1">
-              <span className="grid h-7 w-7 place-items-center rounded-lg border border-white/10 text-[10px] text-lime-300">ϟ</span>
-              <span className="grid h-7 w-7 place-items-center rounded-lg border border-white/10 text-[10px] text-purple-300">♧</span>
-            </div>
-          </div>
-
-          {side === "left" ? (
-            <div className="space-y-3">
-              <PhoneStat title="Top Streak" value="12" detail="Wins in a row" tone="purple" />
-              <PhoneStat title="Best Hit" value="97%" detail="Accuracy" tone="green" />
-              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
-                <p className="text-[10px] font-black uppercase text-gray-300">Recent Receipts</p>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <MiniReceipt title="Curry is choking." result="Win" />
-                  <MiniReceipt title="Knicks upset incoming." result="92% hit" />
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <p className="sports-display text-xl italic text-white">Top Talkers</p>
-              <div className="mt-3 rounded-xl border border-purple-300/25 bg-purple-500/10 p-2 text-[10px] font-black uppercase text-purple-200">
-                Overall
-              </div>
-              <div className="mt-3 space-y-2">
-                {["@TalkHeavy23", "@MidRange", "@BucketsOnly", "@FadeKing", "@NoMercy"].map((handle, index) => (
-                  <div key={handle} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-lg border border-white/10 bg-white/[0.035] p-2">
-                    <span className="scoreboard-number text-lime-300">{index + 1}</span>
-                    <span className="truncate text-[10px] font-black text-white">{handle}</span>
-                    <span className="text-[10px] font-black text-gray-300">{index === 0 ? "28.6K" : `${22 - index}.4K`}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-function PhoneStat({ title, value, detail, tone }: { title: string; value: string; detail: string; tone: "purple" | "green" | "blue" }) {
-  const toneClass = {
-    purple: "border-purple-300/25 bg-purple-500/10 text-purple-300",
-    green: "border-lime-300/25 bg-lime-400/10 text-lime-300",
-    blue: "border-blue-300/25 bg-blue-500/10 text-blue-300",
-  }[tone];
-
-  return (
-    <div className={`rounded-xl border p-3 ${toneClass}`}>
-      <p className="text-[10px] font-black uppercase text-white">{title}</p>
-      <p className="scoreboard-number mt-1 text-3xl">{value}</p>
-      <p className="text-[9px] font-black uppercase text-gray-400">{detail}</p>
-    </div>
-  );
-}
-
-function MiniReceipt({ title, result }: { title: string; result: string }) {
-  return (
-    <div className="rounded-lg border border-white/10 bg-black/45 p-2">
-      <p className="mb-2 inline-flex rounded bg-lime-400/15 px-1.5 py-0.5 text-[8px] font-black uppercase text-lime-300">{result}</p>
-      <p className="text-[10px] font-black leading-tight text-white">{title}</p>
-    </div>
-  );
-}
-
 function FeatureRow() {
   return (
-    <section id="features" className="grid gap-3 border-y border-white/10 py-8 sm:grid-cols-2 lg:grid-cols-4">
+    <section id="features" className="grid gap-3 border-y border-white/10 py-6 sm:grid-cols-2 lg:grid-cols-4">
       {featureCards.map((card) => (
         <article key={card.title} className="rounded-2xl border border-white/10 bg-black/35 p-4 text-center transition hover:-translate-y-1 hover:border-purple-300/40 hover:bg-white/[0.035]">
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-purple-300/40 bg-purple-500/10 text-3xl text-purple-300">
@@ -360,7 +276,7 @@ function FeatureRow() {
 
 function ProofSection() {
   return (
-    <section id="community" className="my-8 rounded-[1.75rem] border border-white/10 bg-black/45 p-6 text-center shadow-[0_22px_70px_rgba(0,0,0,0.42)]">
+    <section id="community" className="my-6 rounded-[1.75rem] border border-white/10 bg-black/45 p-5 text-center shadow-[0_22px_70px_rgba(0,0,0,0.42)] sm:p-6">
       <p className="text-5xl leading-none text-lime-300">“</p>
       <h2 className="sports-display text-4xl italic leading-none text-white sm:text-5xl">The world is watching.</h2>
       <p className="mt-4 text-sm font-black uppercase tracking-[0.18em] text-gray-400">
@@ -373,7 +289,7 @@ function ProofSection() {
 
 function StatsRow() {
   return (
-    <section id="top-talkers" className="grid gap-3 pb-10 sm:grid-cols-2 lg:grid-cols-4">
+    <section id="top-talkers" className="grid gap-3 pb-8 sm:grid-cols-2 lg:grid-cols-4">
       {proofStats.map((stat) => (
         <div key={stat.label} className="rounded-2xl border border-white/10 bg-black/35 p-4 text-center">
           <p className="scoreboard-number text-4xl text-lime-300">{stat.value}</p>

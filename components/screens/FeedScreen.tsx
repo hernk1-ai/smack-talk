@@ -37,7 +37,7 @@ type ChaosAlert = {
   title: string;
   detail: string;
   time: string;
-  tone: "green" | "orange" | "purple" | "red";
+  tone: "green" | "purple" | "red";
 };
 
 const trendingTakes: TrendingTake[] = [
@@ -145,7 +145,7 @@ const chaosAlerts: ChaosAlert[] = [
     title: "Crowd collapse incoming.",
     detail: "Momentum shifting fast.",
     time: "4m ago",
-    tone: "orange",
+    tone: "green",
   },
   {
     id: "buckets-hit",
@@ -288,7 +288,7 @@ function FeaturedArenaCard({ onEnterArena }: { onEnterArena: () => void }) {
       <div className="mt-5 grid grid-cols-3 items-center rounded-2xl border border-white/10 bg-black/45 p-3">
         <div>
           <p className="text-[10px] font-black uppercase text-gray-400">Heat on the line</p>
-          <p className="mt-1 text-2xl font-black text-orange-300">🔥 3.6K</p>
+          <p className="mt-1 text-2xl font-black text-lime-300">🔥 3.6K</p>
         </div>
         <div className="border-x border-white/10 px-3 text-center">
           <p className="text-[10px] font-black uppercase text-gray-400">Momentum</p>
@@ -331,7 +331,7 @@ function TrendingTakes({
                 <span className="grid h-7 w-7 place-items-center rounded-full bg-lime-400 text-xs font-black text-black">
                   {take.rank}
                 </span>
-                <span className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-orange-300 via-purple-500 to-black text-[10px] font-black text-white">
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-lime-300 via-purple-500 to-black text-[10px] font-black text-white">
                   {take.avatar}
                 </span>
               </div>
@@ -341,7 +341,7 @@ function TrendingTakes({
             </p>
             <p className="text-[10px] font-bold text-gray-500">{take.timestamp}</p>
             <h3 className="mt-3 min-h-14 text-xl font-black leading-tight text-white">{take.text}</h3>
-            <p className="mt-3 text-sm font-black text-orange-300">🔥 {take.heat} <span className="text-xs uppercase text-gray-500">Heat</span></p>
+            <p className="mt-3 text-sm font-black text-lime-300">🔥 {take.heat} <span className="text-xs uppercase text-gray-500">Heat</span></p>
             <div className="mt-3 flex items-center justify-between text-sm font-black">
               <span className="text-lime-300">👍 {take.rides}</span>
               <span className="text-purple-300">👎 {take.fades}</span>
@@ -391,7 +391,7 @@ function LiveArenas({ onEnterArena }: { onEnterArena: () => void }) {
                 <span className="text-purple-300">{arena.fading}</span>
               </div>
               <div className="mt-4 flex items-center justify-between text-xs font-black uppercase">
-                <span className="text-orange-300">🔥 {arena.heat} Heat</span>
+                <span className="text-lime-300">🔥 {arena.heat} Heat</span>
                 <span className={arena.trendDirection === "up" ? "text-lime-300" : "text-purple-300"}>
                   {arena.trend} {arena.trendDirection === "up" ? "↑" : "↓"}
                 </span>
@@ -514,10 +514,6 @@ function toneClass(tone: ChaosAlert["tone"], target: "text" | "bg") {
     green: {
       text: "text-lime-300",
       bg: "bg-lime-400/10 text-lime-300",
-    },
-    orange: {
-      text: "text-orange-300",
-      bg: "bg-orange-400/10 text-orange-300",
     },
     purple: {
       text: "text-purple-300",

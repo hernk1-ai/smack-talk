@@ -442,7 +442,7 @@ function TalkerTableRow({ talker }: { talker: TalkerRow }) {
       </div>
 
       <div className="grid grid-cols-4 gap-1.5 sm:contents">
-        <TableStat label="Heat" value={`🔥 ${talker.heat}`} tone="text-orange-300" />
+        <TableStat label="Heat" value={`🔥 ${talker.heat}`} tone="text-lime-300" />
         <TableStat label="Wins" value={talker.wins} tone="text-lime-300" />
         <TableStat label="Accuracy" value={talker.accuracy} tone="text-purple-300" />
         <TableStat label="Viral" value={`ϟ ${talker.viral}`} tone="text-purple-300" />
@@ -537,7 +537,7 @@ function CategoryGrid() {
 
 function CategoryPanel({ card }: { card: CategoryCard }) {
   const toneClass = {
-    heat: "border-orange-300/20 hover:border-orange-300/40",
+    heat: "border-lime-300/20 hover:border-lime-300/40",
     viral: "border-purple-300/25 hover:border-purple-300/45",
     clutch: "border-lime-300/20 hover:border-lime-300/40",
   }[card.tone];
@@ -589,7 +589,7 @@ function Avatar({
 
   return (
     <span
-      className={`grid shrink-0 place-items-center rounded-full border bg-gradient-to-br from-orange-300 via-purple-500 to-black font-black text-white shadow-[0_0_18px_rgba(96,165,250,0.16)] ${dimensions} ${
+      className={`grid shrink-0 place-items-center rounded-full border bg-gradient-to-br from-lime-300 via-purple-500 to-black font-black text-white shadow-[0_0_18px_rgba(96,165,250,0.16)] ${dimensions} ${
         active ? "border-lime-300/70 shadow-[0_0_30px_rgba(132,204,22,0.28)]" : "border-sky-300/40"
       }`}
     >

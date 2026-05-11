@@ -24,15 +24,11 @@ export function VerifyEmailPage() {
           </Link>
         </header>
 
-        <div className="grid flex-1 items-center gap-6 pb-8 lg:grid-cols-[12rem_minmax(0,1fr)_12rem]">
-          <SideBanner side="left" title="Lock Your Takes." body="Build your REP." />
-
+        <div className="flex flex-1 items-center justify-center pb-8">
           <section className="mx-auto w-full max-w-3xl">
             <ProgressStepper />
             <VerifyCard />
           </section>
-
-          <SideBanner side="right" title="The Arena Awaits." body="Receipts do not blink." />
         </div>
 
         <VerifyFooter />
@@ -141,24 +137,6 @@ function EnvelopeHero() {
         <div className="absolute -bottom-3 left-1/2 h-2 w-44 -translate-x-1/2 rounded-full bg-lime-300 blur-sm" />
       </div>
     </div>
-  );
-}
-
-function SideBanner({ side, title, body }: { side: "left" | "right"; title: string; body: string }) {
-  return (
-    <aside
-      className={`hidden min-h-[28rem] rounded-[1.75rem] border border-purple-300/15 bg-black/20 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)] lg:block ${
-        side === "left" ? "-rotate-3" : "rotate-3"
-      }`}
-      aria-hidden="true"
-    >
-      <div className="flex h-full flex-col justify-center">
-        <p className="sports-display text-5xl italic leading-[0.86] text-purple-400 drop-shadow-[0_0_20px_rgba(168,85,247,0.18)]">
-          {title}
-        </p>
-        <p className="mt-5 text-sm font-black uppercase tracking-[0.12em] text-gray-300">{body}</p>
-      </div>
-    </aside>
   );
 }
 

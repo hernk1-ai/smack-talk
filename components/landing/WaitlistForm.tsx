@@ -112,7 +112,7 @@ export function WaitlistForm() {
       </div>
 
       {error && (
-        <p className={`mt-3 text-sm font-bold ${formState === "duplicate" ? "text-yellow-100" : "text-red-200"}`}>
+        <p className={`mt-3 text-sm font-bold ${formState === "duplicate" ? "text-lime-100" : "text-red-200"}`}>
           {error}
         </p>
       )}
