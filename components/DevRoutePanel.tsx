@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 const devRoutes = [
   {
@@ -83,39 +84,65 @@ const devRoutes = [
 
 export function DevRoutePanel() {
   const pathname = usePathname();
+  const [isOpen, setIsOpen] = useState(false);
 
   if (process.env.NODE_ENV !== "development") {
     return null;
   }
 
   return (
-    <nav
-      aria-label="Developer route shortcuts"
-      className="fixed bottom-3 left-3 z-[100] max-w-[calc(100vw-1.5rem)] rounded-2xl border border-white/15 bg-black/80 p-3 text-white shadow-2xl backdrop-blur-md"
-    >
-      <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-lime-300">
-        Dev Routes
-      </p>
-      <div className="flex max-h-[38vh] flex-wrap gap-2 overflow-y-auto pr-1">
-        {devRoutes.map((route) => {
-          const isActive = pathname === route.href;
-
-          return (
-            <Link
-              key={route.href}
-              href={route.href}
-              className={`rounded-full border px-3 py-2 text-xs font-bold transition hover:border-lime-300/60 hover:bg-lime-300/15 hover:text-lime-200 ${
-                isActive
-                  ? "border-lime-300/70 bg-lime-300/20 text-lime-100 shadow-[0_0_18px_rgba(157,255,46,0.18)]"
-                  : "border-white/10 bg-white/10"
-              }`}
-              title={route.file}
+    <div className="fixed bottom-3 right-3 z-[100] flex max-w-[calc(100vw-1.5rem)] flex-col items-end gap-2 text-white">
+      {isOpen && (
+        <nav
+          id="developer-route-shortcuts"
+          aria-label="Developer route shortcuts"
+          className="max-h-[42vh] w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-white/15 bg-black/85 p-3 shadow-2xl backdrop-blur-md"
+        >
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime-300">
+              Dev Routes
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="rounded-full border border-white/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-gray-300 transition hover:border-purple-300/50 hover:text-white"
+              aria-label="Close developer routes"
             >
-              {route.label}
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+              Close
+            </button>
+          </div>
+          <div className="flex max-h-[34vh] flex-wrap gap-2 overflow-y-auto pr-1">
+            {devRoutes.map((route) => {
+              const isActive = pathname === route.href;
+
+              return (
+                <Link
+                  key={route.href}
+                  href={route.href}
+                  className={`rounded-full border px-3 py-2 text-xs font-bold transition hover:border-lime-300/60 hover:bg-lime-300/15 hover:text-lime-200 ${
+                    isActive
+                      ? "border-lime-300/70 bg-lime-300/20 text-lime-100 shadow-[0_0_18px_rgba(157,255,46,0.18)]"
+                      : "border-white/10 bg-white/10"
+                  }`}
+                  title={route.file}
+                >
+                  {route.label}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setIsOpen((current) => !current)}
+        className="rounded-full border border-lime-300/35 bg-black/85 px-4 py-3 text-xs font-black uppercase tracking-[0.16em] text-lime-200 shadow-2xl backdrop-blur-md transition hover:-translate-y-0.5 hover:border-purple-300/60 hover:text-white active:scale-95"
+        aria-expanded={isOpen}
+        aria-controls="developer-route-shortcuts"
+      >
+        Dev Routes
+      </button>
+    </div>
   );
 }

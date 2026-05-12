@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { createClient } from "@/lib/supabase/client";
 
 const fallbackTeams = ["Chiefs", "Eagles", "Lions", "Lakers", "Cowboys"];
 
@@ -47,9 +49,56 @@ export function EnterArenaPage({
   username?: string;
 }) {
   const router = useRouter();
+  const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const cleanUsername = sanitizeUsername(username) || "FadeKing";
   const selectedTeams = parseTeams(teams);
   const avatarIcon = avatarIcons[sanitizeToken(avatar)] ?? avatarIcons.hood;
+
+  async function handleEnterArena() {
+    const supabase = createClient();
+
+    if (!supabase) {
+      setMessage("Supabase is not configured yet. Add the public URL and anon key.");
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage("");
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      setIsLoading(false);
+      router.push("/login");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .upsert(
+        {
+          id: user.id,
+          email: user.email ?? null,
+          favorite_teams: selectedTeams,
+          onboarding_completed: true,
+          username: cleanUsername,
+        },
+        { onConflict: "id" },
+      );
+
+    setIsLoading(false);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    router.push("/app");
+  }
 
   return (
     <main className="relative min-h-dvh overflow-hidden bg-[#02040a] text-white">
@@ -72,11 +121,17 @@ export function EnterArenaPage({
 
           <button
             type="button"
-            onClick={() => router.push("/app")}
-            className="mt-8 min-h-16 w-full rounded-2xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-xl font-black uppercase italic tracking-[0.18em] text-black shadow-[0_0_42px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_54px_rgba(168,85,247,0.36)] active:scale-[0.99] sm:min-h-20 sm:text-2xl"
+            onClick={handleEnterArena}
+            disabled={isLoading}
+            className="mt-8 min-h-16 w-full rounded-2xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-xl font-black uppercase italic tracking-[0.18em] text-black shadow-[0_0_42px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_54px_rgba(168,85,247,0.36)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-65 sm:min-h-20 sm:text-2xl"
           >
-            Enter The Arena →
+            {isLoading ? "Saving..." : "Enter The Arena →"}
           </button>
+          {message && (
+            <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-gray-200">
+              {message}
+            </p>
+          )}
 
           <p className="mt-7 flex items-center justify-center gap-3 text-sm font-black uppercase tracking-[0.16em] text-gray-400 sm:text-base">
             <span className="text-purple-400">▱</span>

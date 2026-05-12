@@ -2,7 +2,9 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { createClient } from "@/lib/supabase/client";
 
 const statCards = [
   {
@@ -40,13 +42,15 @@ const statCards = [
 ];
 
 export function CreateAccountPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!email.trim()) {
@@ -64,7 +68,36 @@ export function CreateAccountPage() {
       return;
     }
 
-    setMessage("Account flow ready. Auth connection comes next.");
+    const supabase = createClient();
+
+    if (!supabase) {
+      setMessage("Supabase is not configured yet. Add the public URL and anon key.");
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage("");
+
+    const emailRedirectTo = `${window.location.origin}/auth/callback?next=/username`;
+    const { error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: {
+        emailRedirectTo,
+        data: {
+          source: "signup",
+        },
+      },
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    router.push(`/verify-email?email=${encodeURIComponent(email.trim())}`);
   }
 
   return (
@@ -103,6 +136,7 @@ export function CreateAccountPage() {
             setTermsAccepted={setTermsAccepted}
             showPassword={showPassword}
             termsAccepted={termsAccepted}
+            isLoading={isLoading}
             onSubmit={handleSubmit}
           />
         </section>
@@ -202,6 +236,7 @@ function SignupCard({
   setTermsAccepted,
   showPassword,
   termsAccepted,
+  isLoading,
   onSubmit,
 }: {
   email: string;
@@ -214,6 +249,7 @@ function SignupCard({
   setTermsAccepted: (value: boolean) => void;
   showPassword: boolean;
   termsAccepted: boolean;
+  isLoading: boolean;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   return (
@@ -293,10 +329,11 @@ function SignupCard({
       )}
 
       <button
+        disabled={isLoading}
         type="submit"
-        className="mt-6 min-h-14 w-full rounded-xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-base font-black uppercase italic tracking-[0.12em] text-black shadow-[0_0_34px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_46px_rgba(168,85,247,0.34)] active:scale-[0.99]"
+        className="mt-6 min-h-14 w-full rounded-xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-base font-black uppercase italic tracking-[0.12em] text-black shadow-[0_0_34px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_46px_rgba(168,85,247,0.34)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-65"
       >
-        Get Your Smack Game Ready
+        {isLoading ? "Creating Account..." : "Get Your Smack Game Ready"}
       </button>
 
       <p className="mt-5 text-center text-xs font-black uppercase tracking-[0.14em] text-gray-400">

@@ -1,9 +1,9 @@
 "use client";
 
-export type AppView = "feed" | "arena" | "receipts" | "top-talkers" | "profile";
+export type AppView = "arena" | "live-arena" | "receipts" | "top-talkers" | "profile";
+type NavView = Exclude<AppView, "live-arena">;
 
-const navItems: { id: AppView; label: string; icon: string }[] = [
-  { id: "feed", label: "Feed", icon: "▱" },
+const navItems: { id: NavView; label: string; icon: string }[] = [
   { id: "arena", label: "Arena", icon: "◉" },
   { id: "receipts", label: "Receipts", icon: "▤" },
   { id: "top-talkers", label: "Top Talkers", icon: "♕" },
@@ -11,15 +11,17 @@ const navItems: { id: AppView; label: string; icon: string }[] = [
 ];
 
 export function BottomNav({ activeView, onSelect }: { activeView: AppView; onSelect: (view: AppView) => void }) {
+  const activeNavView = activeView === "live-arena" ? "arena" : activeView;
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-[#02040a]/95 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-18px_50px_rgba(0,0,0,0.45)] backdrop-blur">
-      <div className="bottom-nav-shell grid grid-cols-5 gap-1 rounded-[1.4rem] border border-white/10 bg-white/5 p-2">
+      <div className="bottom-nav-shell grid grid-cols-4 gap-1 rounded-[1.4rem] border border-white/10 bg-white/5 p-2">
         {navItems.map((item) => (
           <button
             key={item.id}
             onClick={() => onSelect(item.id)}
             className={`grid min-h-14 min-w-0 place-items-center gap-1 rounded-2xl px-1 py-2 text-center text-[9px] font-black uppercase leading-tight transition active:scale-95 sm:text-[10px] ${
-              activeView === item.id ? "text-purple-300 shadow-[0_0_26px_rgba(139,92,246,0.22)]" : "text-gray-500"
+              activeNavView === item.id ? "text-purple-300 shadow-[0_0_26px_rgba(139,92,246,0.22)]" : "text-gray-500"
             }`}
             type="button"
           >

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { createClient } from "@/lib/supabase/client";
 
 const leagues = ["NFL", "NBA", "MLB", "NHL", "NCAA", "EPL"];
 
@@ -34,10 +35,13 @@ const defaultSelected = ["Chiefs", "Eagles", "Lions"];
 export function TeamsPage({ avatar, username }: { avatar?: string; username?: string }) {
   const router = useRouter();
   const [selectedTeams, setSelectedTeams] = useState(defaultSelected);
+  const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const cleanUsername = sanitizeUsername(username) || "FadeKing";
   const cleanAvatar = sanitizeToken(avatar) || "lightning";
 
   function toggleTeam(teamName: string) {
+    setMessage("");
     setSelectedTeams((current) => {
       if (current.includes(teamName)) {
         return current.filter((team) => team !== teamName);
@@ -49,6 +53,56 @@ export function TeamsPage({ avatar, username }: { avatar?: string; username?: st
 
       return [...current, teamName];
     });
+  }
+
+  async function handleContinue() {
+    const params = new URLSearchParams({
+      username: cleanUsername,
+      avatar: cleanAvatar,
+      teams: selectedTeams.join(","),
+    });
+
+    const supabase = createClient();
+
+    if (!supabase) {
+      setMessage("Supabase is not configured yet. Add the public URL and anon key.");
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage("");
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      setIsLoading(false);
+      router.push("/login");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .upsert(
+        {
+          id: user.id,
+          email: user.email ?? null,
+          username: cleanUsername,
+          favorite_teams: selectedTeams,
+        },
+        { onConflict: "id" },
+      );
+
+    setIsLoading(false);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    router.push(`/onboarding/enter-arena?${params.toString()}`);
   }
 
   return (
@@ -126,18 +180,17 @@ export function TeamsPage({ avatar, username }: { avatar?: string; username?: st
 
           <button
             type="button"
-            onClick={() => {
-              const params = new URLSearchParams({
-                username: cleanUsername,
-                avatar: cleanAvatar,
-                teams: selectedTeams.join(","),
-              });
-              router.push(`/onboarding/enter-arena?${params.toString()}`);
-            }}
-            className="mt-8 min-h-16 w-full rounded-2xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-xl font-black uppercase italic tracking-[0.18em] text-black shadow-[0_0_42px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_54px_rgba(168,85,247,0.36)] active:scale-[0.99] sm:min-h-20 sm:text-2xl"
+            onClick={handleContinue}
+            disabled={isLoading}
+            className="mt-8 min-h-16 w-full rounded-2xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-xl font-black uppercase italic tracking-[0.18em] text-black shadow-[0_0_42px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_54px_rgba(168,85,247,0.36)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-65 sm:min-h-20 sm:text-2xl"
           >
-            Lock It In →
+            {isLoading ? "Saving..." : "Lock It In →"}
           </button>
+          {message && (
+            <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-gray-200">
+              {message}
+            </p>
+          )}
         </section>
       </div>
     </main>

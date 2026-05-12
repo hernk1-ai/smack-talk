@@ -4,6 +4,7 @@ import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { createClient } from "@/lib/supabase/client";
 
 const reminders = [
   { icon: "◉", label: "The Arena", value: "Is Watching", tone: "green" },
@@ -15,15 +16,55 @@ export function UsernamePage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const validation = useMemo(() => validateUsername(username), [username]);
   const displayName = sanitizeDisplayName(username);
   const availabilityName = displayName || "username";
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!validation.isValid) {
       setMessage(validation.message);
+      return;
+    }
+
+    const supabase = createClient();
+
+    if (!supabase) {
+      setMessage("Supabase is not configured yet. Add the public URL and anon key.");
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage("");
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      setIsLoading(false);
+      router.push("/login");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .upsert(
+        {
+          id: user.id,
+          email: user.email ?? null,
+          username: displayName,
+        },
+        { onConflict: "id" },
+      );
+
+    setIsLoading(false);
+
+    if (error) {
+      setMessage(error.code === "23505" ? "That username is already taken." : error.message);
       return;
     }
 
@@ -110,9 +151,10 @@ export function UsernamePage() {
 
             <button
               type="submit"
-              className="mt-10 min-h-16 w-full rounded-2xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-xl font-black uppercase italic tracking-[0.18em] text-black shadow-[0_0_42px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_54px_rgba(168,85,247,0.36)] active:scale-[0.99] sm:min-h-20 sm:text-2xl"
+              disabled={isLoading}
+              className="mt-10 min-h-16 w-full rounded-2xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-xl font-black uppercase italic tracking-[0.18em] text-black shadow-[0_0_42px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_54px_rgba(168,85,247,0.36)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-65 sm:min-h-20 sm:text-2xl"
             >
-              Lock It In →
+              {isLoading ? "Saving..." : "Lock It In →"}
             </button>
           </form>
         </section>

@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { createClient } from "@/lib/supabase/client";
 
 const previewEmail = "hernk1@gmail.com";
 
@@ -11,8 +12,9 @@ export function ForgotPasswordPage() {
   const router = useRouter();
   const [email, setEmail] = useState(previewEmail);
   const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!email.trim()) {
@@ -20,7 +22,28 @@ export function ForgotPasswordPage() {
       return;
     }
 
-    router.push("/reset-email-sent");
+    const supabase = createClient();
+
+    if (!supabase) {
+      setMessage("Supabase is not configured yet. Add the public URL and anon key.");
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage("");
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    router.push(`/reset-email-sent?email=${encodeURIComponent(email.trim())}`);
   }
 
   return (
@@ -49,7 +72,9 @@ export function ForgotPasswordPage() {
 
           {message && <p className="mt-4 text-sm font-black text-rose-300">{message}</p>}
 
-          <PrimaryButton type="submit">Send Reset Link →</PrimaryButton>
+          <PrimaryButton disabled={isLoading} type="submit">
+            {isLoading ? "Sending..." : "Send Reset Link →"}
+          </PrimaryButton>
         </form>
 
         <p className="mt-6 text-center text-sm font-semibold text-gray-400">
@@ -63,7 +88,7 @@ export function ForgotPasswordPage() {
   );
 }
 
-export function ResetEmailSentPage() {
+export function ResetEmailSentPage({ email = previewEmail }: { email?: string }) {
   return (
     <ResetShell>
       <ResetCard eyebrow="2. Reset Email Sent">
@@ -74,12 +99,19 @@ export function ResetEmailSentPage() {
         <div className="mx-auto mt-8 max-w-md text-center">
           <p className="text-base font-semibold leading-7 text-gray-300">
             We sent a reset link to
-            <span className="block font-black text-white">{previewEmail}</span>
+            <span className="block font-black text-white">{email}</span>
           </p>
           <p className="mt-5 text-sm font-semibold leading-6 text-gray-400">
             If you don&apos;t see it, check your spam folder.
           </p>
         </div>
+
+        <Link
+          href="/password-reset-email-preview"
+          className="mt-4 grid min-h-12 w-full place-items-center rounded-xl border border-purple-300/40 bg-purple-500/10 px-5 text-sm font-black uppercase italic tracking-[0.14em] text-purple-200 transition hover:-translate-y-0.5 hover:bg-purple-500/20 active:scale-[0.99]"
+        >
+          Preview Reset Email
+        </Link>
 
         <Link
           href="/login"
@@ -93,11 +125,13 @@ export function ResetEmailSentPage() {
 }
 
 export function ResetPasswordPage() {
+  const router = useRouter();
   const [password, setPassword] = useState("superstrong");
   const [confirmPassword, setConfirmPassword] = useState("superstrong");
   const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!password || !confirmPassword) {
@@ -110,7 +144,27 @@ export function ResetPasswordPage() {
       return;
     }
 
-    setMessage("Password reset flow ready. Auth connection comes next.");
+    const supabase = createClient();
+
+    if (!supabase) {
+      setMessage("Supabase is not configured yet. Add the public URL and anon key.");
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage("");
+
+    const { error } = await supabase.auth.updateUser({ password });
+    setIsLoading(false);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setMessage("Password updated. Sending you back to login.");
+    await supabase.auth.signOut();
+    router.push("/login");
   }
 
   return (
@@ -142,7 +196,9 @@ export function ResetPasswordPage() {
 
           {message && <p className="mt-4 text-sm font-black text-gray-200">{message}</p>}
 
-          <PrimaryButton type="submit">Update Password →</PrimaryButton>
+          <PrimaryButton disabled={isLoading} type="submit">
+            {isLoading ? "Updating..." : "Update Password →"}
+          </PrimaryButton>
         </form>
       </ResetCard>
     </ResetShell>
@@ -291,11 +347,20 @@ function StrengthBar() {
   );
 }
 
-function PrimaryButton({ children, type }: { children: React.ReactNode; type?: "button" | "submit" }) {
+function PrimaryButton({
+  children,
+  disabled = false,
+  type,
+}: {
+  children: React.ReactNode;
+  disabled?: boolean;
+  type?: "button" | "submit";
+}) {
   return (
     <button
+      disabled={disabled}
       type={type || "button"}
-      className="mt-8 min-h-14 w-full rounded-xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-base font-black uppercase italic tracking-[0.16em] text-black shadow-[0_0_34px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_46px_rgba(168,85,247,0.34)] active:scale-[0.99]"
+      className="mt-8 min-h-14 w-full rounded-xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-base font-black uppercase italic tracking-[0.16em] text-black shadow-[0_0_34px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_46px_rgba(168,85,247,0.34)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-65"
     >
       {children}
     </button>

@@ -2,7 +2,10 @@
 
 import { FormEvent, ReactNode, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { createClient } from "@/lib/supabase/client";
+import { getCurrentProfile, getPostLoginRedirect } from "@/lib/supabase/profiles";
 
 const featureCards = [
   {
@@ -28,13 +31,15 @@ const featureCards = [
 ];
 
 export function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [keepSignedIn, setKeepSignedIn] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!email.trim()) {
@@ -47,7 +52,30 @@ export function LoginPage() {
       return;
     }
 
-    setMessage("Login flow ready. Auth connection comes next.");
+    const supabase = createClient();
+
+    if (!supabase) {
+      setMessage("Supabase is not configured yet. Add the public URL and anon key.");
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage("");
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+    if (error) {
+      setIsLoading(false);
+      setMessage(error.message);
+      return;
+    }
+
+    const { profile } = await getCurrentProfile(supabase);
+    setIsLoading(false);
+    router.push(getPostLoginRedirect(profile));
   }
 
   return (
@@ -81,6 +109,7 @@ export function LoginPage() {
             setPassword={setPassword}
             setShowPassword={setShowPassword}
             showPassword={showPassword}
+            isLoading={isLoading}
             onSubmit={handleSubmit}
           />
         </section>
@@ -104,12 +133,14 @@ function LoginCard({
   setPassword,
   setShowPassword,
   showPassword,
+  isLoading,
   onSubmit,
 }: {
   email: string;
   keepSignedIn: boolean;
   message: string;
   password: string;
+  isLoading: boolean;
   setEmail: (value: string) => void;
   setKeepSignedIn: (value: boolean) => void;
   setMessage: (value: string) => void;
@@ -190,9 +221,10 @@ function LoginCard({
 
       <button
         type="submit"
-        className="mt-6 min-h-14 w-full rounded-xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-lg font-black uppercase italic tracking-[0.14em] text-black shadow-[0_0_34px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_46px_rgba(168,85,247,0.34)] active:scale-[0.99]"
+        disabled={isLoading}
+        className="mt-6 min-h-14 w-full rounded-xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-lg font-black uppercase italic tracking-[0.14em] text-black shadow-[0_0_34px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_46px_rgba(168,85,247,0.34)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-65"
       >
-        Log In →
+        {isLoading ? "Logging In..." : "Log In →"}
       </button>
 
       <div className="my-6 grid grid-cols-[1fr_auto_1fr] items-center gap-4 text-xs font-black uppercase tracking-[0.16em] text-gray-500">

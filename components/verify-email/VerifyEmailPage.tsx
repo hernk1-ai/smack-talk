@@ -1,5 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { createClient } from "@/lib/supabase/client";
 
 const steps = [
   { label: "Sign Up", state: "complete", icon: "✓" },
@@ -7,7 +11,9 @@ const steps = [
   { label: "Arena Access", state: "locked", icon: "▣" },
 ];
 
-export function VerifyEmailPage() {
+export function VerifyEmailPage({ email }: { email?: string }) {
+  const displayEmail = email || "you@domain.com";
+
   return (
     <main className="relative min-h-dvh overflow-hidden bg-[#02040a] text-white">
       <VerifyAtmosphere />
@@ -27,7 +33,7 @@ export function VerifyEmailPage() {
         <div className="flex flex-1 items-center justify-center pb-8">
           <section className="mx-auto w-full max-w-3xl">
             <ProgressStepper />
-            <VerifyCard />
+            <VerifyCard email={displayEmail} canResend={Boolean(email)} />
           </section>
         </div>
 
@@ -71,7 +77,38 @@ function ProgressStepper() {
   );
 }
 
-function VerifyCard() {
+function VerifyCard({ canResend, email }: { canResend: boolean; email: string }) {
+  const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function resendEmail() {
+    if (!canResend) {
+      setMessage("Open the verification link from your inbox, or sign up again with your email.");
+      return;
+    }
+
+    const supabase = createClient();
+
+    if (!supabase) {
+      setMessage("Supabase is not configured yet. Add the public URL and anon key.");
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage("");
+
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/username`,
+      },
+    });
+
+    setIsLoading(false);
+    setMessage(error ? error.message : "Verification email sent again.");
+  }
+
   return (
     <section className="relative isolate overflow-hidden rounded-[2rem] border border-white/15 bg-black/65 p-6 text-center shadow-[0_28px_90px_rgba(0,0,0,0.62),0_0_42px_rgba(168,85,247,0.12)] backdrop-blur-xl sm:p-10">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_20%,rgba(132,204,22,0.14),transparent_18rem),radial-gradient(circle_at_50%_52%,rgba(168,85,247,0.1),transparent_20rem)]" />
@@ -90,18 +127,26 @@ function VerifyCard() {
       </p>
       <p className="mx-auto mt-5 max-w-md text-base font-semibold leading-7 text-gray-300">
         We sent a verification link to
-        <span className="block font-black text-lime-300">you@domain.com</span>
+        <span className="block font-black text-lime-300">{email}</span>
       </p>
       <p className="mx-auto mt-3 max-w-md text-sm font-semibold leading-6 text-gray-400">
         Click the link to verify your email and unlock full access to Smack Talk.
       </p>
 
+      {message && (
+        <p className="mx-auto mt-5 max-w-md rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-gray-200">
+          {message}
+        </p>
+      )}
+
       <div className="mx-auto mt-8 grid max-w-lg gap-3">
         <button
           type="button"
-          className="min-h-14 rounded-xl bg-gradient-to-r from-lime-300 to-lime-500 px-5 text-base font-black uppercase tracking-[0.14em] text-black shadow-[0_0_34px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_46px_rgba(132,204,22,0.38)] active:scale-[0.99]"
+          onClick={resendEmail}
+          disabled={isLoading}
+          className="min-h-14 rounded-xl bg-gradient-to-r from-lime-300 to-lime-500 px-5 text-base font-black uppercase tracking-[0.14em] text-black shadow-[0_0_34px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_46px_rgba(132,204,22,0.38)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-65"
         >
-          Resend Email ↗
+          {isLoading ? "Sending..." : "Resend Email ↗"}
         </button>
         <Link
           href="/login"

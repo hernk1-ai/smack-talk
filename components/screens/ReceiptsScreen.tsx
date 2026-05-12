@@ -40,6 +40,13 @@ type ViralReceipt = {
   status: ReceiptStatus;
 };
 
+type PerformanceBadge = {
+  name: string;
+  subtitle: string;
+  icon: string;
+  tone: "green" | "purple" | "blue" | "red" | "teal";
+};
+
 const receiptTabs: { id: ReceiptTab; label: string; icon: string }[] = [
   { id: "my-receipts", label: "My Receipts", icon: "▤" },
   { id: "viral", label: "Viral", icon: "🔥" },
@@ -50,7 +57,7 @@ const receiptTabs: { id: ReceiptTab; label: string; icon: string }[] = [
 const tabIntents: Record<ReceiptTab, { title: string; copy: string }> = {
   "my-receipts": {
     title: "Personal receipt history",
-    copy: "Your locked takes, settled outcomes, and reputation trail.",
+    copy: "Your locked takes, settled outcomes, and reputation trail. Talk backed up. Or exposed.",
   },
   viral: {
     title: "Most viewed receipts",
@@ -196,6 +203,15 @@ const viralReceipts: ViralReceipt[] = [
   },
 ];
 
+const performanceBadges: PerformanceBadge[] = [
+  { name: "Top Talker", subtitle: "Top 1%", icon: "◉", tone: "green" },
+  { name: "Receipt King", subtitle: "100+ Wins", icon: "☠", tone: "purple" },
+  { name: "Streak King", subtitle: "10+ Streak", icon: "ϟ", tone: "green" },
+  { name: "Viral King", subtitle: "1M+ Views", icon: "▰", tone: "blue" },
+  { name: "Accuracy God", subtitle: "65%+ Hit Rate", icon: "◎", tone: "red" },
+  { name: "Crowd Rider", subtitle: "Ride Master", icon: "☍", tone: "teal" },
+];
+
 export function ReceiptsScreen() {
   const [activeTab, setActiveTab] = useState<ReceiptTab>("my-receipts");
 
@@ -208,11 +224,14 @@ export function ReceiptsScreen() {
       <section className="grid gap-4 md:grid-cols-[minmax(0,1fr)_18rem] md:items-start">
         <RecordCard />
         <div className="grid gap-3">
+          <SideStatCard eyebrow="REP Total" value="9,250" unit="Top 2%" tone="green" body="+18% this month. Proof is compounding." />
           <SideStatCard eyebrow="Top Streak" value="12" unit="Wins in a row" tone="purple" body="Nobody could cool you off." />
           <SideStatCard eyebrow="Best Hit" value="97%" unit="Accuracy" tone="green" body="Knicks upset incoming." />
           <SideStatCard eyebrow="Most Viral" value="2.4M" unit="Views" tone="blue" body="Curry is choking." />
         </div>
       </section>
+
+      <FeaturedReceipt />
 
       <ReceiptSection title="Recent Receipts" icon="▤" action="See all">
         <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
@@ -229,6 +248,8 @@ export function ReceiptsScreen() {
           ))}
         </div>
       </ReceiptSection>
+
+      <PerformanceBadges />
 
       <ShareReceiptsCard />
     </div>
@@ -453,6 +474,56 @@ function ReceiptSection({
   );
 }
 
+function FeaturedReceipt() {
+  return (
+    <section className="isolate rounded-[1.75rem] border border-white/10 bg-[#05070d]/90 p-4 shadow-[0_20px_58px_rgba(0,0,0,0.42)] transition hover:border-lime-300/20 hover:shadow-[0_24px_66px_rgba(0,0,0,0.5)]">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="sports-display text-2xl italic leading-none text-white sm:text-3xl">
+          <span className="mr-2 not-italic">🔥</span>
+          Featured Receipt
+        </h2>
+        <span className="rounded-md bg-lime-400/15 px-2 py-1 text-[10px] font-black uppercase text-lime-300">Win</span>
+      </div>
+
+      <article className="relative isolate overflow-hidden rounded-2xl border border-lime-300/25 bg-[#061006]/95 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition hover:border-lime-300/40 sm:p-5">
+        <div className="pointer-events-none absolute right-0 top-0 -z-10 h-full w-1/2 bg-[radial-gradient(circle_at_70%_34%,rgba(132,204,22,0.22),transparent_48%)]" />
+        <div className="relative z-10 grid gap-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-bold text-gray-400">2d ago</p>
+              <span className="rounded-full border border-lime-300/30 bg-lime-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-lime-300">
+                Shareable
+              </span>
+            </div>
+            <h3 className="mt-3 text-3xl font-black italic leading-tight text-white sm:text-4xl">Knicks upset incoming.</h3>
+            <p className="mt-2 text-xs font-black uppercase text-sky-300">NYK Arena</p>
+
+            <div className="mt-5 grid max-w-sm grid-cols-[1fr_auto_1fr] items-end gap-3 text-center">
+              <ScoreMini team="NYK" score="121" />
+              <span className="pb-2 text-2xl text-purple-200">ϟ</span>
+              <ScoreMini team="BOS" score="116" />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-lime-300/25 bg-black/70 p-3 shadow-[0_0_26px_rgba(132,204,22,0.1)] md:w-56">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">Your Take Hit</p>
+            <p className="mt-1 text-sm font-semibold text-gray-300">Locked before tip. Receipt held.</p>
+            <p className="scoreboard-number mt-3 text-6xl leading-none text-white drop-shadow-[0_0_18px_rgba(132,204,22,0.22)]">92%</p>
+            <p className="text-xs font-black uppercase tracking-[0.12em] text-lime-300">Ride Hit</p>
+          </div>
+        </div>
+
+        <div className="relative z-10 mt-4 grid grid-cols-4 gap-2 rounded-xl border border-white/10 bg-black/65 p-2 text-center text-xs font-black text-gray-400">
+          <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">🔥 3.6K</span>
+          <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">◉ 1.8M</span>
+          <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">▱ 842</span>
+          <span className="rounded-lg py-1 text-purple-200 transition hover:bg-purple-500/10">⇧</span>
+        </div>
+      </article>
+    </section>
+  );
+}
+
 function RecentReceiptCard({ receipt }: { receipt: RecentReceipt }) {
   const isWin = receipt.status === "win";
 
@@ -561,6 +632,38 @@ function ViralReceiptCard({ receipt }: { receipt: ViralReceipt }) {
           <span>▰ {receipt.comments}</span>
         </div>
       </div>
+    </article>
+  );
+}
+
+function PerformanceBadges() {
+  return (
+    <ReceiptSection title="Performance Badges" icon="◎" action="View all">
+      <div className="grid grid-cols-2 gap-3 min-[430px]:grid-cols-3 md:grid-cols-6">
+        {performanceBadges.map((badge) => (
+          <PerformanceBadgeCard key={badge.name} badge={badge} />
+        ))}
+      </div>
+    </ReceiptSection>
+  );
+}
+
+function PerformanceBadgeCard({ badge }: { badge: PerformanceBadge }) {
+  const toneClass = {
+    green: "border-lime-300/30 text-lime-300 shadow-[0_0_24px_rgba(132,204,22,0.12)]",
+    purple: "border-purple-300/30 text-purple-300 shadow-[0_0_24px_rgba(168,85,247,0.12)]",
+    blue: "border-blue-300/30 text-blue-300 shadow-[0_0_24px_rgba(96,165,250,0.1)]",
+    red: "border-red-300/30 text-red-300 shadow-[0_0_24px_rgba(248,113,113,0.1)]",
+    teal: "border-teal-300/30 text-teal-300 shadow-[0_0_24px_rgba(45,212,191,0.1)]",
+  }[badge.tone];
+
+  return (
+    <article className={`group rounded-2xl border bg-black/35 p-3 text-center transition duration-200 hover:-translate-y-1 hover:bg-white/[0.035] hover:shadow-[0_0_30px_currentColor] active:scale-[0.985] ${toneClass}`}>
+      <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-current bg-current/10 text-2xl transition group-hover:scale-105">
+        {badge.icon}
+      </div>
+      <p className="mt-3 text-[10px] font-black uppercase">{badge.name}</p>
+      <p className="mt-1 text-[10px] font-semibold text-gray-500">{badge.subtitle}</p>
     </article>
   );
 }

@@ -7,25 +7,26 @@ import { FeedScreen } from "@/components/screens/FeedScreen";
 import { ProfileScreen } from "@/components/screens/ProfileScreen";
 import { ReceiptsScreen } from "@/components/screens/ReceiptsScreen";
 import { TopTalkersScreen } from "@/components/screens/TopTalkersScreen";
+import type { Profile } from "@/lib/supabase/types";
 
-export function SmackTalkApp() {
-  const [appView, setAppView] = useState<AppView>("feed");
+export function SmackTalkApp({ profile }: { profile?: Profile | null }) {
+  const [appView, setAppView] = useState<AppView>("arena");
 
-  const goToFeed = () => setAppView("feed");
   const goToArena = () => setAppView("arena");
+  const joinLive = () => setAppView("live-arena");
 
   return (
     <>
-      {appView === "arena" ? (
-        <LiveArena onBack={goToFeed} />
-      ) : appView === "feed" ? (
-        <FeedView onEnterArena={goToArena} />
+      {appView === "live-arena" ? (
+        <LiveArena onBack={goToArena} />
+      ) : appView === "arena" ? (
+        <ArenaView onJoinLive={joinLive} />
       ) : appView === "receipts" ? (
         <ReceiptsView />
       ) : appView === "top-talkers" ? (
         <TopTalkersView />
       ) : appView === "profile" ? (
-        <ProfileView />
+        <ProfileView profile={profile} />
       ) : (
         null
       )}
@@ -35,11 +36,11 @@ export function SmackTalkApp() {
   );
 }
 
-function FeedView({ onEnterArena }: { onEnterArena: () => void }) {
+function ArenaView({ onJoinLive }: { onJoinLive: () => void }) {
   return (
     <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white sm:py-6">
       <div className="feed-shell screen-safe-bottom">
-        <FeedScreen onEnterArena={onEnterArena} />
+        <FeedScreen onEnterArena={onJoinLive} />
       </div>
     </main>
   );
@@ -65,11 +66,11 @@ function TopTalkersView() {
   );
 }
 
-function ProfileView() {
+function ProfileView({ profile }: { profile?: Profile | null }) {
   return (
     <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white sm:py-6">
       <div className="feed-shell screen-safe-bottom">
-        <ProfileScreen />
+        <ProfileScreen profile={profile} />
       </div>
     </main>
   );
