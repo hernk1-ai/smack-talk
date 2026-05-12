@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 
 export function Footer() {
@@ -20,12 +22,12 @@ export function Footer() {
         </div>
 
         <div className="flex flex-wrap gap-4 text-xs font-black uppercase tracking-[0.14em] text-gray-500">
-          <a href="#" className="transition hover:text-white">
+          <Link href="/privacy" className="transition hover:text-white">
             Privacy Policy
-          </a>
-          <a href="#" className="transition hover:text-white">
-            Terms of Service
-          </a>
+          </Link>
+          <Link href="/terms" className="transition hover:text-white">
+            Terms of Use
+          </Link>
           <span>© 2026 Smack Talk</span>
         </div>
       </div>
