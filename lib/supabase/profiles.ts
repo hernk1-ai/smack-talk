@@ -58,6 +58,8 @@ export async function ensureProfile(supabase: AppSupabaseClient, user: User) {
       email: user.email ?? null,
       favorite_teams: [],
       reputation: 0,
+      reputation_score: 0,
+      created_takes_count: 0,
       onboarding_completed: false,
     })
     .select("*")

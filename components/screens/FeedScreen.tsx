@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
-import type { Profile } from "@/lib/supabase/types";
+import { ACTIVE_GAME_ID, getGameById } from "@/lib/supabase/games";
+import { createLockedTake, getTakesByGame } from "@/lib/supabase/takes";
+import type { Game, Profile, Take } from "@/lib/supabase/types";
 
 type Side = "ride" | "fade";
 
@@ -194,17 +196,78 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void
   const [takeChoices, setTakeChoices] = useState<Record<string, Side>>({});
   const [featuredChoice, setFeaturedChoice] = useState<Side | null>(null);
   const [lockedTake, setLockedTake] = useState("");
+  const [lockTakeStatus, setLockTakeStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [lockTakeMessage, setLockTakeMessage] = useState("");
+  const [activeGame, setActiveGame] = useState<Game | null>(null);
+  const [gameTakes, setGameTakes] = useState<Take[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadArenaData() {
+      const [{ game }, { takes }] = await Promise.all([getGameById(ACTIVE_GAME_ID), getTakesByGame(ACTIVE_GAME_ID)]);
+
+      if (!isMounted) {
+        return;
+      }
+
+      setActiveGame(game);
+      setGameTakes(takes);
+    }
+
+    loadArenaData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   function chooseTake(id: string, side: Side) {
     setTakeChoices((current) => ({ ...current, [id]: side }));
   }
 
+  async function lockTake() {
+    setLockTakeStatus("loading");
+    setLockTakeMessage("");
+
+    const { take, error } = await createLockedTake({
+      gameId: activeGame?.id ?? ACTIVE_GAME_ID,
+      takeText: lockedTake,
+    });
+
+    if (error) {
+      setLockTakeStatus("error");
+      setLockTakeMessage(error.message);
+      return;
+    }
+
+    setLockedTake("");
+    if (take) {
+      setGameTakes((currentTakes) => [take, ...currentTakes]);
+    }
+    setLockTakeStatus("success");
+    setLockTakeMessage("Locked. No switching sides.");
+  }
+
   return (
     <div className="space-y-5">
       <FeedHeader profile={profile} />
-      <FeaturedHotTakeCard onJoinLive={onEnterArena} />
+      <FeaturedHotTakeCard game={activeGame} onJoinLive={onEnterArena} />
       <FeaturedRideFade selected={featuredChoice} onChoose={setFeaturedChoice} />
-      <LockTakeComposer value={lockedTake} onChange={setLockedTake} />
+      <LockTakeComposer
+        value={lockedTake}
+        status={lockTakeStatus}
+        message={lockTakeMessage}
+        lockedCount={gameTakes.length}
+        onChange={(value) => {
+          setLockedTake(value);
+          if (lockTakeStatus !== "loading") {
+            setLockTakeStatus("idle");
+            setLockTakeMessage("");
+          }
+        }}
+        onLock={lockTake}
+      />
       <TrendingTakes choices={takeChoices} onChoose={chooseTake} />
       <LiveArenas onEnterArena={onEnterArena} />
       <ChaosAlerts />
@@ -273,7 +336,37 @@ function getInitials(username: string) {
   return cleanUsername.slice(0, 2).toUpperCase() || "ST";
 }
 
-function FeaturedHotTakeCard({ onJoinLive }: { onJoinLive: () => void }) {
+function formatCompact(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: value >= 1000 ? 1 : 0,
+  }).format(value);
+}
+
+function formatGameStatus(status: Game["status"]) {
+  if (status === "live") {
+    return "Live";
+  }
+
+  if (status === "final") {
+    return "Final";
+  }
+
+  return "Scheduled";
+}
+
+function FeaturedHotTakeCard({ game, onJoinLive }: { game: Game | null; onJoinLive: () => void }) {
+  const matchup = game ? `${game.away_team} vs ${game.home_team}` : featuredHotTake.matchup;
+  const period = game ? [game.period, game.clock].filter(Boolean).join(" · ") : featuredHotTake.period;
+  const watching = game ? `${formatCompact(game.watching_count)} watching` : featuredHotTake.watching;
+  const score = game
+    ? `${game.away_team} ${game.away_score} — ${game.home_score} ${game.home_team}`
+    : featuredHotTake.score;
+  const heat = game ? formatCompact(game.heat) : featuredHotTake.heat;
+  const rides = game ? formatCompact(game.ride_count) : featuredHotTake.rides;
+  const fades = game ? formatCompact(game.fade_count) : featuredHotTake.fades;
+  const status = game ? formatGameStatus(game.status) : featuredHotTake.status;
+
   return (
     <section className="arena-scoreboard overflow-hidden rounded-[1.75rem] border border-lime-300/25 p-4 shadow-[0_26px_80px_rgba(0,0,0,0.56),0_0_34px_rgba(132,204,22,0.08)]">
       <div className="flex items-center justify-between gap-3">
@@ -282,15 +375,15 @@ function FeaturedHotTakeCard({ onJoinLive }: { onJoinLive: () => void }) {
           Hottest Live Take
         </p>
         <span className="rounded-md border border-red-400/60 bg-red-500/10 px-2.5 py-1 text-xs font-black uppercase text-red-300">
-          ▷ {featuredHotTake.status}
+          ▷ {status}
         </span>
       </div>
 
       <div className="mt-4 rounded-2xl border border-white/10 bg-black/50 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-gray-400">{featuredHotTake.matchup}</p>
-            <p className="mt-1 text-xs font-black uppercase text-purple-300">{featuredHotTake.period}</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-gray-400">{matchup}</p>
+            <p className="mt-1 text-xs font-black uppercase text-purple-300">{period}</p>
           </div>
           <button
             type="button"
@@ -309,7 +402,7 @@ function FeaturedHotTakeCard({ onJoinLive }: { onJoinLive: () => void }) {
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-sm font-black text-white">{featuredHotTake.handle}</p>
               <span className="text-sky-300">◆</span>
-              <p className="text-xs font-bold text-gray-500">{featuredHotTake.watching}</p>
+              <p className="text-xs font-bold text-gray-500">{watching}</p>
             </div>
             <h2 className="mt-2 text-3xl font-black italic leading-tight text-white sm:text-4xl">
               {featuredHotTake.text}
@@ -321,21 +414,21 @@ function FeaturedHotTakeCard({ onJoinLive }: { onJoinLive: () => void }) {
           <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-black/45 p-3 text-center">
             <div>
               <p className="text-[10px] font-black uppercase text-gray-500">Heat</p>
-              <p className="mt-1 text-lg font-black text-lime-300">🔥 {featuredHotTake.heat}</p>
+              <p className="mt-1 text-lg font-black text-lime-300">🔥 {heat}</p>
             </div>
             <div className="border-x border-white/10">
               <p className="text-[10px] font-black uppercase text-gray-500">Riding</p>
-              <p className="mt-1 text-lg font-black text-lime-300">{featuredHotTake.rides}</p>
+              <p className="mt-1 text-lg font-black text-lime-300">{rides}</p>
             </div>
             <div>
               <p className="text-[10px] font-black uppercase text-gray-500">Fading</p>
-              <p className="mt-1 text-lg font-black text-purple-300">{featuredHotTake.fades}</p>
+              <p className="mt-1 text-lg font-black text-purple-300">{fades}</p>
             </div>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-black/45 p-3 sm:min-w-48 sm:text-right">
             <p className="text-[10px] font-black uppercase text-gray-500">Game context</p>
-            <p className="mt-1 text-sm font-black text-white">{featuredHotTake.score}</p>
+            <p className="mt-1 text-sm font-black text-white">{score}</p>
             <p className="mt-1 text-xs font-black uppercase text-lime-300">{featuredHotTake.movement}</p>
           </div>
         </div>
@@ -403,11 +496,21 @@ function ReactionButton({
 
 function LockTakeComposer({
   value,
+  status,
+  message,
+  lockedCount,
   onChange,
+  onLock,
 }: {
   value: string;
+  status: "idle" | "loading" | "success" | "error";
+  message: string;
+  lockedCount: number;
   onChange: (value: string) => void;
+  onLock: () => void;
 }) {
+  const isLockedDisabled = status === "loading" || value.trim().length === 0;
+
   return (
     <section className="rounded-[1.75rem] border border-purple-300/30 bg-purple-500/10 p-4 shadow-[0_0_34px_rgba(168,85,247,0.14)]">
       <div className="mb-3 flex items-center justify-between gap-3">
@@ -416,7 +519,7 @@ function LockTakeComposer({
           <h2 className="sports-display mt-1 text-2xl italic leading-none text-white">Put your name on it.</h2>
         </div>
         <span className="rounded-full border border-lime-300/25 bg-lime-400/10 px-3 py-1 text-[10px] font-black uppercase text-lime-300">
-          REP risk
+          {lockedCount} locks
         </span>
       </div>
 
@@ -437,11 +540,25 @@ function LockTakeComposer({
         </div>
         <button
           type="button"
-          className="min-h-14 rounded-2xl border border-purple-300/60 bg-purple-500/15 px-6 text-sm font-black uppercase tracking-[0.12em] text-purple-100 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition hover:-translate-y-0.5 hover:bg-purple-500/25 active:scale-[0.98]"
+          onClick={onLock}
+          disabled={isLockedDisabled}
+          className="min-h-14 rounded-2xl border border-purple-300/60 bg-purple-500/15 px-6 text-sm font-black uppercase tracking-[0.12em] text-purple-100 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition hover:-translate-y-0.5 hover:bg-purple-500/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
         >
-          Lock Take 🔒
+          {status === "loading" ? "Locking..." : "Lock Take 🔒"}
         </button>
       </div>
+
+      {message && (
+        <p
+          className={`mt-3 rounded-xl border px-3 py-2 text-xs font-black uppercase tracking-[0.1em] ${
+            status === "error"
+              ? "border-red-400/35 bg-red-500/10 text-red-200"
+              : "border-lime-300/30 bg-lime-400/10 text-lime-300"
+          }`}
+        >
+          {message}
+        </p>
+      )}
 
       <div className="mt-3 grid gap-2 text-xs font-semibold text-gray-400 sm:grid-cols-2">
         <p>Locked &amp; permanent. Everyone will see this.</p>

@@ -11,6 +11,8 @@ export type Database = {
           avatar_url: string | null;
           favorite_teams: string[];
           reputation: number;
+          reputation_score: number;
+          created_takes_count: number;
           onboarding_completed: boolean;
           created_at: string;
           updated_at: string;
@@ -22,6 +24,8 @@ export type Database = {
           avatar_url?: string | null;
           favorite_teams?: string[];
           reputation?: number;
+          reputation_score?: number;
+          created_takes_count?: number;
           onboarding_completed?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -33,6 +37,8 @@ export type Database = {
           avatar_url?: string | null;
           favorite_teams?: string[];
           reputation?: number;
+          reputation_score?: number;
+          created_takes_count?: number;
           onboarding_completed?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -42,6 +48,129 @@ export type Database = {
             foreignKeyName: "profiles_id_fkey";
             columns: ["id"];
             isOneToOne: true;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      games: {
+        Row: {
+          id: string;
+          league: string;
+          home_team: string;
+          away_team: string;
+          home_score: number;
+          away_score: number;
+          period: string | null;
+          clock: string | null;
+          status: "scheduled" | "live" | "final";
+          starts_at: string | null;
+          ended_at: string | null;
+          watching_count: number;
+          ride_count: number;
+          fade_count: number;
+          heat: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          league: string;
+          home_team: string;
+          away_team: string;
+          home_score?: number;
+          away_score?: number;
+          period?: string | null;
+          clock?: string | null;
+          status?: "scheduled" | "live" | "final";
+          starts_at?: string | null;
+          ended_at?: string | null;
+          watching_count?: number;
+          ride_count?: number;
+          fade_count?: number;
+          heat?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          league?: string;
+          home_team?: string;
+          away_team?: string;
+          home_score?: number;
+          away_score?: number;
+          period?: string | null;
+          clock?: string | null;
+          status?: "scheduled" | "live" | "final";
+          starts_at?: string | null;
+          ended_at?: string | null;
+          watching_count?: number;
+          ride_count?: number;
+          fade_count?: number;
+          heat?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      takes: {
+        Row: {
+          id: string;
+          user_id: string;
+          game_id: string;
+          take_text: string;
+          status: "locked" | "settled";
+          result: "pending" | "hit" | "miss";
+          ride_count: number;
+          fade_count: number;
+          reply_count: number;
+          heat: number;
+          created_at: string;
+          updated_at: string;
+          settled_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          game_id: string;
+          take_text: string;
+          status?: "locked" | "settled";
+          result?: "pending" | "hit" | "miss";
+          ride_count?: number;
+          fade_count?: number;
+          reply_count?: number;
+          heat?: number;
+          created_at?: string;
+          updated_at?: string;
+          settled_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          game_id?: string;
+          take_text?: string;
+          status?: "locked" | "settled";
+          result?: "pending" | "hit" | "miss";
+          ride_count?: number;
+          fade_count?: number;
+          reply_count?: number;
+          heat?: number;
+          created_at?: string;
+          updated_at?: string;
+          settled_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "takes_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "takes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
             referencedRelation: "users";
             referencedColumns: ["id"];
           },
@@ -64,3 +193,5 @@ export type Database = {
 };
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+export type Game = Database["public"]["Tables"]["games"]["Row"];
+export type Take = Database["public"]["Tables"]["takes"]["Row"];
