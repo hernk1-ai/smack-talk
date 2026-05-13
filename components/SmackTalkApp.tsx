@@ -9,8 +9,14 @@ import { ReceiptsScreen } from "@/components/screens/ReceiptsScreen";
 import { TopTalkersScreen } from "@/components/screens/TopTalkersScreen";
 import type { Profile } from "@/lib/supabase/types";
 
-export function SmackTalkApp({ profile }: { profile?: Profile | null }) {
-  const [appView, setAppView] = useState<AppView>("arena");
+export function SmackTalkApp({
+  profile,
+  initialView = "arena",
+}: {
+  profile?: Profile | null;
+  initialView?: AppView;
+}) {
+  const [appView, setAppView] = useState<AppView>(initialView);
 
   const goToArena = () => setAppView("arena");
   const joinLive = () => setAppView("live-arena");
@@ -20,11 +26,11 @@ export function SmackTalkApp({ profile }: { profile?: Profile | null }) {
       {appView === "live-arena" ? (
         <LiveArena onBack={goToArena} />
       ) : appView === "arena" ? (
-        <ArenaView onJoinLive={joinLive} />
+        <ArenaView onJoinLive={joinLive} profile={profile} />
       ) : appView === "receipts" ? (
-        <ReceiptsView />
+        <ReceiptsView profile={profile} />
       ) : appView === "top-talkers" ? (
-        <TopTalkersView />
+        <TopTalkersView profile={profile} />
       ) : appView === "profile" ? (
         <ProfileView profile={profile} />
       ) : (
@@ -36,31 +42,31 @@ export function SmackTalkApp({ profile }: { profile?: Profile | null }) {
   );
 }
 
-function ArenaView({ onJoinLive }: { onJoinLive: () => void }) {
+function ArenaView({ onJoinLive, profile }: { onJoinLive: () => void; profile?: Profile | null }) {
   return (
     <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white sm:py-6">
       <div className="feed-shell screen-safe-bottom">
-        <FeedScreen onEnterArena={onJoinLive} />
+        <FeedScreen onEnterArena={onJoinLive} profile={profile} />
       </div>
     </main>
   );
 }
 
-function ReceiptsView() {
+function ReceiptsView({ profile }: { profile?: Profile | null }) {
   return (
     <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white sm:py-6">
       <div className="feed-shell screen-safe-bottom">
-        <ReceiptsScreen />
+        <ReceiptsScreen profile={profile} />
       </div>
     </main>
   );
 }
 
-function TopTalkersView() {
+function TopTalkersView({ profile }: { profile?: Profile | null }) {
   return (
     <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white sm:py-6">
       <div className="feed-shell screen-safe-bottom">
-        <TopTalkersScreen />
+        <TopTalkersScreen profile={profile} />
       </div>
     </main>
   );

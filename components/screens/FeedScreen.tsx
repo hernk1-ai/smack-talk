@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { UserAvatar } from "@/components/UserAvatar";
+import type { Profile } from "@/lib/supabase/types";
 
 type Side = "ride" | "fade";
 
@@ -188,7 +190,7 @@ const chaosAlerts: ChaosAlert[] = [
   },
 ];
 
-export function FeedScreen({ onEnterArena }: { onEnterArena: () => void }) {
+export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void; profile?: Profile | null }) {
   const [takeChoices, setTakeChoices] = useState<Record<string, Side>>({});
   const [featuredChoice, setFeaturedChoice] = useState<Side | null>(null);
   const [lockedTake, setLockedTake] = useState("");
@@ -199,7 +201,7 @@ export function FeedScreen({ onEnterArena }: { onEnterArena: () => void }) {
 
   return (
     <div className="space-y-5">
-      <FeedHeader />
+      <FeedHeader profile={profile} />
       <FeaturedHotTakeCard onJoinLive={onEnterArena} />
       <FeaturedRideFade selected={featuredChoice} onChoose={setFeaturedChoice} />
       <LockTakeComposer value={lockedTake} onChange={setLockedTake} />
@@ -210,7 +212,9 @@ export function FeedScreen({ onEnterArena }: { onEnterArena: () => void }) {
   );
 }
 
-function FeedHeader() {
+function FeedHeader({ profile }: { profile?: Profile | null }) {
+  const username = profile?.username || "Smack Talk";
+
   return (
     <header className="rounded-[1.75rem] border border-white/10 bg-black/35 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur">
       <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
@@ -248,14 +252,25 @@ function FeedHeader() {
           <button
             type="button"
             className="grid h-12 w-12 place-items-center rounded-2xl border border-purple-300/25 bg-purple-500/10 text-2xl text-purple-300 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition active:scale-95"
-            aria-label="Quick action"
+            aria-label={`${username} profile avatar`}
           >
-            ϟ
+            <UserAvatar avatarUrl={profile?.avatar_url} initials={getInitials(username)} size="sm" />
           </button>
         </div>
       </div>
     </header>
   );
+}
+
+function getInitials(username: string) {
+  const cleanUsername = username.replace(/^@/, "").trim();
+  const capitalLetters = cleanUsername.match(/[A-Z]/g);
+
+  if (capitalLetters && capitalLetters.length > 1) {
+    return capitalLetters.slice(0, 2).join("");
+  }
+
+  return cleanUsername.slice(0, 2).toUpperCase() || "ST";
 }
 
 function FeaturedHotTakeCard({ onJoinLive }: { onJoinLive: () => void }) {

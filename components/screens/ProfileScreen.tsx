@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { useRouter } from "next/navigation";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
-import { createClient } from "@/lib/supabase/client";
+import { UserAvatar } from "@/components/UserAvatar";
 import type { Profile } from "@/lib/supabase/types";
 
 type SocialItem = {
@@ -59,16 +58,17 @@ const recentActivity: ActivityItem[] = [
 export function ProfileScreen({ profile }: { profile?: Profile | null }) {
   return (
     <div className="space-y-4">
-      <ProfileHeader />
+      <ProfileHeader profile={profile} />
       <ProfileIdentityCard profile={profile} />
-      <QuickActions profile={profile} />
       <SocialSection />
       <RecentActivity />
     </div>
   );
 }
 
-function ProfileHeader() {
+function ProfileHeader({ profile }: { profile?: Profile | null }) {
+  const username = profile?.username || "Smack Talk";
+
   return (
     <header className="rounded-[1.75rem] border border-white/10 bg-black/35 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur">
       <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
@@ -96,7 +96,9 @@ function ProfileHeader() {
           <HeaderIcon label="Notifications" badge="3">
             ♧
           </HeaderIcon>
-          <HeaderIcon label="Quick action">ϟ</HeaderIcon>
+          <HeaderIcon label={`${username} profile avatar`}>
+            <UserAvatar avatarUrl={profile?.avatar_url} initials={getInitials(username)} size="sm" />
+          </HeaderIcon>
         </div>
       </div>
     </header>
@@ -150,9 +152,13 @@ function ProfileIdentityCard({ profile }: { profile?: Profile | null }) {
 
       <div className="grid gap-5 pr-12 md:grid-cols-[auto_1fr] md:items-center md:pr-14">
         <div className="relative mx-auto md:mx-0">
-          <div className="grid h-28 w-28 place-items-center rounded-full border border-lime-300/60 bg-gradient-to-br from-lime-300 via-purple-500 to-black text-2xl font-black text-white shadow-[0_0_34px_rgba(132,204,22,0.35)] ring-4 ring-lime-300/10">
-            {initials}
-          </div>
+          <UserAvatar
+            avatarUrl={profile?.avatar_url}
+            initials={initials}
+            label={`${username} profile avatar`}
+            size="xl"
+            active
+          />
           <span className="absolute bottom-2 right-0 h-5 w-5 rounded-full border-2 border-black bg-lime-400 shadow-[0_0_18px_rgba(132,204,22,0.9)]" />
         </div>
 
@@ -191,68 +197,10 @@ function ProfileIdentityCard({ profile }: { profile?: Profile | null }) {
   );
 }
 
-function QuickActions({ profile }: { profile?: Profile | null }) {
-  const router = useRouter();
-  const username = profile?.username || "TalkHeavy23";
-
-  async function handleSignOut() {
-    const supabase = createClient();
-    await supabase?.auth.signOut();
-    router.push("/login");
-  }
-
-  return (
-    <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <ProfileAction href="/settings" icon="⚙" label="Settings" detail="Account, privacy, alerts" />
-      <ProfileAction href={`/onboarding/profile-pic?username=${encodeURIComponent(username)}`} icon="◉" label="Change Photo" detail="Refresh your face card" />
-      <button
-        type="button"
-        className="group min-h-20 rounded-[1.35rem] border border-purple-300/25 bg-purple-500/10 p-4 text-left shadow-[0_18px_42px_rgba(0,0,0,0.3)] transition hover:-translate-y-0.5 hover:border-purple-300/45 hover:bg-purple-500/15 active:scale-[0.985]"
-      >
-        <span className="text-2xl text-purple-200 transition group-hover:scale-105">⇧</span>
-        <span className="mt-2 block text-sm font-black uppercase tracking-[0.1em] text-white">Share Profile</span>
-        <span className="mt-1 block text-xs font-semibold text-gray-400">Let the Crowd find you</span>
-      </button>
-      <button
-        type="button"
-        onClick={handleSignOut}
-        className="group min-h-20 rounded-[1.35rem] border border-white/10 bg-black/35 p-4 text-left shadow-[0_18px_42px_rgba(0,0,0,0.3)] transition hover:-translate-y-0.5 hover:border-purple-300/45 hover:bg-purple-500/10 active:scale-[0.985]"
-      >
-        <span className="text-2xl text-gray-200 transition group-hover:scale-105 group-hover:text-purple-200">↩</span>
-        <span className="mt-2 block text-sm font-black uppercase tracking-[0.1em] text-white">Sign Out</span>
-        <span className="mt-1 block text-xs font-semibold text-gray-400">Leave this session</span>
-      </button>
-    </section>
-  );
-}
-
-function ProfileAction({
-  href,
-  icon,
-  label,
-  detail,
-}: {
-  href: string;
-  icon: string;
-  label: string;
-  detail: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group min-h-20 rounded-[1.35rem] border border-lime-300/20 bg-black/35 p-4 shadow-[0_18px_42px_rgba(0,0,0,0.3)] transition hover:-translate-y-0.5 hover:border-lime-300/40 hover:bg-lime-400/10 active:scale-[0.985]"
-    >
-      <span className="text-2xl text-lime-300 transition group-hover:scale-105">{icon}</span>
-      <span className="mt-2 block text-sm font-black uppercase tracking-[0.1em] text-white">{label}</span>
-      <span className="mt-1 block text-xs font-semibold text-gray-400">{detail}</span>
-    </Link>
-  );
-}
-
 function SocialSection() {
   return (
     <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_52px_rgba(0,0,0,0.38)]">
-      <SectionHeader eyebrow="Social Hub" title="Your People" action="Manage" />
+      <SectionHeader eyebrow="Social Hub" title="Your People" action="Share Profile" />
       <div className="mt-4 grid grid-cols-2 gap-3 min-[430px]:grid-cols-3 md:grid-cols-5">
         {socialItems.map((item) => (
           <SocialCard key={item.label} item={item} />

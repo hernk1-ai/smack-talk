@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { UserAvatar } from "@/components/UserAvatar";
+import type { Profile } from "@/lib/supabase/types";
 
 type TalkersTab = "overall" | "wins" | "heat" | "viral" | "accuracy";
 
@@ -183,12 +185,12 @@ const categoryCards: CategoryCard[] = [
   },
 ];
 
-export function TopTalkersScreen() {
+export function TopTalkersScreen({ profile }: { profile?: Profile | null }) {
   const [activeTab, setActiveTab] = useState<TalkersTab>("overall");
 
   return (
     <div className="space-y-4">
-      <TopTalkersHeader />
+      <TopTalkersHeader profile={profile} />
       <TopTalkersHero />
       <TalkersTabs activeTab={activeTab} onSelect={setActiveTab} />
       <p className="rounded-[1.25rem] border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-semibold leading-5 text-gray-400">
@@ -199,13 +201,15 @@ export function TopTalkersScreen() {
       </p>
       <Podium />
       <TopTenTable />
-      <YourRankCard />
+      <YourRankCard profile={profile} />
       <CategoryGrid />
     </div>
   );
 }
 
-function TopTalkersHeader() {
+function TopTalkersHeader({ profile }: { profile?: Profile | null }) {
+  const username = profile?.username || "Smack Talk";
+
   return (
     <header className="rounded-[1.75rem] border border-white/10 bg-black/35 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur">
       <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
@@ -233,7 +237,9 @@ function TopTalkersHeader() {
           <HeaderIcon label="Notifications" badge="3">
             ♧
           </HeaderIcon>
-          <HeaderIcon label="Quick action">ϟ</HeaderIcon>
+          <HeaderIcon label={`${username} profile avatar`}>
+            <UserAvatar avatarUrl={profile?.avatar_url} initials={getInitials(username)} size="sm" />
+          </HeaderIcon>
         </div>
       </div>
     </header>
@@ -477,7 +483,10 @@ function TableStat({ label, value, tone }: { label: string; value: string; tone:
   );
 }
 
-function YourRankCard() {
+function YourRankCard({ profile }: { profile?: Profile | null }) {
+  const username = profile?.username || "You";
+  const favoriteTeams = profile?.favorite_teams?.length ? profile.favorite_teams.slice(0, 3).join(" · ") : "The board is within reach.";
+
   return (
     <section className="rounded-[1.75rem] border border-lime-300/25 bg-lime-400/10 p-4 shadow-[0_0_34px_rgba(132,204,22,0.1)]">
       <div className="grid gap-4 sm:grid-cols-[auto_auto_1fr_auto] sm:items-center">
@@ -491,16 +500,16 @@ function YourRankCard() {
           </p>
         </div>
 
-        <Avatar initials="YOU" size="large" active />
+        <UserAvatar avatarUrl={profile?.avatar_url} initials={getInitials(username)} size="lg" active />
 
         <div className="grid grid-cols-[auto_1fr] items-center gap-3">
           <p className="scoreboard-number text-5xl text-white">23</p>
           <div className="min-w-0">
             <p className="text-xl font-black text-white">
-              @You <span className="text-sky-300">◆</span>
+              @{username.replace(/^@/, "")} <span className="text-sky-300">◆</span>
             </p>
             <p className="max-w-[15rem] text-sm font-semibold leading-5 text-gray-300">
-              The board is within reach.
+              {favoriteTeams}
             </p>
           </div>
         </div>
@@ -596,4 +605,15 @@ function Avatar({
       {initials}
     </span>
   );
+}
+
+function getInitials(username: string) {
+  const cleanUsername = username.replace(/^@/, "").trim();
+  const capitalLetters = cleanUsername.match(/[A-Z]/g);
+
+  if (capitalLetters && capitalLetters.length > 1) {
+    return capitalLetters.slice(0, 2).join("");
+  }
+
+  return cleanUsername.slice(0, 2).toUpperCase() || "ST";
 }

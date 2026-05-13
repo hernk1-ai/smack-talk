@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { UserAvatar } from "@/components/UserAvatar";
+import type { Profile } from "@/lib/supabase/types";
 
 type ReceiptTab = "my-receipts" | "viral" | "friends" | "community";
 type ReceiptStatus = "win" | "loss";
@@ -45,6 +47,12 @@ type PerformanceBadge = {
   subtitle: string;
   icon: string;
   tone: "green" | "purple" | "blue" | "red" | "teal";
+};
+
+type CurrentUserReceiptMeta = {
+  handle: string;
+  initials: string;
+  avatarUrl?: string | null;
 };
 
 const receiptTabs: { id: ReceiptTab; label: string; icon: string }[] = [
@@ -212,12 +220,13 @@ const performanceBadges: PerformanceBadge[] = [
   { name: "Crowd Rider", subtitle: "Ride Master", icon: "☍", tone: "teal" },
 ];
 
-export function ReceiptsScreen() {
+export function ReceiptsScreen({ profile }: { profile?: Profile | null }) {
   const [activeTab, setActiveTab] = useState<ReceiptTab>("my-receipts");
+  const currentUser = getCurrentUserReceiptMeta(profile);
 
   return (
     <div className="space-y-5">
-      <ReceiptsHeader />
+      <ReceiptsHeader profile={profile} />
       <ReceiptTabs activeTab={activeTab} onSelect={setActiveTab} />
       <TabIntentCard activeTab={activeTab} />
 
@@ -235,16 +244,24 @@ export function ReceiptsScreen() {
 
       <ReceiptSection title="Recent Receipts" icon="▤" action="See all">
         <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
-          {recentReceipts.map((receipt) => (
-            <RecentReceiptCard key={receipt.id} receipt={receipt} />
+          {recentReceipts.map((receipt, index) => (
+            <RecentReceiptCard
+              key={receipt.id}
+              receipt={receipt}
+              currentUser={index === 0 ? currentUser : undefined}
+            />
           ))}
         </div>
       </ReceiptSection>
 
       <ReceiptSection title="Viral Receipts" icon="🔥" action="See all">
         <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
-          {viralReceipts.map((receipt) => (
-            <ViralReceiptCard key={receipt.id} receipt={receipt} />
+          {viralReceipts.map((receipt, index) => (
+            <ViralReceiptCard
+              key={receipt.id}
+              receipt={receipt}
+              currentUser={index === 0 ? currentUser : undefined}
+            />
           ))}
         </div>
       </ReceiptSection>
@@ -256,7 +273,9 @@ export function ReceiptsScreen() {
   );
 }
 
-function ReceiptsHeader() {
+function ReceiptsHeader({ profile }: { profile?: Profile | null }) {
+  const username = profile?.username || "Smack Talk";
+
   return (
     <header className="rounded-[1.75rem] border border-white/10 bg-black/35 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur">
       <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
@@ -284,7 +303,9 @@ function ReceiptsHeader() {
           <HeaderIcon label="Notifications" badge="3">
             ♧
           </HeaderIcon>
-          <HeaderIcon label="Quick action">ϟ</HeaderIcon>
+          <HeaderIcon label={`${username} profile avatar`}>
+            <UserAvatar avatarUrl={profile?.avatar_url} initials={getInitials(username)} size="sm" />
+          </HeaderIcon>
         </div>
       </div>
     </header>
@@ -524,8 +545,15 @@ function FeaturedReceipt() {
   );
 }
 
-function RecentReceiptCard({ receipt }: { receipt: RecentReceipt }) {
+function RecentReceiptCard({
+  receipt,
+  currentUser,
+}: {
+  receipt: RecentReceipt;
+  currentUser?: CurrentUserReceiptMeta;
+}) {
   const isWin = receipt.status === "win";
+  const handle = currentUser?.handle ?? receipt.handle;
 
   return (
     <article
@@ -547,11 +575,14 @@ function RecentReceiptCard({ receipt }: { receipt: RecentReceipt }) {
       </div>
 
       <div className="mt-3 flex items-center gap-2">
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-lime-300 via-purple-500 to-black text-[10px] font-black text-white">
-          {receipt.avatar}
-        </span>
+        <UserAvatar
+          avatarUrl={currentUser?.avatarUrl}
+          initials={currentUser?.initials ?? receipt.avatar}
+          label={`${handle} avatar`}
+          size="sm"
+        />
         <p className="truncate text-xs font-black text-white">
-          {receipt.handle} <span className="text-sky-300">◆</span>
+          {handle} <span className="text-sky-300">◆</span>
         </p>
       </div>
 
@@ -586,8 +617,15 @@ function ScoreMini({ team, score }: { team: string; score: string }) {
   );
 }
 
-function ViralReceiptCard({ receipt }: { receipt: ViralReceipt }) {
+function ViralReceiptCard({
+  receipt,
+  currentUser,
+}: {
+  receipt: ViralReceipt;
+  currentUser?: CurrentUserReceiptMeta;
+}) {
   const isWin = receipt.status === "win";
+  const handle = currentUser?.handle ?? receipt.handle;
 
   return (
     <article
@@ -611,11 +649,14 @@ function ViralReceiptCard({ receipt }: { receipt: ViralReceipt }) {
         </div>
 
         <div className="mt-4 flex items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-lime-300 via-purple-500 to-black text-[10px] font-black text-white">
-            {receipt.avatar}
-          </span>
+          <UserAvatar
+            avatarUrl={currentUser?.avatarUrl}
+            initials={currentUser?.initials ?? receipt.avatar}
+            label={`${handle} avatar`}
+            size="sm"
+          />
           <p className="truncate text-xs font-black text-white">
-            {receipt.handle} <span className="text-sky-300">◆</span>
+            {handle} <span className="text-sky-300">◆</span>
           </p>
         </div>
 
@@ -688,4 +729,25 @@ function ShareReceiptsCard() {
       </div>
     </section>
   );
+}
+
+function getCurrentUserReceiptMeta(profile?: Profile | null): CurrentUserReceiptMeta {
+  const username = profile?.username || "TalkHeavy23";
+
+  return {
+    handle: `@${username.replace(/^@/, "")}`,
+    initials: getInitials(username),
+    avatarUrl: profile?.avatar_url,
+  };
+}
+
+function getInitials(username: string) {
+  const cleanUsername = username.replace(/^@/, "").trim();
+  const capitalLetters = cleanUsername.match(/[A-Z]/g);
+
+  if (capitalLetters && capitalLetters.length > 1) {
+    return capitalLetters.slice(0, 2).join("");
+  }
+
+  return cleanUsername.slice(0, 2).toUpperCase() || "ST";
 }

@@ -5,37 +5,118 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { UserAvatar } from "@/components/UserAvatar";
+import { avatarOptions, normalizeAvatarKey, serializeAvatarKey, type AvatarKey } from "@/lib/avatar";
+import { createClient } from "@/lib/supabase/client";
 
 export function ProfilePicPage({ username }: { username?: string }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cleanUsername = sanitizeUsername(username) || "FadeKing";
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const teamsRoute = `/onboarding/teams?username=${encodeURIComponent(cleanUsername)}`;
+  const [selectedAvatarKey, setSelectedAvatarKey] = useState<AvatarKey>("logo");
+  const [previewDataUrl, setPreviewDataUrl] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  }, [previewUrl]);
+    let isMounted = true;
+    const supabase = createClient();
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    async function loadSavedAvatar() {
+      if (!supabase) {
+        return;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        return;
+      }
+
+      const { data } = await supabase.from("profiles").select("avatar_url").eq("id", user.id).maybeSingle();
+
+      if (!isMounted || !data?.avatar_url) {
+        return;
+      }
+
+      if (data.avatar_url.startsWith("data:") || data.avatar_url.startsWith("http")) {
+        setPreviewDataUrl(data.avatar_url);
+      } else {
+        setSelectedAvatarKey(normalizeAvatarKey(data.avatar_url));
+      }
+    }
+
+    loadSavedAvatar();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
 
     if (!file) {
       return;
     }
 
-    const nextPreviewUrl = URL.createObjectURL(file);
-    setPreviewUrl((currentPreviewUrl) => {
-      if (currentPreviewUrl) {
-        URL.revokeObjectURL(currentPreviewUrl);
-      }
+    setMessage("");
 
-      return nextPreviewUrl;
-    });
+    try {
+      const nextPreview = await resizeImageFile(file);
+      setPreviewDataUrl(nextPreview);
+    } catch {
+      setMessage("That image could not be previewed. Try another profile picture.");
+    }
+  }
+
+  async function saveAndContinue() {
+    const supabase = createClient();
+    const avatarUrl = previewDataUrl ?? serializeAvatarKey(selectedAvatarKey);
+    const avatarRouteKey = previewDataUrl ? "custom" : selectedAvatarKey;
+    const teamsRoute = `/onboarding/teams?username=${encodeURIComponent(cleanUsername)}&avatar=${encodeURIComponent(
+      avatarRouteKey,
+    )}`;
+
+    if (!supabase) {
+      router.push(teamsRoute);
+      return;
+    }
+
+    setIsSaving(true);
+    setMessage("");
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      setIsSaving(false);
+      router.push("/login");
+      return;
+    }
+
+    const { error } = await supabase.from("profiles").upsert(
+      {
+        id: user.id,
+        email: user.email ?? null,
+        username: cleanUsername,
+        avatar_url: avatarUrl,
+      },
+      { onConflict: "id" },
+    );
+
+    setIsSaving(false);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    router.push(teamsRoute);
   }
 
   return (
@@ -68,7 +149,7 @@ export function ProfilePicPage({ username }: { username?: string }) {
             </Link>
           </div>
 
-          <ProfilePreview previewUrl={previewUrl} />
+          <ProfilePreview avatarKey={selectedAvatarKey} previewDataUrl={previewDataUrl} />
 
           <div className="mx-auto mt-7 flex w-full max-w-xl flex-col gap-4">
             <input
@@ -86,20 +167,36 @@ export function ProfilePicPage({ username }: { username?: string }) {
               Upload Profile Picture
             </button>
 
+            <AvatarChoices
+              selectedAvatarKey={selectedAvatarKey}
+              onSelect={(avatarKey) => {
+                setSelectedAvatarKey(avatarKey);
+                setPreviewDataUrl(null);
+                setMessage("");
+              }}
+            />
+
             <button
               type="button"
-              onClick={() => router.push(teamsRoute)}
-              className="min-h-16 w-full rounded-2xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-xl font-black uppercase italic tracking-[0.18em] text-black shadow-[0_0_42px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_54px_rgba(168,85,247,0.36)] active:scale-[0.99] sm:min-h-20 sm:text-2xl"
+              onClick={saveAndContinue}
+              disabled={isSaving}
+              className="min-h-16 w-full rounded-2xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-xl font-black uppercase italic tracking-[0.18em] text-black shadow-[0_0_42px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_54px_rgba(168,85,247,0.36)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-65 sm:min-h-20 sm:text-2xl"
             >
-              Continue →
+              {isSaving ? "Saving..." : "Continue →"}
             </button>
             <button
               type="button"
-              onClick={() => router.push(teamsRoute)}
+              onClick={saveAndContinue}
+              disabled={isSaving}
               className="mx-auto min-h-11 px-5 text-sm font-black uppercase tracking-[0.22em] text-gray-500 transition hover:text-purple-300 active:scale-95"
             >
               Skip For Now
             </button>
+            {message && (
+              <p className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-gray-200">
+                {message}
+              </p>
+            )}
           </div>
         </section>
       </div>
@@ -143,22 +240,56 @@ function ProgressStepper() {
   );
 }
 
-function ProfilePreview({ previewUrl }: { previewUrl: string | null }) {
+function AvatarChoices({
+  selectedAvatarKey,
+  onSelect,
+}: {
+  selectedAvatarKey: AvatarKey;
+  onSelect: (avatarKey: AvatarKey) => void;
+}) {
+  return (
+    <section className="rounded-[1.35rem] border border-white/10 bg-black/40 p-3 text-left">
+      <p className="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-gray-400">
+        Or use a Smack Talk avatar
+      </p>
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+        {avatarOptions.map((option) => {
+          const isSelected = option.key === selectedAvatarKey;
+
+          return (
+            <button
+              key={option.key}
+              type="button"
+              onClick={() => onSelect(option.key)}
+              aria-pressed={isSelected}
+              className={`grid min-h-20 place-items-center gap-1 rounded-2xl border bg-black/45 p-2 transition hover:-translate-y-0.5 active:scale-[0.98] ${
+                isSelected
+                  ? "border-lime-300 shadow-[0_0_22px_rgba(132,204,22,0.22)]"
+                  : "border-white/12 hover:border-purple-300/45"
+              }`}
+            >
+              <UserAvatar avatarUrl={serializeAvatarKey(option.key)} size="md" label={option.label} active={isSelected} />
+              <span className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400">{option.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function ProfilePreview({
+  avatarKey,
+  previewDataUrl,
+}: {
+  avatarKey: AvatarKey;
+  previewDataUrl: string | null;
+}) {
+  const avatarUrl = previewDataUrl ?? serializeAvatarKey(avatarKey);
+
   return (
     <section className="relative mx-auto mt-8 grid h-64 w-64 place-items-center rounded-full border border-white/10 bg-[radial-gradient(circle_at_35%_22%,rgba(255,255,255,0.16),rgba(255,255,255,0.05)_35%,rgba(0,0,0,0.42)_72%)] shadow-[0_0_0_3px_rgba(132,204,22,0.35),0_0_0_5px_rgba(168,85,247,0.28),0_0_56px_rgba(168,85,247,0.28)] sm:h-80 sm:w-80">
-      {previewUrl ? (
-        <div
-          className="h-full w-full rounded-full bg-cover bg-center"
-          style={{ backgroundImage: `url(${previewUrl})` }}
-          aria-label="Selected profile picture preview"
-          role="img"
-        />
-      ) : (
-        <div className="relative h-36 w-32 sm:h-44 sm:w-40" aria-hidden="true">
-          <div className="absolute left-1/2 top-0 h-20 w-20 -translate-x-1/2 rounded-full bg-black/60 sm:h-24 sm:w-24" />
-          <div className="absolute bottom-0 left-1/2 h-24 w-32 -translate-x-1/2 rounded-t-[4rem] bg-black/60 sm:h-28 sm:w-40" />
-        </div>
-      )}
+      <UserAvatar avatarUrl={avatarUrl} size="xl" label="Selected profile picture preview" active className="!h-full !w-full !text-6xl" />
       <div className="absolute bottom-2 left-1/2 grid h-20 w-20 -translate-x-1/2 place-items-center rounded-full border border-purple-300/70 bg-black/80 text-3xl text-lime-300 shadow-[0_0_28px_rgba(132,204,22,0.26)]">
         📷
       </div>
@@ -168,6 +299,41 @@ function ProfilePreview({ previewUrl }: { previewUrl: string | null }) {
 
 function sanitizeUsername(value?: string) {
   return (value ?? "").trim().replace(/[^a-zA-Z0-9_]/g, "").slice(0, 20);
+}
+
+function resizeImageFile(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onerror = () => reject(new Error("Could not read image"));
+    reader.onload = () => {
+      const image = new Image();
+
+      image.onerror = () => reject(new Error("Could not load image"));
+      image.onload = () => {
+        const maxSize = 512;
+        const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+        const width = Math.max(1, Math.round(image.width * scale));
+        const height = Math.max(1, Math.round(image.height * scale));
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+
+        if (!context) {
+          reject(new Error("Could not create preview"));
+          return;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        context.drawImage(image, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+
+      image.src = String(reader.result);
+    };
+
+    reader.readAsDataURL(file);
+  });
 }
 
 function ProfilePicAtmosphere() {
