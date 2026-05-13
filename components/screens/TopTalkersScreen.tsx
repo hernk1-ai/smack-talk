@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useMemo, useState } from "react";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import type { Profile } from "@/lib/supabase/types";
 
-type TalkersTab = "overall" | "wins" | "heat" | "viral" | "accuracy";
+type TalkersTab = "overall" | "wins" | "heat" | "viral" | "accuracy" | "search";
 
 type PodiumTalker = {
   rank: 1 | 2 | 3;
@@ -43,6 +44,7 @@ const talkersTabs: { id: TalkersTab; label: string }[] = [
   { id: "heat", label: "Heat" },
   { id: "viral", label: "Viral" },
   { id: "accuracy", label: "Accuracy" },
+  { id: "search", label: "Search" },
 ];
 
 const tabCopy: Record<TalkersTab, string> = {
@@ -51,6 +53,7 @@ const tabCopy: Record<TalkersTab, string> = {
   heat: "The loudest takes moving through the arena.",
   viral: "Receipts spreading fastest across the culture.",
   accuracy: "Cleanest hit rate from locked takes.",
+  search: "Find a talker and inspect the receipts behind the reputation.",
 };
 
 const podiumTalkers: PodiumTalker[] = [
@@ -187,6 +190,8 @@ const categoryCards: CategoryCard[] = [
 
 export function TopTalkersScreen({ profile }: { profile?: Profile | null }) {
   const [activeTab, setActiveTab] = useState<TalkersTab>("overall");
+  const [searchQuery, setSearchQuery] = useState("");
+  const rankedTalkers = useMemo(() => getRankedTalkers(activeTab, searchQuery), [activeTab, searchQuery]);
 
   return (
     <div className="space-y-4">
@@ -199,8 +204,9 @@ export function TopTalkersScreen({ profile }: { profile?: Profile | null }) {
         </span>
         {tabCopy[activeTab]}
       </p>
-      <Podium />
-      <TopTenTable />
+      <TalkerSearch value={searchQuery} onChange={setSearchQuery} />
+      {activeTab === "overall" && !searchQuery.trim() ? <Podium /> : null}
+      <TopTalkersBoard activeTab={activeTab} talkers={rankedTalkers} />
       <YourRankCard profile={profile} />
       <CategoryGrid />
     </div>
@@ -313,7 +319,7 @@ function TalkersTabs({
 }) {
   return (
     <nav
-      className="grid grid-cols-5 gap-1 rounded-[1.5rem] border border-white/10 bg-black/35 p-1.5 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur"
+      className="grid grid-cols-3 gap-1 rounded-[1.5rem] sm:grid-cols-6 border border-white/10 bg-black/35 p-1.5 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur"
       aria-label="Top Talkers views"
     >
       {talkersTabs.map((tab) => (
@@ -335,6 +341,20 @@ function TalkersTabs({
   );
 }
 
+function TalkerSearch({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  return (
+    <label className="block rounded-[1.25rem] border border-white/10 bg-black/35 p-3 shadow-[0_14px_38px_rgba(0,0,0,0.28)]">
+      <span className="text-[10px] font-black uppercase tracking-[0.18em] text-lime-300">Search Top Talkers</span>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="Search by username"
+        className="mt-2 min-h-12 w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm font-black text-white outline-none transition placeholder:text-gray-600 focus:border-purple-300/60 focus:bg-purple-500/10"
+      />
+    </label>
+  );
+}
+
 function Podium() {
   return (
     <section className="grid gap-3 sm:grid-cols-3 sm:items-end">
@@ -349,7 +369,8 @@ function PodiumCard({ talker }: { talker: PodiumTalker }) {
   const isFirst = talker.rank === 1;
 
   return (
-    <article
+    <Link
+      href={getReceiptHref(talker.handle)}
       className={`relative overflow-hidden rounded-[1.75rem] border bg-black/45 p-3 shadow-[0_20px_58px_rgba(0,0,0,0.36)] transition hover:-translate-y-1 active:scale-[0.985] sm:p-4 ${
         isFirst
           ? "order-first border-lime-300/45 shadow-[0_0_42px_rgba(132,204,22,0.14)] sm:order-none sm:py-5"
@@ -387,7 +408,7 @@ function PodiumCard({ talker }: { talker: PodiumTalker }) {
           <PodiumMetric label="Viral" value={talker.viral} />
         </div>
       </div>
-    </article>
+    </Link>
   );
 }
 
@@ -400,16 +421,16 @@ function PodiumMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function TopTenTable() {
+function TopTalkersBoard({ activeTab, talkers }: { activeTab: TalkersTab; talkers: TalkerRow[] }) {
   return (
     <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-3 shadow-[0_18px_52px_rgba(0,0,0,0.36)]">
       <div className="mb-3 flex items-center justify-between gap-3 px-1">
         <h2 className="sports-display text-2xl italic leading-none text-white sm:text-3xl">
           <span className="mr-2 not-italic text-purple-300">♚</span>
-          Top 10 Talkers
+          Top Talkers Board
         </h2>
         <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.1em] text-gray-400">
-          Updated live
+          {activeTab === "search" ? "Search results" : "Updated live"}
           <span className="h-2 w-2 rounded-full bg-lime-400 shadow-[0_0_14px_rgba(132,204,22,0.8)]" />
         </p>
       </div>
@@ -422,8 +443,8 @@ function TopTenTable() {
           <span>Accuracy</span>
           <span>Viral</span>
         </div>
-        {talkerRows.map((talker) => (
-          <TalkerTableRow key={talker.rank} talker={talker} />
+        {talkers.map((talker) => (
+          <TalkerTableRow key={talker.handle} talker={talker} />
         ))}
       </div>
     </section>
@@ -432,7 +453,7 @@ function TopTenTable() {
 
 function TalkerTableRow({ talker }: { talker: TalkerRow }) {
   return (
-    <article className="grid gap-2.5 border-b border-white/10 px-3 py-2.5 last:border-b-0 transition hover:bg-white/[0.035] sm:grid-cols-[minmax(0,1fr)_4.25rem_3.5rem_4.25rem_3.25rem] sm:items-center">
+    <Link href={getReceiptHref(talker.handle)} className="grid gap-2.5 border-b border-white/10 px-3 py-2.5 last:border-b-0 transition hover:bg-white/[0.035] sm:grid-cols-[minmax(0,1fr)_4.25rem_3.5rem_4.25rem_3.25rem] sm:items-center">
       <div className="grid min-w-0 grid-cols-[1.75rem_auto_1fr] items-center gap-2.5">
         <span className="scoreboard-number text-xl text-gray-200 sm:text-2xl">{talker.rank}</span>
         <Avatar initials={talker.avatar} />
@@ -453,7 +474,7 @@ function TalkerTableRow({ talker }: { talker: TalkerRow }) {
         <TableStat label="Accuracy" value={talker.accuracy} tone="text-purple-300" />
         <TableStat label="Viral" value={`ϟ ${talker.viral}`} tone="text-purple-300" />
       </div>
-    </article>
+    </Link>
   );
 }
 
@@ -578,6 +599,44 @@ function CategoryPanel({ card }: { card: CategoryCard }) {
       </div>
     </button>
   );
+}
+
+function getRankedTalkers(activeTab: TalkersTab, searchQuery: string): TalkerRow[] {
+  const combinedTalkers: TalkerRow[] = [
+    ...podiumTalkers.map((talker) => ({
+      ...talker,
+      subtitle: talker.rank === 1 ? "Top Talker" : talker.rank === 2 ? "Midrange Menace" : "Buckets Only",
+      badge: talker.rank === 1 ? "Rising" : undefined,
+    })),
+    ...talkerRows,
+  ];
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredTalkers = normalizedQuery
+    ? combinedTalkers.filter((talker) => `${talker.handle} ${talker.subtitle}`.toLowerCase().includes(normalizedQuery))
+    : combinedTalkers;
+
+  const metric = activeTab === "search" ? "overall" : activeTab;
+
+  return [...filteredTalkers].sort((a, b) => getMetricValue(b, metric) - getMetricValue(a, metric));
+}
+
+function getMetricValue(talker: TalkerRow, metric: Exclude<TalkersTab, "search">) {
+  if (metric === "wins") return Number(talker.wins);
+  if (metric === "heat" || metric === "overall") return parseCompactNumber(talker.heat);
+  if (metric === "viral") return Number(talker.viral);
+  if (metric === "accuracy") return Number(talker.accuracy.replace("%", ""));
+  return talker.rank;
+}
+
+function parseCompactNumber(value: string) {
+  const normalized = value.toUpperCase();
+  const numeric = Number(normalized.replace(/[^0-9.]/g, ""));
+  return normalized.includes("K") ? numeric * 1000 : numeric;
+}
+
+function getReceiptHref(handle: string) {
+  return `/receipts/${handle.replace(/^@/, "").toLowerCase()}`;
 }
 
 function Avatar({

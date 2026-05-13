@@ -5,16 +5,18 @@ import { BottomNav, type AppView } from "@/components/BottomNav";
 import { LiveArena } from "@/components/LiveArena";
 import { FeedScreen } from "@/components/screens/FeedScreen";
 import { ProfileScreen } from "@/components/screens/ProfileScreen";
-import { ReceiptsScreen } from "@/components/screens/ReceiptsScreen";
+import { ReceiptsScreen, type ReceiptOwner } from "@/components/screens/ReceiptsScreen";
 import { TopTalkersScreen } from "@/components/screens/TopTalkersScreen";
 import type { Profile } from "@/lib/supabase/types";
 
 export function SmackTalkApp({
   profile,
   initialView = "arena",
+  receiptOwner,
 }: {
   profile?: Profile | null;
   initialView?: AppView;
+  receiptOwner?: ReceiptOwner | null;
 }) {
   const [appView, setAppView] = useState<AppView>(initialView);
 
@@ -28,7 +30,7 @@ export function SmackTalkApp({
       ) : appView === "arena" ? (
         <ArenaView onJoinLive={joinLive} profile={profile} />
       ) : appView === "receipts" ? (
-        <ReceiptsView profile={profile} />
+        <ReceiptsView profile={profile} receiptOwner={receiptOwner} />
       ) : appView === "top-talkers" ? (
         <TopTalkersView profile={profile} />
       ) : appView === "profile" ? (
@@ -52,11 +54,11 @@ function ArenaView({ onJoinLive, profile }: { onJoinLive: () => void; profile?: 
   );
 }
 
-function ReceiptsView({ profile }: { profile?: Profile | null }) {
+function ReceiptsView({ profile, receiptOwner }: { profile?: Profile | null; receiptOwner?: ReceiptOwner | null }) {
   return (
     <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white sm:py-6">
       <div className="feed-shell screen-safe-bottom">
-        <ReceiptsScreen profile={profile} />
+        <ReceiptsScreen profile={profile} recordOwner={receiptOwner} />
       </div>
     </main>
   );

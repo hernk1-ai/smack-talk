@@ -1,11 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import type { Profile } from "@/lib/supabase/types";
 
-type ReceiptTab = "my-receipts" | "viral" | "friends" | "community";
 type ReceiptStatus = "win" | "loss";
 type ReceiptSide = "riding" | "fading";
 
@@ -49,36 +47,19 @@ type PerformanceBadge = {
   tone: "green" | "purple" | "blue" | "red" | "teal";
 };
 
-type CurrentUserReceiptMeta = {
+export type ReceiptOwner = {
+  username: string;
+  avatarUrl?: string | null;
+  reputation?: number | null;
+  favoriteTeams?: string[] | null;
+};
+
+type ReceiptOwnerMeta = {
   handle: string;
   initials: string;
   avatarUrl?: string | null;
-};
-
-const receiptTabs: { id: ReceiptTab; label: string; icon: string }[] = [
-  { id: "my-receipts", label: "My Receipts", icon: "▤" },
-  { id: "viral", label: "Viral", icon: "🔥" },
-  { id: "friends", label: "Friends", icon: "◌" },
-  { id: "community", label: "Community", icon: "◎" },
-];
-
-const tabIntents: Record<ReceiptTab, { title: string; copy: string }> = {
-  "my-receipts": {
-    title: "Personal receipt history",
-    copy: "Your locked takes, settled outcomes, and reputation trail. Talk backed up. Or exposed.",
-  },
-  viral: {
-    title: "Most viewed receipts",
-    copy: "The takes spreading fastest across the arena.",
-  },
-  friends: {
-    title: "Receipts from your circle",
-    copy: "Keep tabs on the people you argue with most.",
-  },
-  community: {
-    title: "Hottest community receipts",
-    copy: "The proof artifacts the whole Crowd is reacting to.",
-  },
+  reputation?: number | null;
+  isCurrentUser: boolean;
 };
 
 const recentReceipts: RecentReceipt[] = [
@@ -220,27 +201,32 @@ const performanceBadges: PerformanceBadge[] = [
   { name: "Crowd Rider", subtitle: "Ride Master", icon: "☍", tone: "teal" },
 ];
 
-export function ReceiptsScreen({ profile }: { profile?: Profile | null }) {
-  const [activeTab, setActiveTab] = useState<ReceiptTab>("my-receipts");
-  const currentUser = getCurrentUserReceiptMeta(profile);
+export function ReceiptsScreen({
+  profile,
+  recordOwner,
+}: {
+  profile?: Profile | null;
+  recordOwner?: ReceiptOwner | null;
+}) {
+  const owner = getReceiptOwner(profile, recordOwner);
+  const currentUser = owner;
 
   return (
     <div className="space-y-5">
       <ReceiptsHeader profile={profile} />
-      <ReceiptTabs activeTab={activeTab} onSelect={setActiveTab} />
-      <TabIntentCard activeTab={activeTab} />
+      <RecordOwnerCard owner={owner} />
 
       <section className="grid gap-4 md:grid-cols-[minmax(0,1fr)_18rem] md:items-start">
         <RecordCard />
         <div className="grid gap-3">
-          <SideStatCard eyebrow="REP Total" value="9,250" unit="Top 2%" tone="green" body="+18% this month. Proof is compounding." />
-          <SideStatCard eyebrow="Top Streak" value="12" unit="Wins in a row" tone="purple" body="Nobody could cool you off." />
+          <SideStatCard eyebrow="REP Total" value={formatRep(owner.reputation)} unit="Top 2%" tone="green" body="Talk backed up. Or exposed." />
+          <SideStatCard eyebrow="Top Streak" value="12" unit="Wins in a row" tone="purple" body="Nobody could cool this record off." />
           <SideStatCard eyebrow="Best Hit" value="97%" unit="Accuracy" tone="green" body="Knicks upset incoming." />
-          <SideStatCard eyebrow="Most Viral" value="2.4M" unit="Views" tone="blue" body="Curry is choking." />
+          <SideStatCard eyebrow="Most Shared" value="2.4M" unit="Views" tone="blue" body="Curry is choking." />
         </div>
       </section>
 
-      <FeaturedReceipt />
+      <FeaturedReceipt owner={owner} />
 
       <ReceiptSection title="Recent Receipts" icon="▤" action="See all">
         <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
@@ -254,7 +240,7 @@ export function ReceiptsScreen({ profile }: { profile?: Profile | null }) {
         </div>
       </ReceiptSection>
 
-      <ReceiptSection title="Viral Receipts" icon="🔥" action="See all">
+      <ReceiptSection title="Proof Highlights" icon="◇" action="See all">
         <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
           {viralReceipts.map((receipt, index) => (
             <ViralReceiptCard
@@ -337,46 +323,27 @@ function HeaderIcon({
   );
 }
 
-function ReceiptTabs({
-  activeTab,
-  onSelect,
-}: {
-  activeTab: ReceiptTab;
-  onSelect: (tab: ReceiptTab) => void;
-}) {
+function RecordOwnerCard({ owner }: { owner: ReceiptOwnerMeta }) {
   return (
-    <nav
-      className="grid grid-cols-4 gap-1 rounded-[1.5rem] border border-white/10 bg-black/35 p-1.5 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur"
-      aria-label="Receipt views"
-    >
-      {receiptTabs.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          onClick={() => onSelect(tab.id)}
-          aria-pressed={activeTab === tab.id}
-          className={`min-h-12 rounded-2xl border px-1 text-[9px] font-black uppercase leading-tight transition hover:-translate-y-0.5 active:scale-95 min-[390px]:text-[10px] sm:text-xs ${
-            activeTab === tab.id
-              ? "border-purple-300/70 bg-gradient-to-b from-purple-500/28 to-purple-500/10 text-white shadow-[0_0_24px_rgba(168,85,247,0.2),inset_0_-2px_0_rgba(168,85,247,0.95)]"
-              : "border-transparent text-gray-500 hover:border-white/10 hover:bg-white/[0.04] hover:text-gray-200"
-          }`}
-        >
-          <span className="mr-1">{tab.icon}</span>
-          {tab.label}
-        </button>
-      ))}
-    </nav>
-  );
-}
-
-function TabIntentCard({ activeTab }: { activeTab: ReceiptTab }) {
-  const intent = tabIntents[activeTab];
-
-  return (
-    <div className="rounded-[1.25rem] border border-white/10 bg-white/[0.035] px-4 py-3 shadow-[0_12px_34px_rgba(0,0,0,0.24)]">
-      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime-300">{intent.title}</p>
-      <p className="mt-1 text-sm font-semibold leading-5 text-gray-400">{intent.copy}</p>
-    </div>
+    <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_52px_rgba(0,0,0,0.34)] backdrop-blur">
+      <div className="grid gap-4 min-[430px]:grid-cols-[auto_1fr] min-[430px]:items-center">
+        <UserAvatar avatarUrl={owner.avatarUrl} initials={owner.initials} label={`${owner.handle} avatar`} size="lg" active />
+        <div className="min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime-300">
+            {owner.isCurrentUser ? "Personal receipt history" : "Public receipt history"}
+          </p>
+          <h2 className="mt-2 truncate text-3xl font-black italic leading-none text-white sm:text-4xl">{owner.handle}</h2>
+          <p className="mt-2 text-xl font-black uppercase tracking-[0.08em] text-purple-200">
+            {owner.isCurrentUser ? "Your Record" : "Public Record"}
+          </p>
+          <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-gray-400">
+            {owner.isCurrentUser
+              ? "Your locked takes, settled outcomes, and reputation trail."
+              : "Locked takes, settled outcomes, and the receipts this talker has to stand on."}
+          </p>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -384,7 +351,7 @@ function RecordCard() {
   return (
     <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4 shadow-[0_22px_60px_rgba(0,0,0,0.42),0_0_30px_rgba(132,204,22,0.05)]">
       <div className="flex items-start justify-between gap-3">
-        <h2 className="sports-display text-3xl italic leading-none text-white">Your Record</h2>
+        <h2 className="sports-display text-3xl italic leading-none text-white">Proof Snapshot</h2>
         <button
           type="button"
           className="rounded-xl border border-white/10 bg-black/45 px-3 py-2 text-xs font-bold text-gray-300 transition active:scale-95"
@@ -495,7 +462,7 @@ function ReceiptSection({
   );
 }
 
-function FeaturedReceipt() {
+function FeaturedReceipt({ owner }: { owner: ReceiptOwnerMeta }) {
   return (
     <section className="isolate rounded-[1.75rem] border border-white/10 bg-[#05070d]/90 p-4 shadow-[0_20px_58px_rgba(0,0,0,0.42)] transition hover:border-lime-300/20 hover:shadow-[0_24px_66px_rgba(0,0,0,0.5)]">
       <div className="mb-3 flex items-center justify-between gap-3">
@@ -511,7 +478,7 @@ function FeaturedReceipt() {
         <div className="relative z-10 grid gap-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
           <div>
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-bold text-gray-400">2d ago</p>
+              <p className="text-xs font-bold text-gray-400">{owner.handle} · 2d ago</p>
               <span className="rounded-full border border-lime-300/30 bg-lime-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-lime-300">
                 Shareable
               </span>
@@ -550,7 +517,7 @@ function RecentReceiptCard({
   currentUser,
 }: {
   receipt: RecentReceipt;
-  currentUser?: CurrentUserReceiptMeta;
+  currentUser?: ReceiptOwnerMeta;
 }) {
   const isWin = receipt.status === "win";
   const handle = currentUser?.handle ?? receipt.handle;
@@ -622,7 +589,7 @@ function ViralReceiptCard({
   currentUser,
 }: {
   receipt: ViralReceipt;
-  currentUser?: CurrentUserReceiptMeta;
+  currentUser?: ReceiptOwnerMeta;
 }) {
   const isWin = receipt.status === "win";
   const handle = currentUser?.handle ?? receipt.handle;
@@ -731,14 +698,20 @@ function ShareReceiptsCard() {
   );
 }
 
-function getCurrentUserReceiptMeta(profile?: Profile | null): CurrentUserReceiptMeta {
-  const username = profile?.username || "TalkHeavy23";
+function getReceiptOwner(profile?: Profile | null, recordOwner?: ReceiptOwner | null): ReceiptOwnerMeta {
+  const username = recordOwner?.username || profile?.username || "TalkHeavy23";
 
   return {
     handle: `@${username.replace(/^@/, "")}`,
     initials: getInitials(username),
-    avatarUrl: profile?.avatar_url,
+    avatarUrl: recordOwner?.avatarUrl ?? profile?.avatar_url,
+    reputation: recordOwner?.reputation ?? profile?.reputation,
+    isCurrentUser: !recordOwner,
   };
+}
+
+function formatRep(reputation?: number | null) {
+  return reputation != null ? reputation.toLocaleString() : "9,250";
 }
 
 function getInitials(username: string) {

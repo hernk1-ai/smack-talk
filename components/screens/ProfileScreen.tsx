@@ -26,7 +26,6 @@ const identityTags = ["Heat Seeker", "Crowd Rider", "3x Streak King"];
 const socialItems: SocialItem[] = [
   { label: "Followers", value: "4.2K", detail: "Your people", tone: "white" },
   { label: "Following", value: "312", detail: "Rivals watched", tone: "white" },
-  { label: "Friends", value: "86", detail: "Inner circle", tone: "green" },
   { label: "Crew", value: "Soon", detail: "Coming soon", tone: "purple" },
   { label: "Messages", value: "Soon", detail: "Coming soon", tone: "purple" },
 ];
@@ -201,7 +200,7 @@ function SocialSection() {
   return (
     <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_52px_rgba(0,0,0,0.38)]">
       <SectionHeader eyebrow="Social Hub" title="Your People" action="Share Profile" />
-      <div className="mt-4 grid grid-cols-2 gap-3 min-[430px]:grid-cols-3 md:grid-cols-5">
+      <div className="mt-4 grid grid-cols-2 gap-3 min-[430px]:grid-cols-3 md:grid-cols-4">
         {socialItems.map((item) => (
           <SocialCard key={item.label} item={item} />
         ))}
