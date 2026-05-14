@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
+import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/supabase/types";
 
 type TalkersTab = "overall" | "wins" | "heat" | "viral" | "accuracy" | "streaks" | "rising" | "search";
@@ -195,7 +196,48 @@ const categoryCards: CategoryCard[] = [
 export function TopTalkersScreen({ profile }: { profile?: Profile | null }) {
   const [activeTab, setActiveTab] = useState<TalkersTab>("overall");
   const [searchQuery, setSearchQuery] = useState("");
-  const rankedTalkers = useMemo(() => getRankedTalkers(activeTab, searchQuery), [activeTab, searchQuery]);
+  const [realProfiles, setRealProfiles] = useState<Profile[]>(profile ? [profile] : []);
+  const rankedTalkers = useMemo(
+    () => getRankedTalkers(activeTab, searchQuery, realProfiles, profile),
+    [activeTab, profile, realProfiles, searchQuery],
+  );
+  const podiumRows = useMemo(() => rowsToPodium(rankedTalkers.slice(0, 3)), [rankedTalkers]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadProfiles() {
+      const supabase = createClient();
+
+      if (!supabase) {
+        return;
+      }
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("reputation_score", { ascending: false })
+        .order("created_takes_count", { ascending: false })
+        .limit(25);
+
+      if (!isMounted) {
+        return;
+      }
+
+      const profiles = data ?? [];
+      const mergedProfiles = profile && !profiles.some((candidate) => candidate.id === profile.id)
+        ? [profile, ...profiles]
+        : profiles;
+
+      setRealProfiles(mergedProfiles);
+    }
+
+    loadProfiles();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [profile]);
 
   return (
     <div className="space-y-4">
@@ -209,7 +251,7 @@ export function TopTalkersScreen({ profile }: { profile?: Profile | null }) {
         {tabCopy[activeTab]}
       </p>
       <TalkerSearch value={searchQuery} onChange={setSearchQuery} />
-      {activeTab === "overall" && !searchQuery.trim() ? <Podium /> : null}
+      {activeTab === "overall" && !searchQuery.trim() ? <Podium talkers={podiumRows} /> : null}
       <TopTalkersBoard activeTab={activeTab} talkers={rankedTalkers} />
       <YourRankCard profile={profile} />
       <CategoryGrid />
@@ -363,10 +405,10 @@ function TalkerSearch({ value, onChange }: { value: string; onChange: (value: st
   );
 }
 
-function Podium() {
+function Podium({ talkers }: { talkers: PodiumTalker[] }) {
   return (
     <section className="grid gap-3 sm:grid-cols-3 sm:items-end">
-      {podiumTalkers.map((talker) => (
+      {talkers.map((talker) => (
         <PodiumCard key={talker.rank} talker={talker} />
       ))}
     </section>
@@ -615,14 +657,21 @@ function CategoryPanel({ card }: { card: CategoryCard }) {
   );
 }
 
-function getRankedTalkers(activeTab: TalkersTab, searchQuery: string): TalkerRow[] {
+function getRankedTalkers(
+  activeTab: TalkersTab,
+  searchQuery: string,
+  realProfiles: Profile[],
+  currentProfile?: Profile | null,
+): TalkerRow[] {
+  const realRows = profilesToTalkers(realProfiles, currentProfile);
   const combinedTalkers: TalkerRow[] = [
+    ...realRows,
     ...podiumTalkers.map((talker) => ({
       ...talker,
       subtitle: talker.rank === 1 ? "Top Talker" : talker.rank === 2 ? "Midrange Menace" : "Buckets Only",
       badge: talker.rank === 1 ? "Rising" : undefined,
-    })),
-    ...talkerRows,
+    })).filter((talker) => !realRows.some((realTalker) => realTalker.handle.toLowerCase() === talker.handle.toLowerCase())),
+    ...talkerRows.filter((talker) => !realRows.some((realTalker) => realTalker.handle.toLowerCase() === talker.handle.toLowerCase())),
   ];
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -635,10 +684,55 @@ function getRankedTalkers(activeTab: TalkersTab, searchQuery: string): TalkerRow
   return [...filteredTalkers].sort((a, b) => getMetricValue(b, metric) - getMetricValue(a, metric));
 }
 
+function profilesToTalkers(realProfiles: Profile[], currentProfile?: Profile | null): TalkerRow[] {
+  const profiles = [...realProfiles].sort((left, right) => {
+    if (right.reputation_score !== left.reputation_score) {
+      return right.reputation_score - left.reputation_score;
+    }
+
+    return right.created_takes_count - left.created_takes_count;
+  });
+
+  return profiles.map((realProfile, index) => {
+    const wins = realProfile.hits_count ?? 0;
+    const losses = realProfile.misses_count ?? 0;
+    const total = wins + losses;
+    const accuracy = total ? `${Math.round((wins / total) * 100)}%` : "0%";
+    const isCurrentUser = currentProfile?.id === realProfile.id;
+
+    return {
+      rank: index + 1,
+      handle: `@${(realProfile.username || (isCurrentUser ? "You" : "Talker")).replace(/^@/, "")}`,
+      avatar: getInitials(realProfile.username || "ST"),
+      subtitle: isCurrentUser ? "Your record" : `${formatCompact(realProfile.receipts_count ?? 0)} receipts`,
+      badge: isCurrentUser ? "You" : realProfile.created_takes_count > 0 ? "Rising" : undefined,
+      heat: formatCompact(realProfile.reputation_score ?? realProfile.reputation ?? 0),
+      wins: String(wins),
+      accuracy,
+      viral: formatCompact(realProfile.created_takes_count ?? 0),
+    };
+  });
+}
+
+function rowsToPodium(rows: TalkerRow[]): PodiumTalker[] {
+  const fallbackRows = getRankedTalkers("overall", "", [], null).slice(0, 3);
+  const podiumSource = rows.length >= 3 ? rows : fallbackRows;
+
+  return podiumSource.slice(0, 3).map((row, index) => ({
+    rank: (index + 1) as 1 | 2 | 3,
+    handle: row.handle,
+    avatar: row.avatar,
+    heat: row.heat,
+    wins: row.wins,
+    accuracy: row.accuracy,
+    viral: row.viral,
+  }));
+}
+
 function getMetricValue(talker: TalkerRow, metric: Exclude<TalkersTab, "search">) {
-  if (metric === "wins") return Number(talker.wins);
+  if (metric === "wins") return parseCompactNumber(talker.wins);
   if (metric === "heat" || metric === "overall") return parseCompactNumber(talker.heat);
-  if (metric === "viral") return Number(talker.viral);
+  if (metric === "viral") return parseCompactNumber(talker.viral);
   if (metric === "accuracy") return Number(talker.accuracy.replace("%", ""));
   if (metric === "streaks") return Number(talker.wins) + Number(talker.viral);
   if (metric === "rising") return talker.badge?.toLowerCase() === "rising" ? 1000 - talker.rank : 100 - talker.rank;
@@ -649,6 +743,18 @@ function parseCompactNumber(value: string) {
   const normalized = value.toUpperCase();
   const numeric = Number(normalized.replace(/[^0-9.]/g, ""));
   return normalized.includes("K") ? numeric * 1000 : numeric;
+}
+
+function formatCompact(value: number) {
+  if (value >= 1000000) {
+    return `${Number((value / 1000000).toFixed(1))}M`;
+  }
+
+  if (value >= 1000) {
+    return `${Number((value / 1000).toFixed(1))}K`;
+  }
+
+  return String(value);
 }
 
 function getReceiptHref(handle: string) {

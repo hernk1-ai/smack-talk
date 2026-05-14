@@ -251,11 +251,22 @@ export function ReceiptsScreen({
     const shareUrl = window.location.href;
 
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        copyTextFallback(shareUrl);
+      }
+
       setShareCopied(true);
       window.setTimeout(() => setShareCopied(false), 1800);
     } catch {
-      setReceiptError("Could not copy this receipt link.");
+      try {
+        copyTextFallback(shareUrl);
+        setShareCopied(true);
+        window.setTimeout(() => setShareCopied(false), 1800);
+      } catch {
+        setReceiptError("Could not copy this receipt link.");
+      }
     }
   }
 
@@ -387,14 +398,15 @@ function ReceiptIdentityCard({
   profile?: Profile | null;
   receipts: Receipt[];
 }) {
-  const wins = receipts.length ? receipts.filter((receipt) => receipt.result === "hit").length : profile?.hits_count ?? 127;
-  const losses = receipts.length ? receipts.filter((receipt) => receipt.result === "miss").length : profile?.misses_count ?? 59;
+  const receiptCount = receipts.length || profile?.receipts_count || 0;
+  const wins = receipts.length ? receipts.filter((receipt) => receipt.result === "hit").length : profile?.hits_count ?? 0;
+  const losses = receipts.length ? receipts.filter((receipt) => receipt.result === "miss").length : profile?.misses_count ?? 0;
   const total = wins + losses;
-  const hitRate = total ? `${Math.round((wins / total) * 100)}%` : "68%";
-  const streak = receipts.length ? getReceiptStreak(receipts) : 12;
-  const createdTakes = profile?.created_takes_count ?? receipts.length + 47;
-  const receiptsCount = profile?.receipts_count ?? (receipts.length || 18);
-  const reputation = owner.reputation ?? profile?.reputation_score ?? profile?.reputation ?? 9250;
+  const hitRate = total ? `${Math.round((wins / total) * 100)}%` : "0%";
+  const streak = receipts.length ? getReceiptStreak(receipts) : 0;
+  const createdTakes = profile?.created_takes_count ?? 0;
+  const receiptsCount = receiptCount;
+  const reputation = owner.reputation ?? profile?.reputation_score ?? profile?.reputation ?? 0;
   const rankTitle = reputation >= 9000 ? "Top Talker" : reputation >= 4000 ? "Receipt Hunter" : "Rookie";
   const receiptScore = featuredReceipt ? parseFinalScore(featuredReceipt.final_score) : null;
   const isWin = featuredReceipt?.result !== "miss";
@@ -533,13 +545,29 @@ function ReceiptIdentityCard({
               onClick={onShare}
               className="mt-4 min-h-12 rounded-2xl border border-purple-300/60 bg-purple-500/15 px-5 text-sm font-black uppercase tracking-[0.1em] text-purple-100 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition hover:-translate-y-0.5 hover:bg-purple-500/25 hover:shadow-[0_0_34px_rgba(168,85,247,0.24)] active:scale-95"
             >
-              {copied ? "Copied" : "Share My Receipts"}
+              {copied ? "Receipt link copied" : "Share My Receipts"}
             </button>
           </div>
         </article>
       </div>
     </section>
   );
+}
+
+function copyTextFallback(value: string) {
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand("copy");
+  document.body.removeChild(textarea);
+
+  if (!copied) {
+    throw new Error("Copy command failed.");
+  }
 }
 
 function IdentityStat({ label, value, tone }: { label: string; value: string; tone: string }) {

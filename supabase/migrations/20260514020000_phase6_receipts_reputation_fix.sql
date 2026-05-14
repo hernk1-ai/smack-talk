@@ -1,31 +1,33 @@
+-- Run this file in Supabase SQL Editor one block at a time.
+-- The dashboard editor has been splitting multi-function pastes, so each block
+-- is deliberately small and uses canonical Postgres function syntax.
+
+-- BLOCK 1: Reputation delta helper.
 create or replace function public.calculate_receipt_reputation_delta(
   receipt_result text,
   receipt_heat integer
 )
 returns integer
-language plpgsql
-stable
 as $$
-begin
-  return case
+  select case
     when receipt_result = 'hit' and coalesce(receipt_heat, 0) >= 25 then 35
     when receipt_result = 'hit' and coalesce(receipt_heat, 0) >= 10 then 30
     when receipt_result = 'hit' then 25
     when receipt_result = 'miss' then -10
     else 0
-  end;
-end;
-$$;
+  end
+$$
+language sql
+stable;
 
-create or replace function public.create_receipt_for_take(target_take_id uuid)
+-- BLOCK 2: Drop old receipt helper before replacing its return type.
+drop function if exists public.create_receipt_for_take(uuid);
+
+-- BLOCK 3: Receipt creation helper. Idempotent: reputation updates only when
+-- a receipt is newly inserted.
+create function public.create_receipt_for_take(target_take_id uuid)
 returns uuid
-language plpgsql
-security definer
-set search_path = public
 as $$
-declare
-  inserted_receipt_id uuid;
-begin
   with inserted_receipt as (
     insert into public.receipts (
       take_id,
@@ -80,42 +82,18 @@ begin
     returning inserted_receipt.id
   )
   select profile_update.id
-  into inserted_receipt_id
   from profile_update
-  limit 1;
-
-  return inserted_receipt_id;
-end;
-$$;
-
-create or replace function public.create_receipt_after_take_settled()
-returns trigger
-language plpgsql
+  limit 1
+$$
+language sql
 security definer
-set search_path = public
-as $$
-begin
-  if new.status = 'settled' and new.result in ('hit', 'miss') then
-    perform public.create_receipt_for_take(new.id);
-  end if;
+set search_path = public;
 
-  return new;
-end;
-$$;
-
-drop trigger if exists takes_after_settlement_receipt on public.takes;
-create trigger takes_after_settlement_receipt
-  after update of status, result on public.takes
-  for each row
-  when (
-    new.status = 'settled' and
-    new.result in ('hit', 'miss') and
-    (old.status is distinct from new.status or old.result is distinct from new.result)
-  )
-  execute function public.create_receipt_after_take_settled();
-
+-- BLOCK 4: Drop old dev settlement helper before replacing it.
 drop function if exists public.dev_settle_game(text, text);
 
+-- BLOCK 5: Dev-only settlement helper. Settles only pending takes and creates
+-- receipts through the idempotent helper above.
 create function public.dev_settle_game(
   target_game_id text default 'lal-gsw-live',
   settle_result text default 'hit'
@@ -125,30 +103,29 @@ returns table (
   receipt_id uuid,
   settled_result text
 )
-language plpgsql
-security definer
-set search_path = public
 as $$
-begin
-  if settle_result not in ('hit', 'miss') then
-    raise exception 'settle_result must be hit or miss';
-  end if;
-
-  update public.games as game
-  set
-    status = 'final',
-    ended_at = coalesce(game.ended_at, now()),
-    updated_at = now()
-  where game.id = target_game_id;
-
-  return query
-  with newly_settled as (
+  with valid_input as (
+    select settle_result as requested_result
+    where settle_result in ('hit', 'miss')
+  ),
+  game_update as (
+    update public.games as game
+    set
+      status = 'final',
+      ended_at = coalesce(game.ended_at, now()),
+      updated_at = now()
+    from valid_input
+    where game.id = target_game_id
+    returning game.id
+  ),
+  newly_settled as (
     update public.takes as locked_take
     set
       status = 'settled',
-      result = settle_result,
+      result = valid_input.requested_result,
       settled_at = coalesce(locked_take.settled_at, now()),
       updated_at = now()
+    from valid_input
     where locked_take.game_id = target_game_id
       and locked_take.status = 'locked'
       and locked_take.result = 'pending'
@@ -167,8 +144,11 @@ begin
     generated_receipts.take_result::text as settled_result
   from generated_receipts
   left join public.receipts as receipt on receipt.take_id = generated_receipts.take_id
-  order by generated_receipts.take_id;
-end;
-$$;
+  order by generated_receipts.take_id
+$$
+language sql
+security definer
+set search_path = public;
 
+-- BLOCK 6: Allow authenticated clients to call the dev settlement helper.
 grant execute on function public.dev_settle_game(text, text) to authenticated;
