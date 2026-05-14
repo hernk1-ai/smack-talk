@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ChangeEvent, type ReactNode, useRef, useState } from "react";
 
+import { RouteBottomNav } from "@/components/BottomNav";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { avatarOptions, isImageAvatar, normalizeAvatarKey, serializeAvatarKey, type AvatarKey } from "@/lib/avatar";
@@ -90,8 +91,9 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
   }
 
   return (
-    <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white sm:py-6">
-      <div className="feed-shell screen-safe-bottom space-y-5">
+    <>
+      <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white sm:py-6">
+        <div className="feed-shell screen-safe-bottom space-y-5">
         <SettingsHeader profile={profile} avatarUrl={avatarUrl} />
 
         <section className="relative isolate overflow-hidden rounded-[1.75rem] border border-white/10 bg-black/40 p-4 shadow-[0_24px_70px_rgba(0,0,0,0.45)] sm:p-5">
@@ -181,8 +183,10 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
             </button>
           </SettingsCard>
         </section>
-      </div>
-    </main>
+        </div>
+      </main>
+      <RouteBottomNav activeView="profile" />
+    </>
   );
 }
 

@@ -185,14 +185,16 @@ create trigger takes_after_settlement_receipt
   )
   execute function public.create_receipt_after_take_settled();
 
-create or replace function public.dev_settle_game(
+drop function if exists public.dev_settle_game(text, text);
+
+create function public.dev_settle_game(
   target_game_id text default 'lal-gsw-live',
   settle_result text default 'hit'
 )
 returns table (
   settled_take_id uuid,
   receipt_id uuid,
-  result text
+  settled_result text
 )
 as $$
 begin
@@ -200,30 +202,33 @@ begin
     raise exception 'settle_result must be hit or miss';
   end if;
 
-  update public.games
+  update public.games as game
   set
     status = 'final',
-    ended_at = coalesce(ended_at, now()),
+    ended_at = coalesce(game.ended_at, now()),
     updated_at = now()
-  where id = target_game_id;
+  where game.id = target_game_id;
 
-  update public.takes
+  update public.takes as locked_take
   set
     status = 'settled',
     result = settle_result,
-    settled_at = coalesce(settled_at, now()),
+    settled_at = coalesce(locked_take.settled_at, now()),
     updated_at = now()
-  where game_id = target_game_id
-    and status = 'locked'
-    and result = 'pending';
+  where locked_take.game_id = target_game_id
+    and locked_take.status = 'locked'
+    and locked_take.result = 'pending';
 
   return query
-  select t.id, r.id, t.result
-  from public.takes t
-  left join public.receipts r on r.take_id = t.id
-  where t.game_id = target_game_id
-    and t.status = 'settled'
-  order by t.created_at desc;
+  select
+    settled_take.id as settled_take_id,
+    receipt.id as receipt_id,
+    settled_take.result::text as settled_result
+  from public.takes as settled_take
+  left join public.receipts as receipt on receipt.take_id = settled_take.id
+  where settled_take.game_id = target_game_id
+    and settled_take.status = 'settled'
+  order by settled_take.created_at desc;
 end;
 $$ language plpgsql security definer set search_path = public;
 

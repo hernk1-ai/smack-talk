@@ -214,6 +214,7 @@ export function ReceiptsScreen({
   const currentUser = owner;
   const [realReceipts, setRealReceipts] = useState<Receipt[]>([]);
   const [receiptError, setReceiptError] = useState("");
+  const [shareCopied, setShareCopied] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -246,6 +247,18 @@ export function ReceiptsScreen({
   );
   const featuredReceipt = realReceipts[0] ?? null;
 
+  async function copyShareUrl() {
+    const shareUrl = window.location.href;
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setShareCopied(true);
+      window.setTimeout(() => setShareCopied(false), 1800);
+    } catch {
+      setReceiptError("Could not copy this receipt link.");
+    }
+  }
+
   return (
     <div className="space-y-5">
       <ReceiptsHeader profile={profile} />
@@ -255,6 +268,7 @@ export function ReceiptsScreen({
         <RecordCard profile={profile} receipts={realReceipts} />
         <div className="grid gap-3">
           <SideStatCard eyebrow="REP Total" value={formatRep(owner.reputation)} unit="Top 2%" tone="green" body="Talk backed up. Or exposed." />
+          <ShareReceiptsTopCard copied={shareCopied} onShare={copyShareUrl} />
           <SideStatCard eyebrow="Top Streak" value={realReceipts.length ? String(getReceiptStreak(realReceipts)) : "12"} unit="Wins in a row" tone="purple" body="Nobody could cool this record off." />
           <SideStatCard eyebrow="Best Hit" value={realReceipts.length ? getBestHitLabel(realReceipts) : "97%"} unit="Accuracy" tone="green" body={featuredReceipt?.take_text ?? "Knicks upset incoming."} />
           <SideStatCard eyebrow="Most Shared" value={realReceipts.length ? formatCompact(Math.max(...realReceipts.map((receipt) => receipt.heat), 0)) : "2.4M"} unit="Heat" tone="blue" body={featuredReceipt?.take_text ?? "Curry is choking."} />
@@ -478,6 +492,22 @@ function SideStatCard({
         <p className="pb-1 text-xs font-black uppercase tracking-[0.1em] text-gray-300">{unit}</p>
       </div>
       <p className="mt-3 text-sm font-semibold leading-5 text-gray-300">{body}</p>
+    </article>
+  );
+}
+
+function ShareReceiptsTopCard({ copied, onShare }: { copied: boolean; onShare: () => void }) {
+  return (
+    <article className="rounded-[1.5rem] border border-purple-300/30 bg-purple-500/10 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34),0_0_28px_rgba(168,85,247,0.08)]">
+      <p className="sports-display text-xl italic leading-none text-white">Share Your Receipts</p>
+      <p className="mt-3 text-sm font-semibold leading-5 text-gray-300">Let the Crowd see what you called.</p>
+      <button
+        type="button"
+        onClick={onShare}
+        className="mt-4 min-h-11 w-full rounded-2xl border border-purple-300/55 bg-purple-500/15 px-4 text-xs font-black uppercase tracking-[0.12em] text-purple-100 transition hover:-translate-y-0.5 hover:bg-purple-500/25 active:scale-95"
+      >
+        {copied ? "Copied" : "Share Profile"}
+      </button>
     </article>
   );
 }

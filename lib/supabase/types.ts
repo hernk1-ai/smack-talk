@@ -232,6 +232,7 @@ export type Database = {
           id: string;
           take_id: string;
           user_id: string;
+          parent_reply_id: string | null;
           reply_text: string;
           heat: number;
           created_at: string;
@@ -241,6 +242,7 @@ export type Database = {
           id?: string;
           take_id: string;
           user_id: string;
+          parent_reply_id?: string | null;
           reply_text: string;
           heat?: number;
           created_at?: string;
@@ -250,6 +252,7 @@ export type Database = {
           id?: string;
           take_id?: string;
           user_id?: string;
+          parent_reply_id?: string | null;
           reply_text?: string;
           heat?: number;
           created_at?: string;
@@ -268,6 +271,13 @@ export type Database = {
             columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "take_replies_parent_reply_id_fkey";
+            columns: ["parent_reply_id"];
+            isOneToOne: false;
+            referencedRelation: "take_replies";
             referencedColumns: ["id"];
           },
         ];
@@ -369,7 +379,7 @@ export type Database = {
         Returns: {
           settled_take_id: string;
           receipt_id: string | null;
-          result: "hit" | "miss";
+          settled_result: "hit" | "miss";
         }[];
       };
     };

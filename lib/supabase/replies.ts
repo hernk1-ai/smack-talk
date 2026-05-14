@@ -35,7 +35,15 @@ export async function getRepliesForTake(takeId: string) {
   };
 }
 
-export async function createReply({ takeId, replyText }: { takeId: string; replyText: string }) {
+export async function createReply({
+  takeId,
+  replyText,
+  parentReplyId,
+}: {
+  takeId: string;
+  replyText: string;
+  parentReplyId?: string | null;
+}) {
   const supabase = createClient();
 
   if (!supabase) {
@@ -71,6 +79,7 @@ export async function createReply({ takeId, replyText }: { takeId: string; reply
       take_id: takeId,
       user_id: user.id,
       reply_text: cleanReplyText,
+      parent_reply_id: parentReplyId ?? null,
     })
     .select("*")
     .single();

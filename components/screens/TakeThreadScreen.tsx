@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { RouteBottomNav } from "@/components/BottomNav";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import {
@@ -20,6 +21,7 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
   const router = useRouter();
   const [take, setTake] = useState<ArenaTake | null>(null);
   const [replies, setReplies] = useState<TakeReplyWithAuthor[]>([]);
+  const [replyingTo, setReplyingTo] = useState<TakeReplyWithAuthor | null>(null);
   const [reaction, setReaction] = useState<TakeReaction["reaction"] | null>(null);
   const [replyText, setReplyText] = useState("");
   const [loading, setLoading] = useState(true);
@@ -86,7 +88,7 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
     setReplyStatus("loading");
     setMessage("");
 
-    const { reply, error } = await createReply({ takeId, replyText });
+    const { reply, error } = await createReply({ takeId, replyText, parentReplyId: replyingTo?.id });
 
     if (error) {
       setReplyStatus("error");
@@ -102,34 +104,50 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
           author: profileToCard(profile),
         },
       ]);
+    }
+
+    const { take: updatedTake } = await getTakeById(takeId);
+
+    if (updatedTake) {
+      setTake((currentTake) => ({
+        ...updatedTake,
+        reply_count: Math.max(updatedTake.reply_count, currentTake?.reply_count ?? 0, replies.length + 1),
+        heat: Math.max(updatedTake.heat, currentTake?.heat ?? 0),
+      }));
+    } else {
       setTake((currentTake) =>
         currentTake
           ? {
               ...currentTake,
-              reply_count: currentTake.reply_count + 1,
+              reply_count: Math.max(currentTake.reply_count + 1, replies.length + 1),
               heat: currentTake.heat + 2,
             }
           : currentTake,
       );
     }
 
-    const { take: updatedTake } = await getTakeById(takeId);
-
-    if (updatedTake) {
-      setTake(updatedTake);
-    }
-
     setReplyText("");
+    setReplyingTo(null);
     setReplyStatus("success");
     setMessage("Reply posted. Everyone can see it.");
   }
 
   const author = take ? formatTakeForUI(take) : null;
   const canPostReply = replyStatus !== "loading" && replyText.trim().length > 0;
+  const visibleReplyCount = take ? Math.max(take.reply_count, replies.length) : replies.length;
+  const rootReplies = replies.filter((reply) => !reply.parent_reply_id);
+  const childRepliesByParent = replies.reduce<Record<string, TakeReplyWithAuthor[]>>((accumulator, reply) => {
+    if (reply.parent_reply_id) {
+      accumulator[reply.parent_reply_id] = [...(accumulator[reply.parent_reply_id] ?? []), reply];
+    }
+
+    return accumulator;
+  }, {});
 
   return (
-    <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white sm:py-6">
-      <div className="feed-shell screen-safe-bottom space-y-5">
+    <>
+      <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white sm:py-6">
+        <div className="feed-shell screen-safe-bottom space-y-5">
         <header className="rounded-[1.75rem] border border-white/10 bg-black/35 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur">
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
             <button
@@ -187,7 +205,7 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
                 <ThreadStat label="Heat" value={`🔥 ${formatCompact(take.heat)}`} tone="lime" />
                 <ThreadStat label="Riding" value={formatCompact(take.ride_count)} tone="lime" />
                 <ThreadStat label="Fading" value={formatCompact(take.fade_count)} tone="purple" />
-                <ThreadStat label="Replies" value={formatCompact(take.reply_count)} tone="white" />
+                <ThreadStat label="Replies" value={formatCompact(visibleReplyCount)} tone="white" />
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-3">
@@ -213,7 +231,7 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
                   <h2 className="sports-display mt-1 text-2xl italic leading-none text-white">Public replies</h2>
                 </div>
                 <span className="rounded-full border border-lime-300/25 bg-lime-400/10 px-3 py-1 text-[10px] font-black uppercase text-lime-300">
-                  {take.reply_count} replies
+                  {visibleReplyCount} replies
                 </span>
               </div>
 
@@ -237,6 +255,20 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
                 />
                 <span className="absolute bottom-3 right-4 text-xs font-bold text-gray-500">{replyText.length}/280</span>
               </div>
+              {replyingTo && (
+                <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-purple-300/25 bg-purple-500/10 px-3 py-2">
+                  <p className="truncate text-xs font-bold text-purple-100">
+                    Replying to @{replyingTo.author?.username ?? "Talker"}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setReplyingTo(null)}
+                    className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-400 transition hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
               <button
                 type="button"
                 onClick={postReply}
@@ -271,24 +303,64 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
 
               {replies.length ? (
                 <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/35">
-                  {replies.map((reply) => {
+                  {rootReplies.map((reply) => {
                     const username = reply.author?.username ?? "Talker";
                     const handle = username.startsWith("@") ? username : `@${username}`;
+                    const childReplies = childRepliesByParent[reply.id] ?? [];
 
                     return (
-                      <article key={reply.id} className="grid grid-cols-[auto_1fr] gap-3 border-b border-white/10 p-3 last:border-b-0">
-                        <UserAvatar
-                          avatarUrl={reply.author?.avatar_url}
-                          initials={getInitials(username)}
-                          size="sm"
-                        />
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="truncate text-sm font-black text-white">{handle}</p>
-                            <span className="text-xs font-bold text-gray-500">{formatTakeAge(reply.created_at)}</span>
+                      <article key={reply.id} className="border-b border-white/10 p-3 last:border-b-0">
+                        <div className="grid grid-cols-[auto_1fr] gap-3">
+                          <UserAvatar
+                            avatarUrl={reply.author?.avatar_url}
+                            initials={getInitials(username)}
+                            size="sm"
+                          />
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="truncate text-sm font-black text-white">{handle}</p>
+                              <span className="text-xs font-bold text-gray-500">{formatTakeAge(reply.created_at)}</span>
+                            </div>
+                            <p className="mt-1 text-sm font-semibold leading-relaxed text-gray-200">{reply.reply_text}</p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReplyingTo(reply);
+                                setReplyStatus("idle");
+                                setMessage("");
+                              }}
+                              className="mt-2 text-[10px] font-black uppercase tracking-[0.12em] text-purple-300 transition hover:text-lime-200"
+                            >
+                              Reply
+                            </button>
                           </div>
-                          <p className="mt-1 text-sm font-semibold leading-relaxed text-gray-200">{reply.reply_text}</p>
                         </div>
+
+                        {childReplies.length > 0 && (
+                          <div className="ml-10 mt-3 space-y-2 border-l border-purple-300/20 pl-3">
+                            {childReplies.map((childReply) => {
+                              const childUsername = childReply.author?.username ?? "Talker";
+                              const childHandle = childUsername.startsWith("@") ? childUsername : `@${childUsername}`;
+
+                              return (
+                                <div key={childReply.id} className="grid grid-cols-[auto_1fr] gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                                  <UserAvatar
+                                    avatarUrl={childReply.author?.avatar_url}
+                                    initials={getInitials(childUsername)}
+                                    size="sm"
+                                  />
+                                  <div className="min-w-0">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <p className="truncate text-xs font-black text-white">{childHandle}</p>
+                                      <span className="text-[10px] font-bold text-gray-500">{formatTakeAge(childReply.created_at)}</span>
+                                    </div>
+                                    <p className="mt-1 text-xs font-semibold leading-relaxed text-gray-300">{childReply.reply_text}</p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </article>
                     );
                   })}
@@ -309,8 +381,10 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
             <p className="mt-2 text-sm font-semibold text-gray-300">This lock may not exist yet.</p>
           </section>
         )}
-      </div>
-    </main>
+        </div>
+      </main>
+      <RouteBottomNav activeView="arena" />
+    </>
   );
 }
 
