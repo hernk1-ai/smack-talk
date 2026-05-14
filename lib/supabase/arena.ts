@@ -94,6 +94,34 @@ export async function getArenaFeed(gameId = ACTIVE_GAME_ID) {
   };
 }
 
+export async function getTakeById(takeId: string) {
+  const supabase = createClient();
+
+  if (!supabase) {
+    return { take: null as ArenaTake | null, error: new Error("Supabase is not configured.") };
+  }
+
+  const { data: take, error } = await supabase.from("takes").select("*").eq("id", takeId).maybeSingle();
+
+  if (error || !take) {
+    return { take: null, error };
+  }
+
+  const { data: profileCard } = await supabase
+    .from("profile_cards")
+    .select("*")
+    .eq("id", take.user_id)
+    .maybeSingle();
+
+  return {
+    take: {
+      ...take,
+      author: profileCard ?? null,
+    },
+    error: null,
+  };
+}
+
 export async function getFeaturedTake(gameId = ACTIVE_GAME_ID) {
   const { takes, error } = await getArenaFeed(gameId);
 

@@ -218,6 +218,51 @@ export type Database = {
           },
         ];
       };
+      take_replies: {
+        Row: {
+          id: string;
+          take_id: string;
+          user_id: string;
+          reply_text: string;
+          heat: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          take_id: string;
+          user_id: string;
+          reply_text: string;
+          heat?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          take_id?: string;
+          user_id?: string;
+          reply_text?: string;
+          heat?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "take_replies_take_id_fkey";
+            columns: ["take_id"];
+            isOneToOne: false;
+            referencedRelation: "takes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "take_replies_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       profile_cards: {
@@ -249,4 +294,5 @@ export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Game = Database["public"]["Tables"]["games"]["Row"];
 export type Take = Database["public"]["Tables"]["takes"]["Row"];
 export type TakeReaction = Database["public"]["Tables"]["take_reactions"]["Row"];
+export type TakeReply = Database["public"]["Tables"]["take_replies"]["Row"];
 export type ProfileCard = Database["public"]["Views"]["profile_cards"]["Row"];
