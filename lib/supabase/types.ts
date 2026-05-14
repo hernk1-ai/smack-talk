@@ -176,9 +176,62 @@ export type Database = {
           },
         ];
       };
+      take_reactions: {
+        Row: {
+          id: string;
+          take_id: string;
+          user_id: string;
+          reaction: "ride" | "fade";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          take_id: string;
+          user_id: string;
+          reaction: "ride" | "fade";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          take_id?: string;
+          user_id?: string;
+          reaction?: "ride" | "fade";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "take_reactions_take_id_fkey";
+            columns: ["take_id"];
+            isOneToOne: false;
+            referencedRelation: "takes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "take_reactions_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
-      [_ in never]: never;
+      profile_cards: {
+        Row: {
+          id: string;
+          username: string | null;
+          avatar_url: string | null;
+          reputation_score: number;
+          created_takes_count: number;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Functions: {
       [_ in never]: never;
@@ -195,3 +248,5 @@ export type Database = {
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Game = Database["public"]["Tables"]["games"]["Row"];
 export type Take = Database["public"]["Tables"]["takes"]["Row"];
+export type TakeReaction = Database["public"]["Tables"]["take_reactions"]["Row"];
+export type ProfileCard = Database["public"]["Views"]["profile_cards"]["Row"];

@@ -3,9 +3,18 @@
 import { useEffect, useState } from "react";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
-import { ACTIVE_GAME_ID, getGameById } from "@/lib/supabase/games";
-import { createLockedTake, getTakesByGame } from "@/lib/supabase/takes";
-import type { Game, Profile, Take } from "@/lib/supabase/types";
+import { ACTIVE_GAME_ID } from "@/lib/supabase/games";
+import {
+  attachAuthorToTake,
+  formatTakeForUI,
+  getFeaturedTakeFromList,
+  getTrendingTakesFromList,
+  refreshArenaData,
+  type ArenaTake,
+} from "@/lib/supabase/arena";
+import { reactToTake } from "@/lib/supabase/reactions";
+import { createLockedTake } from "@/lib/supabase/takes";
+import type { Game, Profile, TakeReaction } from "@/lib/supabase/types";
 
 type Side = "ride" | "fade";
 
@@ -199,20 +208,28 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void
   const [lockTakeStatus, setLockTakeStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [lockTakeMessage, setLockTakeMessage] = useState("");
   const [activeGame, setActiveGame] = useState<Game | null>(null);
-  const [gameTakes, setGameTakes] = useState<Take[]>([]);
+  const [gameTakes, setGameTakes] = useState<ArenaTake[]>([]);
+  const [takeReactions, setTakeReactions] = useState<Record<string, TakeReaction["reaction"]>>({});
+  const [reactionLoadingTakeId, setReactionLoadingTakeId] = useState<string | null>(null);
+  const [reactionMessage, setReactionMessage] = useState("");
+  const [recentActivity, setRecentActivity] = useState<string[]>([]);
+  const featuredTake = getFeaturedTakeFromList(gameTakes);
+  const trendingRealTakes = getTrendingTakesFromList(gameTakes, 4);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadArenaData() {
-      const [{ game }, { takes }] = await Promise.all([getGameById(ACTIVE_GAME_ID), getTakesByGame(ACTIVE_GAME_ID)]);
+      const { game, feed, reactionMap } = await refreshArenaData(ACTIVE_GAME_ID);
 
       if (!isMounted) {
         return;
       }
 
       setActiveGame(game);
-      setGameTakes(takes);
+      setGameTakes(feed);
+      setTakeReactions(reactionMap);
+      setRecentActivity(feed.slice(0, 3).map((take) => `${formatTakeForUI(take).handle} locked a take`));
     }
 
     loadArenaData();
@@ -243,17 +260,71 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void
 
     setLockedTake("");
     if (take) {
-      setGameTakes((currentTakes) => [take, ...currentTakes]);
+      const arenaTake = attachAuthorToTake(take, profile);
+      setGameTakes((currentTakes) => [arenaTake, ...currentTakes]);
+      setRecentActivity((currentActivity) =>
+        [`${formatTakeForUI(arenaTake).handle} locked a take`, ...currentActivity].slice(0, 4),
+      );
     }
     setLockTakeStatus("success");
     setLockTakeMessage("Locked. No switching sides.");
   }
 
+  async function reactToLockedTake(takeId: string, reaction: Side) {
+    setReactionLoadingTakeId(takeId);
+    setReactionMessage("");
+
+    const { reaction: savedReaction, take, error } = await reactToTake({ takeId, reaction });
+
+    if (error) {
+      setReactionMessage(error.message);
+      setReactionLoadingTakeId(null);
+      return;
+    }
+
+    if (savedReaction) {
+      setTakeReactions((currentReactions) => ({
+        ...currentReactions,
+        [takeId]: savedReaction.reaction,
+      }));
+    }
+
+    if (take) {
+      const existingTake = gameTakes.find((currentTake) => currentTake.id === take.id);
+      const updatedTake = { ...take, author: existingTake?.author ?? null };
+
+      setGameTakes((currentTakes) =>
+        currentTakes.map((currentTake) => (currentTake.id === take.id ? updatedTake : currentTake)),
+      );
+
+      if (savedReaction) {
+        const activityHandle = formatTakeForUI(updatedTake).handle;
+        setRecentActivity((currentActivity) =>
+          [`You ${savedReaction.reaction === "ride" ? "rode" : "faded"} ${activityHandle}`, ...currentActivity].slice(0, 4),
+        );
+      }
+    }
+
+    setReactionLoadingTakeId(null);
+  }
+
   return (
     <div className="space-y-5">
       <FeedHeader profile={profile} />
-      <FeaturedHotTakeCard game={activeGame} onJoinLive={onEnterArena} />
-      <FeaturedRideFade selected={featuredChoice} onChoose={setFeaturedChoice} />
+      <FeaturedHotTakeCard game={activeGame} take={featuredTake} onJoinLive={onEnterArena} />
+      <FeaturedRideFade
+        loading={featuredTake ? reactionLoadingTakeId === featuredTake.id : false}
+        selected={featuredTake ? takeReactions[featuredTake.id] ?? null : featuredChoice}
+        take={featuredTake}
+        onChoose={(side) => {
+          if (featuredTake) {
+            reactToLockedTake(featuredTake.id, side);
+            return;
+          }
+
+          setFeaturedChoice(side);
+        }}
+      />
       <LockTakeComposer
         value={lockedTake}
         status={lockTakeStatus}
@@ -268,7 +339,22 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void
         }}
         onLock={lockTake}
       />
-      <TrendingTakes choices={takeChoices} onChoose={chooseTake} />
+      <LiveLockedTakes
+        takes={gameTakes}
+        reactions={takeReactions}
+        loadingTakeId={reactionLoadingTakeId}
+        message={reactionMessage}
+        onReact={reactToLockedTake}
+      />
+      <RecentActivityPulse activity={recentActivity} />
+      <TrendingTakes
+        choices={takeChoices}
+        loadingTakeId={reactionLoadingTakeId}
+        reactions={takeReactions}
+        realTakes={trendingRealTakes}
+        onChoose={chooseTake}
+        onReact={reactToLockedTake}
+      />
       <LiveArenas onEnterArena={onEnterArena} />
       <ChaosAlerts />
     </div>
@@ -355,17 +441,30 @@ function formatGameStatus(status: Game["status"]) {
   return "Scheduled";
 }
 
-function FeaturedHotTakeCard({ game, onJoinLive }: { game: Game | null; onJoinLive: () => void }) {
+function FeaturedHotTakeCard({
+  game,
+  take,
+  onJoinLive,
+}: {
+  game: Game | null;
+  take: ArenaTake | null;
+  onJoinLive: () => void;
+}) {
   const matchup = game ? `${game.away_team} vs ${game.home_team}` : featuredHotTake.matchup;
   const period = game ? [game.period, game.clock].filter(Boolean).join(" · ") : featuredHotTake.period;
   const watching = game ? `${formatCompact(game.watching_count)} watching` : featuredHotTake.watching;
   const score = game
     ? `${game.away_team} ${game.away_score} — ${game.home_score} ${game.home_team}`
     : featuredHotTake.score;
-  const heat = game ? formatCompact(game.heat) : featuredHotTake.heat;
-  const rides = game ? formatCompact(game.ride_count) : featuredHotTake.rides;
-  const fades = game ? formatCompact(game.fade_count) : featuredHotTake.fades;
+  const heat = take ? formatCompact(take.heat) : game ? formatCompact(game.heat) : featuredHotTake.heat;
+  const rides = take ? formatCompact(take.ride_count) : game ? formatCompact(game.ride_count) : featuredHotTake.rides;
+  const fades = take ? formatCompact(take.fade_count) : game ? formatCompact(game.fade_count) : featuredHotTake.fades;
   const status = game ? formatGameStatus(game.status) : featuredHotTake.status;
+  const author = take ? formatTakeForUI(take) : null;
+  const handle = author?.handle ?? featuredHotTake.handle;
+  const avatar = author?.initials ?? featuredHotTake.avatar;
+  const avatarUrl = author?.avatarUrl ?? null;
+  const takeText = take?.take_text ?? featuredHotTake.text;
 
   return (
     <section className="arena-scoreboard overflow-hidden rounded-[1.75rem] border border-lime-300/25 p-4 shadow-[0_26px_80px_rgba(0,0,0,0.56),0_0_34px_rgba(132,204,22,0.08)]">
@@ -395,17 +494,15 @@ function FeaturedHotTakeCard({ game, onJoinLive }: { game: Game | null; onJoinLi
         </div>
 
         <div className="mt-4 flex items-start gap-3">
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-lime-300/35 bg-gradient-to-br from-lime-300 via-purple-500 to-black text-sm font-black text-white shadow-[0_0_24px_rgba(132,204,22,0.18)]">
-            {featuredHotTake.avatar}
-          </span>
+          <UserAvatar avatarUrl={avatarUrl} initials={avatar} size="md" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-black text-white">{featuredHotTake.handle}</p>
+              <p className="text-sm font-black text-white">{handle}</p>
               <span className="text-sky-300">◆</span>
               <p className="text-xs font-bold text-gray-500">{watching}</p>
             </div>
             <h2 className="mt-2 text-3xl font-black italic leading-tight text-white sm:text-4xl">
-              {featuredHotTake.text}
+              {takeText}
             </h2>
           </div>
         </div>
@@ -438,12 +535,19 @@ function FeaturedHotTakeCard({ game, onJoinLive }: { game: Game | null; onJoinLi
 }
 
 function FeaturedRideFade({
+  loading = false,
   selected,
+  take,
   onChoose,
 }: {
+  loading?: boolean;
   selected: Side | null;
+  take: ArenaTake | null;
   onChoose: (side: Side) => void;
 }) {
+  const rideCount = take ? formatCompact(take.ride_count) : featuredHotTake.rides;
+  const fadeCount = take ? formatCompact(take.fade_count) : featuredHotTake.fades;
+
   return (
     <section className="rounded-[1.5rem] border border-white/10 bg-black/35 p-3 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
       <div className="mb-3 flex items-center justify-between gap-3 px-1">
@@ -451,8 +555,20 @@ function FeaturedRideFade({
         <p className="text-[10px] font-black uppercase tracking-[0.14em] text-gray-500">Reaction, not a lock</p>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <ReactionButton side="ride" count={featuredHotTake.rides} active={selected === "ride"} onClick={() => onChoose("ride")} />
-        <ReactionButton side="fade" count={featuredHotTake.fades} active={selected === "fade"} onClick={() => onChoose("fade")} />
+        <ReactionButton
+          side="ride"
+          count={rideCount}
+          active={selected === "ride"}
+          disabled={loading}
+          onClick={() => onChoose("ride")}
+        />
+        <ReactionButton
+          side="fade"
+          count={fadeCount}
+          active={selected === "fade"}
+          disabled={loading}
+          onClick={() => onChoose("fade")}
+        />
       </div>
     </section>
   );
@@ -462,11 +578,13 @@ function ReactionButton({
   side,
   count,
   active,
+  disabled = false,
   onClick,
 }: {
   side: Side;
   count: string;
   active: boolean;
+  disabled?: boolean;
   onClick: () => void;
 }) {
   const isRide = side === "ride";
@@ -475,8 +593,9 @@ function ReactionButton({
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-pressed={active}
-      className={`min-h-16 rounded-2xl border px-4 text-left transition hover:-translate-y-0.5 active:scale-[0.98] ${
+      className={`min-h-16 rounded-2xl border px-4 text-left transition hover:-translate-y-0.5 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-y-0 ${
         isRide
           ? active
             ? "border-lime-300 bg-lime-400 text-black shadow-[0_0_28px_rgba(132,204,22,0.26)]"
@@ -568,17 +687,251 @@ function LockTakeComposer({
   );
 }
 
+function LiveLockedTakes({
+  takes,
+  reactions,
+  loadingTakeId,
+  message,
+  onReact,
+}: {
+  takes: ArenaTake[];
+  reactions: Record<string, TakeReaction["reaction"]>;
+  loadingTakeId: string | null;
+  message: string;
+  onReact: (takeId: string, reaction: Side) => void;
+}) {
+  if (!takes.length) {
+    return null;
+  }
+
+  return (
+    <FeedSection title="Live Locked Takes" icon="ϟ" action={`${takes.length} live`}>
+      <div className="space-y-3">
+        {message && (
+          <p className="rounded-2xl border border-red-400/35 bg-red-500/10 px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-red-200">
+            {message}
+          </p>
+        )}
+        {takes.map((take) => {
+          const activeReaction = reactions[take.id];
+          const isLoading = loadingTakeId === take.id;
+          const { avatarUrl, handle, initials } = formatTakeForUI(take);
+
+          return (
+            <article
+              key={take.id}
+              className="rounded-2xl border border-white/10 bg-black/45 p-3 shadow-[0_18px_45px_rgba(0,0,0,0.3)] transition hover:border-lime-300/20 hover:bg-black/55"
+            >
+              <div className="grid grid-cols-[auto_1fr_auto] items-start gap-3">
+                <UserAvatar avatarUrl={avatarUrl} initials={initials} size="sm" />
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="truncate text-sm font-black text-white">{handle}</p>
+                    <span className="text-sky-300">◆</span>
+                    <span className="text-xs font-bold text-gray-500">{formatTakeAge(take.created_at)}</span>
+                  </div>
+                  <h3 className="mt-2 text-xl font-black leading-tight text-white">{take.take_text}</h3>
+                </div>
+                <span className="rounded-full border border-purple-300/30 bg-purple-500/10 px-2.5 py-1 text-[10px] font-black uppercase text-purple-200">
+                  {take.status}
+                </span>
+              </div>
+
+              <div className="mt-4 grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-black/45 p-2 text-center">
+                <div>
+                  <p className="text-[10px] font-black uppercase text-gray-500">Heat</p>
+                  <p className="mt-1 text-sm font-black text-lime-300">🔥 {formatCompact(take.heat)}</p>
+                </div>
+                <div className="border-x border-white/10">
+                  <p className="text-[10px] font-black uppercase text-gray-500">Riding</p>
+                  <p className="mt-1 text-sm font-black text-lime-300">{formatCompact(take.ride_count)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase text-gray-500">Fading</p>
+                  <p className="mt-1 text-sm font-black text-purple-300">{formatCompact(take.fade_count)}</p>
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <LockedTakeReactionButton
+                  active={activeReaction === "ride"}
+                  count={take.ride_count}
+                  disabled={isLoading}
+                  side="ride"
+                  onClick={() => onReact(take.id, "ride")}
+                />
+                <LockedTakeReactionButton
+                  active={activeReaction === "fade"}
+                  count={take.fade_count}
+                  disabled={isLoading}
+                  side="fade"
+                  onClick={() => onReact(take.id, "fade")}
+                />
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </FeedSection>
+  );
+}
+
+function LockedTakeReactionButton({
+  active,
+  count,
+  disabled,
+  side,
+  onClick,
+}: {
+  active: boolean;
+  count: number;
+  disabled: boolean;
+  side: Side;
+  onClick: () => void;
+}) {
+  const isRide = side === "ride";
+
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      disabled={disabled}
+      onClick={onClick}
+      className={`min-h-11 rounded-xl border px-3 text-left transition hover:-translate-y-0.5 active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-y-0 ${
+        isRide
+          ? active
+            ? "border-lime-300 bg-lime-400 text-black shadow-[0_0_22px_rgba(132,204,22,0.26)]"
+            : "border-lime-300/45 bg-lime-400/8 text-lime-300 hover:bg-lime-400/12"
+          : active
+            ? "border-purple-300 bg-purple-500 text-white shadow-[0_0_22px_rgba(168,85,247,0.28)]"
+            : "border-purple-300/55 bg-purple-500/10 text-purple-300 hover:bg-purple-500/15"
+      }`}
+    >
+      <span className="block text-sm font-black uppercase tracking-[0.12em]">{isRide ? "Ride" : "Fade"}</span>
+      <span className={`mt-0.5 block text-[10px] font-black uppercase ${active ? "opacity-80" : "text-gray-400"}`}>
+        {formatCompact(count)} {isRide ? "riding" : "fading"}
+      </span>
+    </button>
+  );
+}
+
+function formatTakeAge(createdAt: string) {
+  const createdTime = new Date(createdAt).getTime();
+  const minutes = Math.max(0, Math.floor((Date.now() - createdTime) / 60000));
+
+  if (minutes < 1) {
+    return "just now";
+  }
+
+  if (minutes < 60) {
+    return `${minutes}m ago`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+
+  if (hours < 24) {
+    return `${hours}h ago`;
+  }
+
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+function RecentActivityPulse({ activity }: { activity: string[] }) {
+  if (!activity.length) {
+    return null;
+  }
+
+  return (
+    <section className="rounded-[1.5rem] border border-lime-300/15 bg-black/30 p-3 shadow-[0_18px_44px_rgba(0,0,0,0.3)]">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime-300">
+          <span className="mr-2 inline-block h-2 w-2 rounded-full bg-lime-400 shadow-[0_0_14px_rgba(132,204,22,0.7)]" />
+          Arena Pulse
+        </p>
+        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-gray-500">Live movement</p>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {activity.map((item, index) => (
+          <div key={`${item}-${index}`} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+            <p className="truncate text-xs font-bold text-gray-300">
+              <span className="mr-2 text-purple-300">ϟ</span>
+              {item}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function TrendingTakes({
   choices,
+  loadingTakeId,
+  reactions,
+  realTakes,
   onChoose,
+  onReact,
 }: {
   choices: Record<string, Side>;
+  loadingTakeId: string | null;
+  reactions: Record<string, TakeReaction["reaction"]>;
+  realTakes: ArenaTake[];
   onChoose: (id: string, side: Side) => void;
+  onReact: (takeId: string, reaction: Side) => void;
 }) {
+  const fallbackTakes = trendingTakes.slice(0, Math.max(0, 4 - realTakes.length));
+
   return (
     <FeedSection title="Trending Takes" icon="🔥" action="See all">
       <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
-        {trendingTakes.map((take) => (
+        {realTakes.map((take, index) => {
+          const { avatarUrl, handle, initials } = formatTakeForUI(take);
+          const activeReaction = reactions[take.id];
+          const isLoading = loadingTakeId === take.id;
+
+          return (
+            <article
+              key={take.id}
+              className="premium-card min-w-[10.25rem] snap-start rounded-2xl border border-white/10 p-3 shadow-[0_18px_45px_rgba(0,0,0,0.34)]"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="grid h-7 w-7 place-items-center rounded-full bg-lime-400 text-xs font-black text-black">
+                    {index + 1}
+                  </span>
+                  <UserAvatar avatarUrl={avatarUrl} initials={initials} size="sm" />
+                </div>
+              </div>
+              <p className="mt-3 truncate text-[11px] font-black text-gray-200">
+                {handle} <span className="text-sky-300">◆</span>
+              </p>
+              <p className="text-[10px] font-bold text-gray-500">{formatTakeAge(take.created_at)}</p>
+              <h3 className="mt-3 min-h-14 text-xl font-black leading-tight text-white">{take.take_text}</h3>
+              <p className="mt-3 text-sm font-black text-lime-300">
+                🔥 {formatCompact(take.heat)} <span className="text-xs uppercase text-gray-500">Heat</span>
+              </p>
+              <div className="mt-3 flex items-center justify-between text-sm font-black">
+                <span className="text-lime-300">👍 {formatCompact(take.ride_count)}</span>
+                <span className="text-purple-300">👎 {formatCompact(take.fade_count)}</span>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <TakeButton
+                  active={activeReaction === "ride"}
+                  disabled={isLoading}
+                  side="ride"
+                  onClick={() => onReact(take.id, "ride")}
+                />
+                <TakeButton
+                  active={activeReaction === "fade"}
+                  disabled={isLoading}
+                  side="fade"
+                  onClick={() => onReact(take.id, "fade")}
+                />
+              </div>
+            </article>
+          );
+        })}
+        {fallbackTakes.map((take, index) => (
           <article
             key={take.id}
             className="premium-card min-w-[10.25rem] snap-start rounded-2xl border border-white/10 p-3 shadow-[0_18px_45px_rgba(0,0,0,0.34)]"
@@ -586,7 +939,7 @@ function TrendingTakes({
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2">
                 <span className="grid h-7 w-7 place-items-center rounded-full bg-lime-400 text-xs font-black text-black">
-                  {take.rank}
+                  {realTakes.length + index + 1}
                 </span>
                 <span className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-lime-300 via-purple-500 to-black text-[10px] font-black text-white">
                   {take.avatar}
@@ -723,13 +1076,24 @@ function FeedSection({
   );
 }
 
-function TakeButton({ active, side, onClick }: { active: boolean; side: Side; onClick: () => void }) {
+function TakeButton({
+  active,
+  disabled = false,
+  side,
+  onClick,
+}: {
+  active: boolean;
+  disabled?: boolean;
+  side: Side;
+  onClick: () => void;
+}) {
   const isRide = side === "ride";
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-11 rounded-xl border text-sm font-black uppercase transition active:scale-95 ${
+      disabled={disabled}
+      className={`min-h-11 rounded-xl border text-sm font-black uppercase transition active:scale-95 disabled:cursor-wait disabled:opacity-70 ${
         isRide
           ? active
             ? "border-lime-300 bg-lime-400 text-black shadow-[0_0_20px_rgba(132,204,22,0.24)]"
