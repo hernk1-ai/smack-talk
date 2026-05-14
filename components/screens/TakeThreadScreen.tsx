@@ -102,6 +102,15 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
           author: profileToCard(profile),
         },
       ]);
+      setTake((currentTake) =>
+        currentTake
+          ? {
+              ...currentTake,
+              reply_count: currentTake.reply_count + 1,
+              heat: currentTake.heat + 2,
+            }
+          : currentTake,
+      );
     }
 
     const { take: updatedTake } = await getTakeById(takeId);

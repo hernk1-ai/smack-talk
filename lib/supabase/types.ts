@@ -13,6 +13,9 @@ export type Database = {
           reputation: number;
           reputation_score: number;
           created_takes_count: number;
+          hits_count: number;
+          misses_count: number;
+          receipts_count: number;
           onboarding_completed: boolean;
           created_at: string;
           updated_at: string;
@@ -26,6 +29,9 @@ export type Database = {
           reputation?: number;
           reputation_score?: number;
           created_takes_count?: number;
+          hits_count?: number;
+          misses_count?: number;
+          receipts_count?: number;
           onboarding_completed?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -39,6 +45,9 @@ export type Database = {
           reputation?: number;
           reputation_score?: number;
           created_takes_count?: number;
+          hits_count?: number;
+          misses_count?: number;
+          receipts_count?: number;
           onboarding_completed?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -263,6 +272,79 @@ export type Database = {
           },
         ];
       };
+      receipts: {
+        Row: {
+          id: string;
+          take_id: string;
+          user_id: string;
+          game_id: string;
+          result: "hit" | "miss";
+          take_text: string;
+          game_label: string | null;
+          final_score: string | null;
+          ride_count: number;
+          fade_count: number;
+          reply_count: number;
+          heat: number;
+          reputation_delta: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          take_id: string;
+          user_id: string;
+          game_id: string;
+          result: "hit" | "miss";
+          take_text: string;
+          game_label?: string | null;
+          final_score?: string | null;
+          ride_count?: number;
+          fade_count?: number;
+          reply_count?: number;
+          heat?: number;
+          reputation_delta?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          take_id?: string;
+          user_id?: string;
+          game_id?: string;
+          result?: "hit" | "miss";
+          take_text?: string;
+          game_label?: string | null;
+          final_score?: string | null;
+          ride_count?: number;
+          fade_count?: number;
+          reply_count?: number;
+          heat?: number;
+          reputation_delta?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "receipts_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "receipts_take_id_fkey";
+            columns: ["take_id"];
+            isOneToOne: true;
+            referencedRelation: "takes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "receipts_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       profile_cards: {
@@ -279,7 +361,17 @@ export type Database = {
       };
     };
     Functions: {
-      [_ in never]: never;
+      dev_settle_game: {
+        Args: {
+          target_game_id?: string;
+          settle_result?: "hit" | "miss";
+        };
+        Returns: {
+          settled_take_id: string;
+          receipt_id: string | null;
+          result: "hit" | "miss";
+        }[];
+      };
     };
     Enums: {
       [_ in never]: never;
@@ -295,4 +387,5 @@ export type Game = Database["public"]["Tables"]["games"]["Row"];
 export type Take = Database["public"]["Tables"]["takes"]["Row"];
 export type TakeReaction = Database["public"]["Tables"]["take_reactions"]["Row"];
 export type TakeReply = Database["public"]["Tables"]["take_replies"]["Row"];
+export type Receipt = Database["public"]["Tables"]["receipts"]["Row"];
 export type ProfileCard = Database["public"]["Views"]["profile_cards"]["Row"];

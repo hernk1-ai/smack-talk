@@ -132,9 +132,10 @@ function HeaderIcon({
 function ProfileIdentityCard({ profile }: { profile?: Profile | null }) {
   const username = profile?.username || "TalkHeavy23";
   const initials = getInitials(username);
-  const statusLabel = profile?.reputation && profile.reputation > 0 ? "ϟ Top Talker" : "ϟ Rookie Talker";
+  const reputation = profile?.reputation_score ?? profile?.reputation ?? 0;
+  const statusLabel = reputation > 0 ? "ϟ Top Talker" : "ϟ Rookie Talker";
   const displayTags = profile
-    ? [...identityTags, `${profile.reputation.toLocaleString()} REP`]
+    ? [...identityTags, `${reputation.toLocaleString()} REP`]
     : identityTags;
 
   return (

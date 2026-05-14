@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { settleGameForDev } from "@/lib/supabase/settlement";
 
 const devRoutes = [
   {
@@ -85,9 +86,21 @@ const devRoutes = [
 export function DevRoutePanel() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const [settlementStatus, setSettlementStatus] = useState("");
+  const [settlementLoading, setSettlementLoading] = useState<"hit" | "miss" | null>(null);
 
   if (process.env.NODE_ENV !== "development") {
     return null;
+  }
+
+  async function handleSettlement(result: "hit" | "miss") {
+    setSettlementLoading(result);
+    setSettlementStatus("");
+
+    const { rows, error } = await settleGameForDev(result);
+
+    setSettlementStatus(error ? error.message : `Settled ${rows.length} take${rows.length === 1 ? "" : "s"} as ${result}.`);
+    setSettlementLoading(null);
   }
 
   return (
@@ -130,6 +143,32 @@ export function DevRoutePanel() {
                 </Link>
               );
             })}
+          </div>
+          <div className="mt-3 border-t border-white/10 pt-3">
+            <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-purple-300">
+              Dev Settlement
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleSettlement("hit")}
+                disabled={settlementLoading !== null}
+                className="rounded-full border border-lime-300/35 bg-lime-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.1em] text-lime-200 transition hover:bg-lime-400/20 disabled:cursor-wait disabled:opacity-60"
+              >
+                {settlementLoading === "hit" ? "Settling..." : "Settle Hit"}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSettlement("miss")}
+                disabled={settlementLoading !== null}
+                className="rounded-full border border-red-300/35 bg-red-500/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.1em] text-red-200 transition hover:bg-red-500/20 disabled:cursor-wait disabled:opacity-60"
+              >
+                {settlementLoading === "miss" ? "Settling..." : "Settle Miss"}
+              </button>
+            </div>
+            {settlementStatus && (
+              <p className="mt-2 text-[10px] font-bold leading-4 text-gray-300">{settlementStatus}</p>
+            )}
           </div>
         </nav>
       )}

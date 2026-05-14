@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
-import type { Profile } from "@/lib/supabase/types";
+import { getCurrentUserReceipts } from "@/lib/supabase/receipts";
+import type { Profile, Receipt } from "@/lib/supabase/types";
 
 type ReceiptStatus = "win" | "loss";
 type ReceiptSide = "riding" | "fading";
@@ -210,6 +212,39 @@ export function ReceiptsScreen({
 }) {
   const owner = getReceiptOwner(profile, recordOwner);
   const currentUser = owner;
+  const [realReceipts, setRealReceipts] = useState<Receipt[]>([]);
+  const [receiptError, setReceiptError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadReceipts() {
+      if (!owner.isCurrentUser) {
+        return;
+      }
+
+      const { receipts, error } = await getCurrentUserReceipts();
+
+      if (!isMounted) {
+        return;
+      }
+
+      setRealReceipts(receipts);
+      setReceiptError(error ? error.message : "");
+    }
+
+    loadReceipts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [owner.isCurrentUser]);
+
+  const recentReceiptCards = useMemo(
+    () => (realReceipts.length ? realReceipts.map((receipt) => mapReceiptToRecent(receipt, owner)) : recentReceipts),
+    [owner, realReceipts],
+  );
+  const featuredReceipt = realReceipts[0] ?? null;
 
   return (
     <div className="space-y-5">
@@ -217,20 +252,26 @@ export function ReceiptsScreen({
       <RecordOwnerCard owner={owner} />
 
       <section className="grid gap-4 md:grid-cols-[minmax(0,1fr)_18rem] md:items-start">
-        <RecordCard />
+        <RecordCard profile={profile} receipts={realReceipts} />
         <div className="grid gap-3">
           <SideStatCard eyebrow="REP Total" value={formatRep(owner.reputation)} unit="Top 2%" tone="green" body="Talk backed up. Or exposed." />
-          <SideStatCard eyebrow="Top Streak" value="12" unit="Wins in a row" tone="purple" body="Nobody could cool this record off." />
-          <SideStatCard eyebrow="Best Hit" value="97%" unit="Accuracy" tone="green" body="Knicks upset incoming." />
-          <SideStatCard eyebrow="Most Shared" value="2.4M" unit="Views" tone="blue" body="Curry is choking." />
+          <SideStatCard eyebrow="Top Streak" value={realReceipts.length ? String(getReceiptStreak(realReceipts)) : "12"} unit="Wins in a row" tone="purple" body="Nobody could cool this record off." />
+          <SideStatCard eyebrow="Best Hit" value={realReceipts.length ? getBestHitLabel(realReceipts) : "97%"} unit="Accuracy" tone="green" body={featuredReceipt?.take_text ?? "Knicks upset incoming."} />
+          <SideStatCard eyebrow="Most Shared" value={realReceipts.length ? formatCompact(Math.max(...realReceipts.map((receipt) => receipt.heat), 0)) : "2.4M"} unit="Heat" tone="blue" body={featuredReceipt?.take_text ?? "Curry is choking."} />
         </div>
       </section>
 
-      <FeaturedReceipt owner={owner} />
+      <FeaturedReceipt owner={owner} receipt={featuredReceipt} />
+
+      {receiptError && (
+        <p className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-xs font-black uppercase tracking-[0.1em] text-red-200">
+          {receiptError}
+        </p>
+      )}
 
       <ReceiptSection title="Recent Receipts" icon="▤" action="See all">
         <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
-          {recentReceipts.map((receipt, index) => (
+          {recentReceiptCards.map((receipt, index) => (
             <RecentReceiptCard
               key={receipt.id}
               receipt={receipt}
@@ -347,7 +388,13 @@ function RecordOwnerCard({ owner }: { owner: ReceiptOwnerMeta }) {
   );
 }
 
-function RecordCard() {
+function RecordCard({ profile, receipts }: { profile?: Profile | null; receipts: Receipt[] }) {
+  const wins = receipts.length ? receipts.filter((receipt) => receipt.result === "hit").length : profile?.hits_count ?? 127;
+  const losses = receipts.length ? receipts.filter((receipt) => receipt.result === "miss").length : profile?.misses_count ?? 59;
+  const total = wins + losses;
+  const hitRate = total ? `${Math.round((wins / total) * 100)}%` : "68%";
+  const reputation = profile?.reputation_score ?? profile?.reputation ?? 2840;
+
   return (
     <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4 shadow-[0_22px_60px_rgba(0,0,0,0.42),0_0_30px_rgba(132,204,22,0.05)]">
       <div className="flex items-start justify-between gap-3">
@@ -361,10 +408,10 @@ function RecordCard() {
       </div>
 
       <div className="mt-4 grid grid-cols-2 overflow-hidden rounded-2xl border border-lime-300/20 bg-black/45 min-[430px]:grid-cols-4">
-        <RecordMetric label="Wins" value="127" tone="text-lime-300" />
-        <RecordMetric label="Hits" value="68%" tone="text-white" />
-        <RecordMetric label="Losses" value="59" tone="text-purple-300" />
-        <RecordMetric label="Difference" value="+2,840" tone="text-lime-300" />
+        <RecordMetric label="Wins" value={String(wins)} tone="text-lime-300" />
+        <RecordMetric label="Hits" value={hitRate} tone="text-white" />
+        <RecordMetric label="Losses" value={String(losses)} tone="text-purple-300" />
+        <RecordMetric label="REP" value={formatCompact(reputation)} tone="text-lime-300" />
       </div>
 
       <p className="mt-4 text-sm font-semibold text-gray-400">You talk it. You lock it. You own it.</p>
@@ -462,7 +509,10 @@ function ReceiptSection({
   );
 }
 
-function FeaturedReceipt({ owner }: { owner: ReceiptOwnerMeta }) {
+function FeaturedReceipt({ owner, receipt }: { owner: ReceiptOwnerMeta; receipt: Receipt | null }) {
+  const receiptScore = receipt ? parseFinalScore(receipt.final_score) : null;
+  const isWin = receipt?.result !== "miss";
+
   return (
     <section className="isolate rounded-[1.75rem] border border-white/10 bg-[#05070d]/90 p-4 shadow-[0_20px_58px_rgba(0,0,0,0.42)] transition hover:border-lime-300/20 hover:shadow-[0_24px_66px_rgba(0,0,0,0.5)]">
       <div className="mb-3 flex items-center justify-between gap-3">
@@ -470,41 +520,51 @@ function FeaturedReceipt({ owner }: { owner: ReceiptOwnerMeta }) {
           <span className="mr-2 not-italic">🔥</span>
           Featured Receipt
         </h2>
-        <span className="rounded-md bg-lime-400/15 px-2 py-1 text-[10px] font-black uppercase text-lime-300">Win</span>
+        <span className={`rounded-md px-2 py-1 text-[10px] font-black uppercase ${isWin ? "bg-lime-400/15 text-lime-300" : "bg-red-500/15 text-red-300"}`}>
+          {isWin ? "Win" : "Loss"}
+        </span>
       </div>
 
-      <article className="relative isolate overflow-hidden rounded-2xl border border-lime-300/25 bg-[#061006]/95 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition hover:border-lime-300/40 sm:p-5">
+      <article className={`relative isolate overflow-hidden rounded-2xl border p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition sm:p-5 ${isWin ? "border-lime-300/25 bg-[#061006]/95 hover:border-lime-300/40" : "border-red-300/25 bg-[#120607]/95 hover:border-red-300/40"}`}>
         <div className="pointer-events-none absolute right-0 top-0 -z-10 h-full w-1/2 bg-[radial-gradient(circle_at_70%_34%,rgba(132,204,22,0.22),transparent_48%)]" />
         <div className="relative z-10 grid gap-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
           <div>
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-bold text-gray-400">{owner.handle} · 2d ago</p>
+              <p className="text-xs font-bold text-gray-400">{owner.handle} · {receipt ? formatReceiptAge(receipt.created_at) : "2d ago"}</p>
               <span className="rounded-full border border-lime-300/30 bg-lime-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-lime-300">
                 Shareable
               </span>
             </div>
-            <h3 className="mt-3 text-3xl font-black italic leading-tight text-white sm:text-4xl">Knicks upset incoming.</h3>
-            <p className="mt-2 text-xs font-black uppercase text-sky-300">NYK Arena</p>
+            <h3 className="mt-3 text-3xl font-black italic leading-tight text-white sm:text-4xl">
+              {receipt?.take_text ?? "Knicks upset incoming."}
+            </h3>
+            <p className="mt-2 text-xs font-black uppercase text-sky-300">{receipt?.game_label ?? "NYK Arena"}</p>
 
             <div className="mt-5 grid max-w-sm grid-cols-[1fr_auto_1fr] items-end gap-3 text-center">
-              <ScoreMini team="NYK" score="121" />
+              <ScoreMini team={receiptScore?.leftTeam ?? "NYK"} score={receiptScore?.leftScore ?? "121"} />
               <span className="pb-2 text-2xl text-purple-200">ϟ</span>
-              <ScoreMini team="BOS" score="116" />
+              <ScoreMini team={receiptScore?.rightTeam ?? "BOS"} score={receiptScore?.rightScore ?? "116"} />
             </div>
           </div>
 
           <div className="rounded-2xl border border-lime-300/25 bg-black/70 p-3 shadow-[0_0_26px_rgba(132,204,22,0.1)] md:w-56">
-            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">Your Take Hit</p>
+            <p className={`text-[10px] font-black uppercase tracking-[0.12em] ${isWin ? "text-lime-300" : "text-red-300"}`}>
+              {isWin ? "Your Take Hit" : "Take Missed"}
+            </p>
             <p className="mt-1 text-sm font-semibold text-gray-300">Locked before tip. Receipt held.</p>
-            <p className="scoreboard-number mt-3 text-6xl leading-none text-white drop-shadow-[0_0_18px_rgba(132,204,22,0.22)]">92%</p>
-            <p className="text-xs font-black uppercase tracking-[0.12em] text-lime-300">Ride Hit</p>
+            <p className="scoreboard-number mt-3 text-6xl leading-none text-white drop-shadow-[0_0_18px_rgba(132,204,22,0.22)]">
+              {receipt ? formatSignedRep(receipt.reputation_delta) : "92%"}
+            </p>
+            <p className={`text-xs font-black uppercase tracking-[0.12em] ${isWin ? "text-lime-300" : "text-red-300"}`}>
+              {receipt ? "REP Delta" : "Ride Hit"}
+            </p>
           </div>
         </div>
 
         <div className="relative z-10 mt-4 grid grid-cols-4 gap-2 rounded-xl border border-white/10 bg-black/65 p-2 text-center text-xs font-black text-gray-400">
-          <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">🔥 3.6K</span>
-          <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">◉ 1.8M</span>
-          <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">▱ 842</span>
+          <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">🔥 {formatCompact(receipt?.heat ?? 3600)}</span>
+          <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">👍 {formatCompact(receipt?.ride_count ?? 1800)}</span>
+          <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">▱ {formatCompact(receipt?.reply_count ?? 842)}</span>
           <span className="rounded-lg py-1 text-purple-200 transition hover:bg-purple-500/10">⇧</span>
         </div>
       </article>
@@ -705,7 +765,7 @@ function getReceiptOwner(profile?: Profile | null, recordOwner?: ReceiptOwner | 
     handle: `@${username.replace(/^@/, "")}`,
     initials: getInitials(username),
     avatarUrl: recordOwner?.avatarUrl ?? profile?.avatar_url,
-    reputation: recordOwner?.reputation ?? profile?.reputation,
+    reputation: recordOwner?.reputation ?? profile?.reputation_score ?? profile?.reputation,
     isCurrentUser: !recordOwner,
   };
 }
@@ -723,4 +783,108 @@ function getInitials(username: string) {
   }
 
   return cleanUsername.slice(0, 2).toUpperCase() || "ST";
+}
+
+function mapReceiptToRecent(receipt: Receipt, owner: ReceiptOwnerMeta): RecentReceipt {
+  const score = parseFinalScore(receipt.final_score);
+  const rideTotal = receipt.ride_count + receipt.fade_count;
+  const ridingWon = receipt.ride_count >= receipt.fade_count;
+  const crowdPercent = rideTotal ? Math.round(((ridingWon ? receipt.ride_count : receipt.fade_count) / rideTotal) * 100) : 0;
+
+  return {
+    id: receipt.id,
+    status: receipt.result === "hit" ? "win" : "loss",
+    timestamp: formatReceiptAge(receipt.created_at),
+    handle: owner.handle,
+    avatar: owner.initials,
+    take: receipt.take_text,
+    arena: receipt.game_label ?? receipt.game_id.replaceAll("-", " ").toUpperCase(),
+    leftTeam: score?.leftTeam ?? "LAL",
+    leftScore: score?.leftScore ?? "108",
+    rightTeam: score?.rightTeam ?? "GSW",
+    rightScore: score?.rightScore ?? "103",
+    crowdResult: `${crowdPercent || 50}% ${ridingWon ? "Riding" : "Fading"}`,
+    side: ridingWon ? "riding" : "fading",
+    verdict: `${formatSignedRep(receipt.reputation_delta)} REP`,
+    heat: formatCompact(receipt.heat),
+    views: `${formatCompact(receipt.reply_count)} replies`,
+  };
+}
+
+function parseFinalScore(finalScore?: string | null) {
+  const match = finalScore?.match(/^(\S+)\s+(\d+)\s+-\s+(\d+)\s+(\S+)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    leftTeam: match[1],
+    leftScore: match[2],
+    rightScore: match[3],
+    rightTeam: match[4],
+  };
+}
+
+function getReceiptStreak(receipts: Receipt[]) {
+  let streak = 0;
+
+  for (const receipt of receipts) {
+    if (receipt.result !== "hit") {
+      break;
+    }
+
+    streak += 1;
+  }
+
+  return streak;
+}
+
+function getBestHitLabel(receipts: Receipt[]) {
+  const hits = receipts.filter((receipt) => receipt.result === "hit");
+
+  if (!hits.length) {
+    return "0%";
+  }
+
+  const bestHit = hits.sort((left, right) => right.heat - left.heat)[0];
+  const total = bestHit.ride_count + bestHit.fade_count;
+
+  if (!total) {
+    return "100%";
+  }
+
+  return `${Math.round((Math.max(bestHit.ride_count, bestHit.fade_count) / total) * 100)}%`;
+}
+
+function formatCompact(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: value >= 1000 ? 1 : 0,
+  }).format(value);
+}
+
+function formatSignedRep(value: number) {
+  return value > 0 ? `+${value}` : String(value);
+}
+
+function formatReceiptAge(createdAt: string) {
+  const createdTime = new Date(createdAt).getTime();
+  const minutes = Math.max(0, Math.floor((Date.now() - createdTime) / 60000));
+
+  if (minutes < 1) {
+    return "just now";
+  }
+
+  if (minutes < 60) {
+    return `${minutes}m ago`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+
+  if (hours < 24) {
+    return `${hours}h ago`;
+  }
+
+  return `${Math.floor(hours / 24)}d ago`;
 }
