@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { getCurrentUserReceipts } from "@/lib/supabase/receipts";
@@ -197,7 +198,6 @@ const viralReceipts: ViralReceipt[] = [
 const performanceBadges: PerformanceBadge[] = [
   { name: "Top Talker", subtitle: "Top 1%", icon: "◉", tone: "green" },
   { name: "Receipt King", subtitle: "100+ Wins", icon: "☠", tone: "purple" },
-  { name: "Streak King", subtitle: "10+ Streak", icon: "ϟ", tone: "green" },
   { name: "Viral King", subtitle: "1M+ Views", icon: "▰", tone: "blue" },
   { name: "Accuracy God", subtitle: "65%+ Hit Rate", icon: "◎", tone: "red" },
   { name: "Crowd Rider", subtitle: "Ride Master", icon: "☍", tone: "teal" },
@@ -262,20 +262,14 @@ export function ReceiptsScreen({
   return (
     <div className="space-y-5">
       <ReceiptsHeader profile={profile} />
-      <RecordOwnerCard owner={owner} />
-
-      <section className="grid gap-4 md:grid-cols-[minmax(0,1fr)_18rem] md:items-start">
-        <RecordCard profile={profile} receipts={realReceipts} />
-        <div className="grid gap-3">
-          <SideStatCard eyebrow="REP Total" value={formatRep(owner.reputation)} unit="Top 2%" tone="green" body="Talk backed up. Or exposed." />
-          <ShareReceiptsTopCard copied={shareCopied} onShare={copyShareUrl} />
-          <SideStatCard eyebrow="Top Streak" value={realReceipts.length ? String(getReceiptStreak(realReceipts)) : "12"} unit="Wins in a row" tone="purple" body="Nobody could cool this record off." />
-          <SideStatCard eyebrow="Best Hit" value={realReceipts.length ? getBestHitLabel(realReceipts) : "97%"} unit="Accuracy" tone="green" body={featuredReceipt?.take_text ?? "Knicks upset incoming."} />
-          <SideStatCard eyebrow="Most Shared" value={realReceipts.length ? formatCompact(Math.max(...realReceipts.map((receipt) => receipt.heat), 0)) : "2.4M"} unit="Heat" tone="blue" body={featuredReceipt?.take_text ?? "Curry is choking."} />
-        </div>
-      </section>
-
-      <FeaturedReceipt owner={owner} receipt={featuredReceipt} />
+      <ReceiptIdentityCard
+        copied={shareCopied}
+        featuredReceipt={featuredReceipt}
+        onShare={copyShareUrl}
+        owner={owner}
+        profile={profile}
+        receipts={realReceipts}
+      />
 
       {receiptError && (
         <p className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-xs font-black uppercase tracking-[0.1em] text-red-200">
@@ -306,10 +300,6 @@ export function ReceiptsScreen({
           ))}
         </div>
       </ReceiptSection>
-
-      <PerformanceBadges />
-
-      <ShareReceiptsCard />
     </div>
   );
 }
@@ -344,9 +334,13 @@ function ReceiptsHeader({ profile }: { profile?: Profile | null }) {
           <HeaderIcon label="Notifications" badge="3">
             ♧
           </HeaderIcon>
-          <HeaderIcon label={`${username} profile avatar`}>
+          <Link
+            href="/receipts"
+            className="relative grid h-12 w-12 place-items-center rounded-2xl border border-white/15 bg-white/[0.04] text-xl text-white shadow-[0_0_22px_rgba(255,255,255,0.06)] transition hover:-translate-y-0.5 hover:border-purple-300/35 hover:bg-white/[0.07] active:scale-95"
+            aria-label={`${username} receipts identity`}
+          >
             <UserAvatar avatarUrl={profile?.avatar_url} initials={getInitials(username)} size="sm" />
-          </HeaderIcon>
+          </Link>
         </div>
       </div>
     </header>
@@ -378,137 +372,191 @@ function HeaderIcon({
   );
 }
 
-function RecordOwnerCard({ owner }: { owner: ReceiptOwnerMeta }) {
-  return (
-    <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_52px_rgba(0,0,0,0.34)] backdrop-blur">
-      <div className="grid gap-4 min-[430px]:grid-cols-[auto_1fr] min-[430px]:items-center">
-        <UserAvatar avatarUrl={owner.avatarUrl} initials={owner.initials} label={`${owner.handle} avatar`} size="lg" active />
-        <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime-300">
-            {owner.isCurrentUser ? "Personal receipt history" : "Public receipt history"}
-          </p>
-          <h2 className="mt-2 truncate text-3xl font-black italic leading-none text-white sm:text-4xl">{owner.handle}</h2>
-          <p className="mt-2 text-xl font-black uppercase tracking-[0.08em] text-purple-200">
-            {owner.isCurrentUser ? "Your Record" : "Public Record"}
-          </p>
-          <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-gray-400">
-            {owner.isCurrentUser
-              ? "Your locked takes, settled outcomes, and reputation trail."
-              : "Locked takes, settled outcomes, and the receipts this talker has to stand on."}
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function RecordCard({ profile, receipts }: { profile?: Profile | null; receipts: Receipt[] }) {
+function ReceiptIdentityCard({
+  copied,
+  featuredReceipt,
+  onShare,
+  owner,
+  profile,
+  receipts,
+}: {
+  copied: boolean;
+  featuredReceipt: Receipt | null;
+  onShare: () => void;
+  owner: ReceiptOwnerMeta;
+  profile?: Profile | null;
+  receipts: Receipt[];
+}) {
   const wins = receipts.length ? receipts.filter((receipt) => receipt.result === "hit").length : profile?.hits_count ?? 127;
   const losses = receipts.length ? receipts.filter((receipt) => receipt.result === "miss").length : profile?.misses_count ?? 59;
   const total = wins + losses;
   const hitRate = total ? `${Math.round((wins / total) * 100)}%` : "68%";
-  const reputation = profile?.reputation_score ?? profile?.reputation ?? 2840;
+  const streak = receipts.length ? getReceiptStreak(receipts) : 12;
+  const createdTakes = profile?.created_takes_count ?? receipts.length + 47;
+  const receiptsCount = profile?.receipts_count ?? (receipts.length || 18);
+  const reputation = owner.reputation ?? profile?.reputation_score ?? profile?.reputation ?? 9250;
+  const rankTitle = reputation >= 9000 ? "Top Talker" : reputation >= 4000 ? "Receipt Hunter" : "Rookie";
+  const receiptScore = featuredReceipt ? parseFinalScore(featuredReceipt.final_score) : null;
+  const isWin = featuredReceipt?.result !== "miss";
 
   return (
-    <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4 shadow-[0_22px_60px_rgba(0,0,0,0.42),0_0_30px_rgba(132,204,22,0.05)]">
-      <div className="flex items-start justify-between gap-3">
-        <h2 className="sports-display text-3xl italic leading-none text-white">Proof Snapshot</h2>
-        <button
-          type="button"
-          className="rounded-xl border border-white/10 bg-black/45 px-3 py-2 text-xs font-bold text-gray-300 transition active:scale-95"
-        >
-          All Time⌄
-        </button>
-      </div>
+    <section className="relative isolate overflow-hidden rounded-[2rem] border border-lime-300/25 bg-[#05070d]/90 p-4 shadow-[0_30px_90px_rgba(0,0,0,0.56),0_0_48px_rgba(132,204,22,0.1)] sm:p-5">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_12%_12%,rgba(132,204,22,0.2),transparent_34%),radial-gradient(circle_at_86%_18%,rgba(168,85,247,0.22),transparent_34%),linear-gradient(135deg,rgba(132,204,22,0.1),transparent_40%,rgba(168,85,247,0.11))]" />
+      <div className="pointer-events-none absolute inset-x-5 top-32 -z-10 h-px bg-gradient-to-r from-transparent via-lime-300/30 to-transparent" />
 
-      <div className="mt-4 grid grid-cols-2 overflow-hidden rounded-2xl border border-lime-300/20 bg-black/45 min-[430px]:grid-cols-4">
-        <RecordMetric label="Wins" value={String(wins)} tone="text-lime-300" />
-        <RecordMetric label="Hits" value={hitRate} tone="text-white" />
-        <RecordMetric label="Losses" value={String(losses)} tone="text-purple-300" />
-        <RecordMetric label="REP" value={formatCompact(reputation)} tone="text-lime-300" />
-      </div>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,0.92fr)_minmax(21rem,0.72fr)] xl:items-stretch">
+        <div className="min-w-0 space-y-4">
+          <div className="grid gap-4 min-[460px]:grid-cols-[auto_1fr] min-[460px]:items-center">
+            <UserAvatar avatarUrl={owner.avatarUrl} initials={owner.initials} label={`${owner.handle} avatar`} size="xl" active />
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime-300">The record is the identity.</p>
+              <h2 className="mt-2 truncate text-4xl font-black italic leading-none text-white sm:text-5xl">{owner.handle}</h2>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="rounded-lg border border-lime-300/40 bg-lime-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">
+                  {rankTitle}
+                </span>
+                <span className="rounded-lg border border-purple-300/35 bg-purple-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-purple-200">
+                  Level 18
+                </span>
+                <span className="rounded-lg border border-white/10 bg-black/45 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-gray-300">
+                  Heat Status: Live
+                </span>
+              </div>
+              <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-gray-300">
+                Your record follows you. Receipts don&apos;t lie. Permanent game calls, settled outcomes, and the REP trail behind every lock.
+              </p>
+            </div>
+          </div>
 
-      <p className="mt-4 text-sm font-semibold text-gray-400">You talk it. You lock it. You own it.</p>
+          <div className="grid grid-cols-2 gap-2 min-[460px]:grid-cols-4 lg:grid-cols-7">
+            <IdentityStat label="REP" value={formatCompact(reputation)} tone="text-lime-300" />
+            <IdentityStat label="Hit %" value={hitRate} tone="text-white" />
+            <IdentityStat label="Wins" value={String(wins)} tone="text-lime-300" />
+            <IdentityStat label="Losses" value={String(losses)} tone="text-purple-300" />
+            <IdentityStat label="Streak" value={`${streak}W`} tone="text-lime-200" />
+            <IdentityStat label="Takes" value={formatCompact(createdTakes)} tone="text-gray-100" />
+            <IdentityStat label="Receipts" value={formatCompact(receiptsCount)} tone="text-purple-200" />
+          </div>
 
-      <div className="mt-5 grid grid-cols-[auto_1fr] items-center gap-4 rounded-2xl border border-white/10 bg-black/45 p-3 min-[430px]:grid-cols-[auto_1fr_auto]">
-        <div className="rounded-2xl border border-purple-300/40 bg-purple-500/10 px-4 py-3 text-center">
-          <p className="text-[10px] font-black uppercase text-purple-200">Level</p>
-          <p className="scoreboard-number mt-1 text-4xl text-purple-200">18</p>
-        </div>
+          <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-black/45 p-2">
+            <IdentityMiniMeta label="Followers" value="4.2K" />
+            <IdentityMiniMeta label="Following" value="312" />
+            <IdentityMiniMeta label="Crew" value="Soon" />
+          </div>
 
-        <div className="min-w-0">
-          <p className="text-sm font-black uppercase text-purple-200">7,160 REP to Level 19</p>
-          <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/10">
-            <div className="h-full w-[72%] rounded-full bg-gradient-to-r from-purple-500 to-lime-300" />
+          <div className="rounded-[1.4rem] border border-white/10 bg-black/45 p-3">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime-300">Trophy Case</p>
+                <h3 className="sports-display mt-1 text-2xl italic leading-none text-white">Badges Earned</h3>
+              </div>
+              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-purple-300">Proof stack</p>
+            </div>
+            <div className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1 lg:grid lg:grid-cols-5 lg:overflow-visible">
+              {performanceBadges.map((badge) => (
+                <PerformanceBadgeCard key={badge.name} badge={badge} compact />
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="col-span-2 grid place-items-center min-[430px]:col-span-1">
-          <div className="grid h-20 w-20 place-items-center rounded-[1.4rem] border border-purple-300/40 bg-purple-500/15 shadow-[0_0_28px_rgba(168,85,247,0.18)]">
-            <span className="text-4xl">☠</span>
-            <span className="-mt-2 rounded-md border border-purple-300/40 bg-black/50 px-2 py-0.5 text-[10px] font-black uppercase text-purple-200">
-              Talker
+        <article className={`relative isolate flex min-w-0 flex-col overflow-hidden rounded-[1.6rem] border p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition sm:p-5 ${isWin ? "border-lime-300/25 bg-[#061006]/95 hover:border-lime-300/40" : "border-red-300/25 bg-[#120607]/95 hover:border-red-300/40"}`}>
+          <div className="pointer-events-none absolute right-0 top-0 -z-10 h-full w-2/3 bg-[radial-gradient(circle_at_70%_30%,rgba(132,204,22,0.2),transparent_48%),radial-gradient(circle_at_100%_82%,rgba(168,85,247,0.2),transparent_46%)]" />
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime-300">Featured Receipt</p>
+              <h3 className="sports-display mt-1 text-2xl italic leading-none text-white">Permanent game call</h3>
+            </div>
+            <span className={`rounded-md px-2 py-1 text-[10px] font-black uppercase ${isWin ? "bg-lime-400/15 text-lime-300" : "bg-red-500/15 text-red-300"}`}>
+              {isWin ? "Win" : "Loss"}
             </span>
           </div>
-        </div>
+
+          <div className="mt-4 flex grow flex-col justify-between rounded-2xl border border-white/10 bg-black/45 p-4">
+            <div>
+              <div className="flex items-center justify-between gap-3">
+                <p className="truncate text-xs font-bold text-gray-400">
+                  <Link href={getReceiptHref(owner.handle, owner.isCurrentUser)} className="transition hover:text-lime-200">
+                    {owner.handle}
+                  </Link>{" "}
+                  · {featuredReceipt ? formatReceiptAge(featuredReceipt.created_at) : "2d ago"}
+                </p>
+                <span className="shrink-0 rounded-full border border-lime-300/30 bg-lime-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-lime-300">
+                  Shareable
+                </span>
+              </div>
+
+              <h4 className="mt-3 text-3xl font-black italic leading-tight text-white sm:text-4xl">
+                {featuredReceipt?.take_text ?? "Knicks upset incoming."}
+              </h4>
+              <p className="mt-2 text-xs font-black uppercase text-sky-300">
+                {featuredReceipt?.game_label ?? "NYK Arena"}
+              </p>
+
+              <div className="mt-5 grid max-w-sm grid-cols-[1fr_auto_1fr] items-end gap-3 text-center">
+                <ScoreMini team={receiptScore?.leftTeam ?? "NYK"} score={receiptScore?.leftScore ?? "121"} />
+                <span className="pb-2 text-2xl text-purple-200">ϟ</span>
+                <ScoreMini team={receiptScore?.rightTeam ?? "BOS"} score={receiptScore?.rightScore ?? "116"} />
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-lime-300/20 bg-black/65 p-3">
+              <div className="grid gap-3 min-[430px]:grid-cols-[1fr_auto] min-[430px]:items-center">
+                <div>
+                  <p className={`text-[10px] font-black uppercase tracking-[0.12em] ${isWin ? "text-lime-300" : "text-red-300"}`}>
+                    {isWin ? "Receipt held" : "Talk exposed"}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-gray-300">
+                    {featuredReceipt ? "Snapshot locked. Your record follows you." : "Latest proof will live here after settlement."}
+                  </p>
+                </div>
+                <div className="min-[430px]:text-right">
+                  <p className="scoreboard-number text-5xl leading-none text-white drop-shadow-[0_0_18px_rgba(132,204,22,0.22)]">
+                    {featuredReceipt ? formatSignedRep(featuredReceipt.reputation_delta) : "+25"}
+                  </p>
+                  <p className={`text-xs font-black uppercase tracking-[0.12em] ${isWin ? "text-lime-300" : "text-red-300"}`}>
+                    REP Delta
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-4 gap-2 rounded-xl border border-white/10 bg-black/65 p-2 text-center text-xs font-black text-gray-400">
+              <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">🔥 {formatCompact(featuredReceipt?.heat ?? 3600)}</span>
+              <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">Ride {formatCompact(featuredReceipt?.ride_count ?? 1800)}</span>
+              <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">Fade {formatCompact(featuredReceipt?.fade_count ?? 842)}</span>
+              <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">Replies {formatCompact(featuredReceipt?.reply_count ?? 96)}</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={onShare}
+              className="mt-4 min-h-12 rounded-2xl border border-purple-300/60 bg-purple-500/15 px-5 text-sm font-black uppercase tracking-[0.1em] text-purple-100 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition hover:-translate-y-0.5 hover:bg-purple-500/25 hover:shadow-[0_0_34px_rgba(168,85,247,0.24)] active:scale-95"
+            >
+              {copied ? "Copied" : "Share My Receipts"}
+            </button>
+          </div>
+        </article>
       </div>
     </section>
   );
 }
 
-function RecordMetric({ label, value, tone }: { label: string; value: string; tone: string }) {
+function IdentityStat({ label, value, tone }: { label: string; value: string; tone: string }) {
   return (
-    <div className="border-r border-b border-white/10 p-3 even:border-r-0 min-[430px]:border-b-0 min-[430px]:even:border-r min-[430px]:last:border-r-0">
-      <p className={`text-[10px] font-black uppercase ${tone}`}>{label}</p>
-      <p className={`scoreboard-number mt-3 text-[1.65rem] sm:text-4xl ${tone}`}>{value}</p>
+    <div className="min-w-0 rounded-2xl border border-white/10 bg-black/45 p-3">
+      <p className="truncate text-[10px] font-black uppercase tracking-[0.12em] text-gray-500">{label}</p>
+      <p className={`scoreboard-number mt-2 truncate text-2xl sm:text-3xl ${tone}`}>{value}</p>
     </div>
   );
 }
 
-function SideStatCard({
-  eyebrow,
-  value,
-  unit,
-  tone,
-  body,
-}: {
-  eyebrow: string;
-  value: string;
-  unit: string;
-  tone: "purple" | "green" | "blue";
-  body: string;
-}) {
-  const toneClass = {
-    purple: "text-purple-300 border-purple-300/25 bg-purple-500/10",
-    green: "text-lime-300 border-lime-300/25 bg-lime-400/10",
-    blue: "text-blue-300 border-blue-300/25 bg-blue-500/10",
-  }[tone];
-
+function IdentityMiniMeta({ label, value }: { label: string; value: string }) {
   return (
-    <article className={`rounded-[1.5rem] border p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)] transition hover:-translate-y-0.5 hover:shadow-[0_22px_58px_rgba(0,0,0,0.42)] ${toneClass}`}>
-      <p className="sports-display text-xl italic leading-none text-white">{eyebrow}</p>
-      <div className="mt-3 flex items-end gap-3">
-        <p className={`scoreboard-number text-5xl ${toneClass.split(" ")[0]}`}>{value}</p>
-        <p className="pb-1 text-xs font-black uppercase tracking-[0.1em] text-gray-300">{unit}</p>
-      </div>
-      <p className="mt-3 text-sm font-semibold leading-5 text-gray-300">{body}</p>
-    </article>
-  );
-}
-
-function ShareReceiptsTopCard({ copied, onShare }: { copied: boolean; onShare: () => void }) {
-  return (
-    <article className="rounded-[1.5rem] border border-purple-300/30 bg-purple-500/10 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34),0_0_28px_rgba(168,85,247,0.08)]">
-      <p className="sports-display text-xl italic leading-none text-white">Share Your Receipts</p>
-      <p className="mt-3 text-sm font-semibold leading-5 text-gray-300">Let the Crowd see what you called.</p>
-      <button
-        type="button"
-        onClick={onShare}
-        className="mt-4 min-h-11 w-full rounded-2xl border border-purple-300/55 bg-purple-500/15 px-4 text-xs font-black uppercase tracking-[0.12em] text-purple-100 transition hover:-translate-y-0.5 hover:bg-purple-500/25 active:scale-95"
-      >
-        {copied ? "Copied" : "Share Profile"}
-      </button>
-    </article>
+    <div className="min-w-0 rounded-xl border border-white/10 bg-black/35 px-2 py-2 text-center">
+      <p className="truncate text-[9px] font-black uppercase tracking-[0.08em] text-gray-500">{label}</p>
+      <p className="mt-1 truncate text-sm font-black text-gray-100">{value}</p>
+    </div>
   );
 }
 
@@ -535,69 +583,6 @@ function ReceiptSection({
         </button>
       </div>
       {children}
-    </section>
-  );
-}
-
-function FeaturedReceipt({ owner, receipt }: { owner: ReceiptOwnerMeta; receipt: Receipt | null }) {
-  const receiptScore = receipt ? parseFinalScore(receipt.final_score) : null;
-  const isWin = receipt?.result !== "miss";
-
-  return (
-    <section className="isolate rounded-[1.75rem] border border-white/10 bg-[#05070d]/90 p-4 shadow-[0_20px_58px_rgba(0,0,0,0.42)] transition hover:border-lime-300/20 hover:shadow-[0_24px_66px_rgba(0,0,0,0.5)]">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="sports-display text-2xl italic leading-none text-white sm:text-3xl">
-          <span className="mr-2 not-italic">🔥</span>
-          Featured Receipt
-        </h2>
-        <span className={`rounded-md px-2 py-1 text-[10px] font-black uppercase ${isWin ? "bg-lime-400/15 text-lime-300" : "bg-red-500/15 text-red-300"}`}>
-          {isWin ? "Win" : "Loss"}
-        </span>
-      </div>
-
-      <article className={`relative isolate overflow-hidden rounded-2xl border p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition sm:p-5 ${isWin ? "border-lime-300/25 bg-[#061006]/95 hover:border-lime-300/40" : "border-red-300/25 bg-[#120607]/95 hover:border-red-300/40"}`}>
-        <div className="pointer-events-none absolute right-0 top-0 -z-10 h-full w-1/2 bg-[radial-gradient(circle_at_70%_34%,rgba(132,204,22,0.22),transparent_48%)]" />
-        <div className="relative z-10 grid gap-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-          <div>
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-bold text-gray-400">{owner.handle} · {receipt ? formatReceiptAge(receipt.created_at) : "2d ago"}</p>
-              <span className="rounded-full border border-lime-300/30 bg-lime-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-lime-300">
-                Shareable
-              </span>
-            </div>
-            <h3 className="mt-3 text-3xl font-black italic leading-tight text-white sm:text-4xl">
-              {receipt?.take_text ?? "Knicks upset incoming."}
-            </h3>
-            <p className="mt-2 text-xs font-black uppercase text-sky-300">{receipt?.game_label ?? "NYK Arena"}</p>
-
-            <div className="mt-5 grid max-w-sm grid-cols-[1fr_auto_1fr] items-end gap-3 text-center">
-              <ScoreMini team={receiptScore?.leftTeam ?? "NYK"} score={receiptScore?.leftScore ?? "121"} />
-              <span className="pb-2 text-2xl text-purple-200">ϟ</span>
-              <ScoreMini team={receiptScore?.rightTeam ?? "BOS"} score={receiptScore?.rightScore ?? "116"} />
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-lime-300/25 bg-black/70 p-3 shadow-[0_0_26px_rgba(132,204,22,0.1)] md:w-56">
-            <p className={`text-[10px] font-black uppercase tracking-[0.12em] ${isWin ? "text-lime-300" : "text-red-300"}`}>
-              {isWin ? "Your Take Hit" : "Take Missed"}
-            </p>
-            <p className="mt-1 text-sm font-semibold text-gray-300">Locked before tip. Receipt held.</p>
-            <p className="scoreboard-number mt-3 text-6xl leading-none text-white drop-shadow-[0_0_18px_rgba(132,204,22,0.22)]">
-              {receipt ? formatSignedRep(receipt.reputation_delta) : "92%"}
-            </p>
-            <p className={`text-xs font-black uppercase tracking-[0.12em] ${isWin ? "text-lime-300" : "text-red-300"}`}>
-              {receipt ? "REP Delta" : "Ride Hit"}
-            </p>
-          </div>
-        </div>
-
-        <div className="relative z-10 mt-4 grid grid-cols-4 gap-2 rounded-xl border border-white/10 bg-black/65 p-2 text-center text-xs font-black text-gray-400">
-          <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">🔥 {formatCompact(receipt?.heat ?? 3600)}</span>
-          <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">👍 {formatCompact(receipt?.ride_count ?? 1800)}</span>
-          <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">▱ {formatCompact(receipt?.reply_count ?? 842)}</span>
-          <span className="rounded-lg py-1 text-purple-200 transition hover:bg-purple-500/10">⇧</span>
-        </div>
-      </article>
     </section>
   );
 }
@@ -632,15 +617,21 @@ function RecentReceiptCard({
       </div>
 
       <div className="mt-3 flex items-center gap-2">
-        <UserAvatar
-          avatarUrl={currentUser?.avatarUrl}
-          initials={currentUser?.initials ?? receipt.avatar}
-          label={`${handle} avatar`}
-          size="sm"
-        />
-        <p className="truncate text-xs font-black text-white">
+        <Link
+          href={getReceiptHref(handle, Boolean(currentUser))}
+          className="rounded-full transition hover:scale-105 active:scale-95"
+          aria-label={`${handle} receipts`}
+        >
+          <UserAvatar
+            avatarUrl={currentUser?.avatarUrl}
+            initials={currentUser?.initials ?? receipt.avatar}
+            label={`${handle} avatar`}
+            size="sm"
+          />
+        </Link>
+        <Link href={getReceiptHref(handle, Boolean(currentUser))} className="truncate text-xs font-black text-white transition hover:text-lime-200">
           {handle} <span className="text-sky-300">◆</span>
-        </p>
+        </Link>
       </div>
 
       <h3 className="mt-3 min-h-14 text-xl font-black leading-tight text-white">{receipt.take}</h3>
@@ -706,15 +697,21 @@ function ViralReceiptCard({
         </div>
 
         <div className="mt-4 flex items-center gap-2">
-          <UserAvatar
-            avatarUrl={currentUser?.avatarUrl}
-            initials={currentUser?.initials ?? receipt.avatar}
-            label={`${handle} avatar`}
-            size="sm"
-          />
-          <p className="truncate text-xs font-black text-white">
+          <Link
+            href={getReceiptHref(handle, Boolean(currentUser))}
+            className="rounded-full transition hover:scale-105 active:scale-95"
+            aria-label={`${handle} receipts`}
+          >
+            <UserAvatar
+              avatarUrl={currentUser?.avatarUrl}
+              initials={currentUser?.initials ?? receipt.avatar}
+              label={`${handle} avatar`}
+              size="sm"
+            />
+          </Link>
+          <Link href={getReceiptHref(handle, Boolean(currentUser))} className="truncate text-xs font-black text-white transition hover:text-lime-200">
             {handle} <span className="text-sky-300">◆</span>
-          </p>
+          </Link>
         </div>
 
         <h3 className="mt-3 min-h-16 text-xl font-black leading-tight text-white">{receipt.take}</h3>
@@ -734,19 +731,7 @@ function ViralReceiptCard({
   );
 }
 
-function PerformanceBadges() {
-  return (
-    <ReceiptSection title="Performance Badges" icon="◎" action="View all">
-      <div className="grid grid-cols-2 gap-3 min-[430px]:grid-cols-3 md:grid-cols-6">
-        {performanceBadges.map((badge) => (
-          <PerformanceBadgeCard key={badge.name} badge={badge} />
-        ))}
-      </div>
-    </ReceiptSection>
-  );
-}
-
-function PerformanceBadgeCard({ badge }: { badge: PerformanceBadge }) {
+function PerformanceBadgeCard({ badge, compact = false }: { badge: PerformanceBadge; compact?: boolean }) {
   const toneClass = {
     green: "border-lime-300/30 text-lime-300 shadow-[0_0_24px_rgba(132,204,22,0.12)]",
     purple: "border-purple-300/30 text-purple-300 shadow-[0_0_24px_rgba(168,85,247,0.12)]",
@@ -756,35 +741,13 @@ function PerformanceBadgeCard({ badge }: { badge: PerformanceBadge }) {
   }[badge.tone];
 
   return (
-    <article className={`group rounded-2xl border bg-black/35 p-3 text-center transition duration-200 hover:-translate-y-1 hover:bg-white/[0.035] hover:shadow-[0_0_30px_currentColor] active:scale-[0.985] ${toneClass}`}>
-      <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-current bg-current/10 text-2xl transition group-hover:scale-105">
+    <article className={`group min-w-[8.25rem] snap-start rounded-2xl border bg-black/35 text-center transition duration-200 hover:-translate-y-1 hover:bg-white/[0.035] hover:shadow-[0_0_30px_currentColor] active:scale-[0.985] lg:min-w-0 ${compact ? "p-2.5" : "p-3"} ${toneClass}`}>
+      <div className={`mx-auto grid place-items-center rounded-2xl border border-current bg-current/10 transition group-hover:scale-105 ${compact ? "h-10 w-10 text-lg" : "h-12 w-12 text-xl"}`}>
         {badge.icon}
       </div>
       <p className="mt-3 text-[10px] font-black uppercase">{badge.name}</p>
       <p className="mt-1 text-[10px] font-semibold text-gray-500">{badge.subtitle}</p>
     </article>
-  );
-}
-
-function ShareReceiptsCard() {
-  return (
-    <section className="rounded-[1.75rem] border border-purple-300/30 bg-purple-500/10 p-4 shadow-[0_0_34px_rgba(168,85,247,0.14)]">
-      <div className="grid gap-4 sm:grid-cols-[auto_1fr_auto] sm:items-center">
-        <div className="grid h-16 w-16 place-items-center rounded-2xl border border-purple-300/30 bg-purple-500/15 text-4xl">
-          ◄
-        </div>
-        <div>
-          <h2 className="sports-display text-3xl italic leading-none text-purple-300">The world is watching.</h2>
-          <p className="mt-2 text-sm font-semibold text-gray-300">Your receipts. Your legacy. Your name on the board.</p>
-        </div>
-        <button
-          type="button"
-          className="min-h-12 rounded-2xl border border-purple-300/60 bg-purple-500/15 px-5 text-sm font-black uppercase tracking-[0.1em] text-purple-100 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition hover:-translate-y-0.5 hover:bg-purple-500/25 hover:shadow-[0_0_34px_rgba(168,85,247,0.24)] active:scale-95"
-        >
-          Share Your Receipts ⇧
-        </button>
-      </div>
-    </section>
   );
 }
 
@@ -800,8 +763,12 @@ function getReceiptOwner(profile?: Profile | null, recordOwner?: ReceiptOwner | 
   };
 }
 
-function formatRep(reputation?: number | null) {
-  return reputation != null ? reputation.toLocaleString() : "9,250";
+function getReceiptHref(handle: string, isCurrentUser = false) {
+  if (isCurrentUser) {
+    return "/receipts";
+  }
+
+  return `/receipts/${handle.replace(/^@/, "").toLowerCase()}`;
 }
 
 function getInitials(username: string) {
@@ -868,23 +835,6 @@ function getReceiptStreak(receipts: Receipt[]) {
   }
 
   return streak;
-}
-
-function getBestHitLabel(receipts: Receipt[]) {
-  const hits = receipts.filter((receipt) => receipt.result === "hit");
-
-  if (!hits.length) {
-    return "0%";
-  }
-
-  const bestHit = hits.sort((left, right) => right.heat - left.heat)[0];
-  const total = bestHit.ride_count + bestHit.fade_count;
-
-  if (!total) {
-    return "100%";
-  }
-
-  return `${Math.round((Math.max(bestHit.ride_count, bestHit.fade_count) / total) * 100)}%`;
 }
 
 function formatCompact(value: number) {

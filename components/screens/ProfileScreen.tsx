@@ -95,9 +95,13 @@ function ProfileHeader({ profile }: { profile?: Profile | null }) {
           <HeaderIcon label="Notifications" badge="3">
             ♧
           </HeaderIcon>
-          <HeaderIcon label={`${username} profile avatar`}>
+          <Link
+            href="/receipts"
+            className="relative grid h-12 w-12 place-items-center rounded-2xl border border-white/15 bg-white/[0.04] text-xl text-white shadow-[0_0_22px_rgba(255,255,255,0.06)] transition hover:-translate-y-0.5 hover:border-purple-300/35 hover:bg-white/[0.07] active:scale-95"
+            aria-label={`${username} receipts identity`}
+          >
             <UserAvatar avatarUrl={profile?.avatar_url} initials={getInitials(username)} size="sm" />
-          </HeaderIcon>
+          </Link>
         </div>
       </div>
     </header>
@@ -134,9 +138,7 @@ function ProfileIdentityCard({ profile }: { profile?: Profile | null }) {
   const initials = getInitials(username);
   const reputation = profile?.reputation_score ?? profile?.reputation ?? 0;
   const statusLabel = reputation > 0 ? "ϟ Top Talker" : "ϟ Rookie Talker";
-  const displayTags = profile
-    ? [...identityTags, `${reputation.toLocaleString()} REP`]
-    : identityTags;
+  const displayTags = identityTags;
 
   return (
     <section className="relative isolate overflow-hidden rounded-[1.75rem] border border-white/10 bg-black/40 p-4 shadow-[0_24px_70px_rgba(0,0,0,0.45)] transition hover:border-white/15 sm:p-5">
@@ -152,19 +154,30 @@ function ProfileIdentityCard({ profile }: { profile?: Profile | null }) {
 
       <div className="grid gap-5 pr-12 md:grid-cols-[auto_1fr] md:items-center md:pr-14">
         <div className="relative mx-auto md:mx-0">
-          <UserAvatar
-            avatarUrl={profile?.avatar_url}
-            initials={initials}
-            label={`${username} profile avatar`}
-            size="xl"
-            active
-          />
+          <Link
+            href="/receipts"
+            className="block rounded-full transition hover:scale-[1.02] active:scale-[0.98]"
+            aria-label={`${username} receipts identity`}
+          >
+            <UserAvatar
+              avatarUrl={profile?.avatar_url}
+              initials={initials}
+              label={`${username} profile avatar`}
+              size="xl"
+              active
+            />
+          </Link>
           <span className="absolute bottom-2 right-0 h-5 w-5 rounded-full border-2 border-black bg-lime-400 shadow-[0_0_18px_rgba(132,204,22,0.9)]" />
         </div>
 
         <div className="min-w-0 text-center md:text-left">
           <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
-            <h2 className="text-3xl font-black italic leading-none text-white sm:text-4xl">@{username}</h2>
+            <Link
+              href="/receipts"
+              className="text-3xl font-black italic leading-none text-white transition hover:text-lime-100 sm:text-4xl"
+            >
+              @{username}
+            </Link>
             <span className="text-sky-300">◆</span>
           </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type KeyboardEvent, type MouseEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -411,13 +412,13 @@ function FeedHeader({ profile }: { profile?: Profile | null }) {
               3
             </span>
           </button>
-          <button
-            type="button"
+          <Link
+            href="/receipts"
             className="grid h-12 w-12 place-items-center rounded-2xl border border-purple-300/25 bg-purple-500/10 text-2xl text-purple-300 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition active:scale-95"
             aria-label={`${username} profile avatar`}
           >
             <UserAvatar avatarUrl={profile?.avatar_url} initials={getInitials(username)} size="sm" />
-          </button>
+          </Link>
         </div>
       </div>
     </header>
@@ -433,6 +434,10 @@ function getInitials(username: string) {
   }
 
   return cleanUsername.slice(0, 2).toUpperCase() || "ST";
+}
+
+function getReceiptHref(handle: string) {
+  return `/receipts/${handle.replace(/^@/, "").toLowerCase()}`;
 }
 
 function handleCardKeyDown(event: KeyboardEvent<HTMLElement>, onOpen?: () => void) {
@@ -532,10 +537,23 @@ function FeaturedHotTakeCard({
         </div>
 
         <div className="mt-4 flex items-start gap-3">
-          <UserAvatar avatarUrl={avatarUrl} initials={avatar} size="md" />
+          <Link
+            href={getReceiptHref(handle)}
+            onClick={(event) => event.stopPropagation()}
+            aria-label={`${handle} receipts`}
+            className="rounded-full transition hover:scale-105 active:scale-95"
+          >
+            <UserAvatar avatarUrl={avatarUrl} initials={avatar} size="md" />
+          </Link>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-black text-white">{handle}</p>
+              <Link
+                href={getReceiptHref(handle)}
+                onClick={(event) => event.stopPropagation()}
+                className="text-sm font-black text-white transition hover:text-lime-200"
+              >
+                {handle}
+              </Link>
               <span className="text-sky-300">◆</span>
               <p className="text-xs font-bold text-gray-500">{watching}</p>
             </div>
@@ -771,10 +789,23 @@ function LiveLockedTakes({
               className="cursor-pointer rounded-2xl border border-white/10 bg-black/45 p-3 shadow-[0_18px_45px_rgba(0,0,0,0.3)] transition hover:border-lime-300/20 hover:bg-black/55"
             >
               <div className="grid grid-cols-[auto_1fr_auto] items-start gap-3">
-                <UserAvatar avatarUrl={avatarUrl} initials={initials} size="sm" />
+                <Link
+                  href={getReceiptHref(handle)}
+                  onClick={(event) => event.stopPropagation()}
+                  aria-label={`${handle} receipts`}
+                  className="rounded-full transition hover:scale-105 active:scale-95"
+                >
+                  <UserAvatar avatarUrl={avatarUrl} initials={initials} size="sm" />
+                </Link>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="truncate text-sm font-black text-white">{handle}</p>
+                    <Link
+                      href={getReceiptHref(handle)}
+                      onClick={(event) => event.stopPropagation()}
+                      className="truncate text-sm font-black text-white transition hover:text-lime-200"
+                    >
+                      {handle}
+                    </Link>
                     <span className="text-sky-300">◆</span>
                     <span className="text-xs font-bold text-gray-500">{formatTakeAge(take.created_at)}</span>
                   </div>
@@ -963,12 +994,23 @@ function TrendingTakes({
                   <span className="grid h-7 w-7 place-items-center rounded-full bg-lime-400 text-xs font-black text-black">
                     {index + 1}
                   </span>
-                  <UserAvatar avatarUrl={avatarUrl} initials={initials} size="sm" />
+                  <Link
+                    href={getReceiptHref(handle)}
+                    onClick={(event) => event.stopPropagation()}
+                    aria-label={`${handle} receipts`}
+                    className="rounded-full transition hover:scale-105 active:scale-95"
+                  >
+                    <UserAvatar avatarUrl={avatarUrl} initials={initials} size="sm" />
+                  </Link>
                 </div>
               </div>
-              <p className="mt-3 truncate text-[11px] font-black text-gray-200">
+              <Link
+                href={getReceiptHref(handle)}
+                onClick={(event) => event.stopPropagation()}
+                className="mt-3 block truncate text-[11px] font-black text-gray-200 transition hover:text-lime-200"
+              >
                 {handle} <span className="text-sky-300">◆</span>
-              </p>
+              </Link>
               <p className="text-[10px] font-bold text-gray-500">{formatTakeAge(take.created_at)}</p>
               <h3 className="mt-3 min-h-14 text-xl font-black leading-tight text-white">{take.take_text}</h3>
               <p className="mt-3 text-sm font-black text-lime-300">
@@ -1017,9 +1059,12 @@ function TrendingTakes({
                 </span>
               </div>
             </div>
-            <p className="mt-3 truncate text-[11px] font-black text-gray-200">
+            <Link
+              href={getReceiptHref(take.handle)}
+              className="mt-3 block truncate text-[11px] font-black text-gray-200 transition hover:text-lime-200"
+            >
               {take.handle} {take.verified && <span className="text-sky-300">◆</span>}
-            </p>
+            </Link>
             <p className="text-[10px] font-bold text-gray-500">{take.timestamp}</p>
             <h3 className="mt-3 min-h-14 text-xl font-black leading-tight text-white">{take.text}</h3>
             <p className="mt-3 text-sm font-black text-lime-300">🔥 {take.heat} <span className="text-xs uppercase text-gray-500">Heat</span></p>

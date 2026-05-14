@@ -6,7 +6,7 @@ import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import type { Profile } from "@/lib/supabase/types";
 
-type TalkersTab = "overall" | "wins" | "heat" | "viral" | "accuracy" | "search";
+type TalkersTab = "overall" | "wins" | "heat" | "viral" | "accuracy" | "streaks" | "rising" | "search";
 
 type PodiumTalker = {
   rank: 1 | 2 | 3;
@@ -44,6 +44,8 @@ const talkersTabs: { id: TalkersTab; label: string }[] = [
   { id: "heat", label: "Heat" },
   { id: "viral", label: "Viral" },
   { id: "accuracy", label: "Accuracy" },
+  { id: "streaks", label: "Streaks" },
+  { id: "rising", label: "Rising" },
   { id: "search", label: "Search" },
 ];
 
@@ -53,6 +55,8 @@ const tabCopy: Record<TalkersTab, string> = {
   heat: "The loudest takes moving through the arena.",
   viral: "Receipts spreading fastest across the culture.",
   accuracy: "Cleanest hit rate from locked takes.",
+  streaks: "Talkers who keep standing on winning calls.",
+  rising: "Names moving fast before the whole Crowd catches on.",
   search: "Find a talker and inspect the receipts behind the reputation.",
 };
 
@@ -243,9 +247,13 @@ function TopTalkersHeader({ profile }: { profile?: Profile | null }) {
           <HeaderIcon label="Notifications" badge="3">
             ♧
           </HeaderIcon>
-          <HeaderIcon label={`${username} profile avatar`}>
+          <Link
+            href="/receipts"
+            className="relative grid h-12 w-12 place-items-center rounded-2xl border border-white/15 bg-white/[0.04] text-xl text-white shadow-[0_0_22px_rgba(255,255,255,0.06)] transition hover:-translate-y-0.5 hover:border-purple-300/35 hover:bg-white/[0.07] active:scale-95"
+            aria-label={`${username} receipts identity`}
+          >
             <UserAvatar avatarUrl={profile?.avatar_url} initials={getInitials(username)} size="sm" />
-          </HeaderIcon>
+          </Link>
         </div>
       </div>
     </header>
@@ -319,7 +327,7 @@ function TalkersTabs({
 }) {
   return (
     <nav
-      className="grid grid-cols-3 gap-1 rounded-[1.5rem] sm:grid-cols-6 border border-white/10 bg-black/35 p-1.5 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur"
+      className="grid grid-cols-4 gap-1 rounded-[1.5rem] border border-white/10 bg-black/35 p-1.5 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur sm:grid-cols-8"
       aria-label="Top Talkers views"
     >
       {talkersTabs.map((tab) => (
@@ -521,14 +529,20 @@ function YourRankCard({ profile }: { profile?: Profile | null }) {
           </p>
         </div>
 
-        <UserAvatar avatarUrl={profile?.avatar_url} initials={getInitials(username)} size="lg" active />
+        <Link
+          href="/receipts"
+          className="rounded-full transition hover:scale-[1.02] active:scale-[0.98]"
+          aria-label={`${username} receipts identity`}
+        >
+          <UserAvatar avatarUrl={profile?.avatar_url} initials={getInitials(username)} size="lg" active />
+        </Link>
 
         <div className="grid grid-cols-[auto_1fr] items-center gap-3">
           <p className="scoreboard-number text-5xl text-white">23</p>
           <div className="min-w-0">
-            <p className="text-xl font-black text-white">
+            <Link href="/receipts" className="text-xl font-black text-white transition hover:text-lime-100">
               @{username.replace(/^@/, "")} <span className="text-sky-300">◆</span>
-            </p>
+            </Link>
             <p className="max-w-[15rem] text-sm font-semibold leading-5 text-gray-300">
               {favoriteTeams}
             </p>
@@ -626,6 +640,8 @@ function getMetricValue(talker: TalkerRow, metric: Exclude<TalkersTab, "search">
   if (metric === "heat" || metric === "overall") return parseCompactNumber(talker.heat);
   if (metric === "viral") return Number(talker.viral);
   if (metric === "accuracy") return Number(talker.accuracy.replace("%", ""));
+  if (metric === "streaks") return Number(talker.wins) + Number(talker.viral);
+  if (metric === "rising") return talker.badge?.toLowerCase() === "rising" ? 1000 - talker.rank : 100 - talker.rank;
   return talker.rank;
 }
 

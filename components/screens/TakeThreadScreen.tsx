@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { RouteBottomNav } from "@/components/BottomNav";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
@@ -183,10 +184,21 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
           <>
             <section className="rounded-[1.75rem] border border-lime-300/25 bg-black/45 p-4 shadow-[0_26px_80px_rgba(0,0,0,0.52),0_0_34px_rgba(132,204,22,0.08)]">
               <div className="flex items-start gap-3">
-                <UserAvatar avatarUrl={author?.avatarUrl} initials={author?.initials ?? "ST"} size="md" />
+                <Link
+                  href={getReceiptHref(author?.handle ?? "@LockedTalker")}
+                  className="rounded-full transition hover:scale-105 active:scale-95"
+                  aria-label={`${author?.handle ?? "@LockedTalker"} receipts`}
+                >
+                  <UserAvatar avatarUrl={author?.avatarUrl} initials={author?.initials ?? "ST"} size="md" />
+                </Link>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-black text-white">{author?.handle ?? "@LockedTalker"}</p>
+                    <Link
+                      href={getReceiptHref(author?.handle ?? "@LockedTalker")}
+                      className="text-sm font-black text-white transition hover:text-lime-200"
+                    >
+                      {author?.handle ?? "@LockedTalker"}
+                    </Link>
                     <span className="text-sky-300">◆</span>
                     <span className="text-xs font-bold text-gray-500">{formatTakeAge(take.created_at)}</span>
                   </div>
@@ -311,14 +323,25 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
                     return (
                       <article key={reply.id} className="border-b border-white/10 p-3 last:border-b-0">
                         <div className="grid grid-cols-[auto_1fr] gap-3">
-                          <UserAvatar
-                            avatarUrl={reply.author?.avatar_url}
-                            initials={getInitials(username)}
-                            size="sm"
-                          />
+                          <Link
+                            href={getReceiptHref(handle)}
+                            className="rounded-full transition hover:scale-105 active:scale-95"
+                            aria-label={`${handle} receipts`}
+                          >
+                            <UserAvatar
+                              avatarUrl={reply.author?.avatar_url}
+                              initials={getInitials(username)}
+                              size="sm"
+                            />
+                          </Link>
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
-                              <p className="truncate text-sm font-black text-white">{handle}</p>
+                              <Link
+                                href={getReceiptHref(handle)}
+                                className="truncate text-sm font-black text-white transition hover:text-lime-200"
+                              >
+                                {handle}
+                              </Link>
                               <span className="text-xs font-bold text-gray-500">{formatTakeAge(reply.created_at)}</span>
                             </div>
                             <p className="mt-1 text-sm font-semibold leading-relaxed text-gray-200">{reply.reply_text}</p>
@@ -344,14 +367,25 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
 
                               return (
                                 <div key={childReply.id} className="grid grid-cols-[auto_1fr] gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-                                  <UserAvatar
-                                    avatarUrl={childReply.author?.avatar_url}
-                                    initials={getInitials(childUsername)}
-                                    size="sm"
-                                  />
+                                  <Link
+                                    href={getReceiptHref(childHandle)}
+                                    className="rounded-full transition hover:scale-105 active:scale-95"
+                                    aria-label={`${childHandle} receipts`}
+                                  >
+                                    <UserAvatar
+                                      avatarUrl={childReply.author?.avatar_url}
+                                      initials={getInitials(childUsername)}
+                                      size="sm"
+                                    />
+                                  </Link>
                                   <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-2">
-                                      <p className="truncate text-xs font-black text-white">{childHandle}</p>
+                                      <Link
+                                        href={getReceiptHref(childHandle)}
+                                        className="truncate text-xs font-black text-white transition hover:text-lime-200"
+                                      >
+                                        {childHandle}
+                                      </Link>
                                       <span className="text-[10px] font-bold text-gray-500">{formatTakeAge(childReply.created_at)}</span>
                                     </div>
                                     <p className="mt-1 text-xs font-semibold leading-relaxed text-gray-300">{childReply.reply_text}</p>
@@ -473,4 +507,8 @@ function getInitials(username: string) {
   }
 
   return cleanUsername.slice(0, 2).toUpperCase() || "ST";
+}
+
+function getReceiptHref(handle: string) {
+  return `/receipts/${handle.replace(/^@/, "").toLowerCase()}`;
 }
