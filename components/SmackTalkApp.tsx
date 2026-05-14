@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { BottomNav, type AppView } from "@/components/BottomNav";
 import { LiveArena } from "@/components/LiveArena";
 import { FeedScreen } from "@/components/screens/FeedScreen";
@@ -18,10 +19,19 @@ export function SmackTalkApp({
   initialView?: AppView;
   receiptOwner?: ReceiptOwner | null;
 }) {
+  const router = useRouter();
   const [appView, setAppView] = useState<AppView>(initialView);
 
   const goToArena = () => setAppView("arena");
   const joinLive = () => setAppView("live-arena");
+  const selectBottomNav = (view: "arena" | "receipts" | "top-talkers" | "settings") => {
+    if (view === "settings") {
+      router.push("/settings");
+      return;
+    }
+
+    setAppView(view);
+  };
 
   return (
     <>
@@ -39,7 +49,7 @@ export function SmackTalkApp({
         null
       )}
 
-      <BottomNav activeView={appView} onSelect={setAppView} />
+      <BottomNav activeView={appView} onSelect={selectBottomNav} />
     </>
   );
 }

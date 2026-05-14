@@ -3,17 +3,17 @@
 import Link from "next/link";
 
 export type AppView = "arena" | "live-arena" | "receipts" | "top-talkers" | "profile";
-type NavView = Exclude<AppView, "live-arena">;
+type NavView = "arena" | "receipts" | "top-talkers" | "settings";
 
 const navItems: { id: NavView; label: string; icon: string }[] = [
   { id: "arena", label: "Arena", icon: "◉" },
   { id: "receipts", label: "Receipts", icon: "▤" },
   { id: "top-talkers", label: "Top Talkers", icon: "♕" },
-  { id: "profile", label: "Profile", icon: "♙" },
+  { id: "settings", label: "Settings", icon: "⚙" },
 ];
 
-export function BottomNav({ activeView, onSelect }: { activeView: AppView; onSelect: (view: AppView) => void }) {
-  const activeNavView = activeView === "live-arena" ? "arena" : activeView;
+export function BottomNav({ activeView, onSelect }: { activeView: AppView; onSelect: (view: NavView) => void }) {
+  const activeNavView = activeView === "live-arena" ? "arena" : activeView === "profile" ? "settings" : activeView;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-[#02040a]/95 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-18px_50px_rgba(0,0,0,0.45)] backdrop-blur">
@@ -40,7 +40,7 @@ const routeByView: Record<NavView, string> = {
   arena: "/app",
   receipts: "/receipts",
   "top-talkers": "/top-talkers",
-  profile: "/profile",
+  settings: "/settings",
 };
 
 export function RouteBottomNav({ activeView }: { activeView: NavView }) {

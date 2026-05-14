@@ -110,10 +110,10 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
               </div>
             </div>
             <Link
-              href="/profile"
+              href="/receipts"
               className="min-h-11 rounded-2xl border border-purple-300/35 bg-purple-500/10 px-4 py-3 text-center text-xs font-black uppercase tracking-[0.12em] text-purple-200 transition hover:-translate-y-0.5 hover:bg-purple-500/15 active:scale-95"
             >
-              Back to Profile
+              Back to Receipts
             </Link>
           </div>
         </section>
@@ -185,7 +185,7 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
         </section>
         </div>
       </main>
-      <RouteBottomNav activeView="profile" />
+      <RouteBottomNav activeView="settings" />
     </>
   );
 }
