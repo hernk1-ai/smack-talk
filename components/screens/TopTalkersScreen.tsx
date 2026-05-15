@@ -6,6 +6,7 @@ import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { createClient } from "@/lib/supabase/client";
 import { seededProfiles } from "@/data/seededCrowd";
+import { getHeatStatus, getReputationBadges, getReputationLevel } from "@/lib/reputation";
 import type { Profile } from "@/lib/supabase/types";
 
 type TalkersTab = "overall" | "wins" | "heat" | "viral" | "accuracy" | "streaks" | "rising" | "search";
@@ -14,6 +15,8 @@ type PodiumTalker = {
   rank: 1 | 2 | 3;
   handle: string;
   avatar: string;
+  levelTitle: string;
+  signal: string;
   heat: string;
   wins: string;
   accuracy: string;
@@ -26,6 +29,11 @@ type TalkerRow = {
   avatar: string;
   subtitle: string;
   badge?: string;
+  levelTitle: string;
+  signal: string;
+  streak: number;
+  movement: string;
+  badgePreview: string;
   heat: string;
   wins: string;
   accuracy: string;
@@ -336,9 +344,16 @@ function PodiumCard({ talker }: { talker: PodiumTalker }) {
         </h3>
         {isFirst && (
           <span className="mt-1.5 rounded-lg border border-lime-300/40 bg-lime-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">
-            Top Talker
+            {talker.levelTitle}
           </span>
         )}
+        <span className={`mt-2 rounded-lg border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${
+          talker.signal === "On Fire"
+            ? "border-lime-300/35 bg-lime-400/10 text-lime-300"
+            : "border-purple-300/35 bg-purple-500/10 text-purple-200"
+        }`}>
+          {talker.signal}
+        </span>
 
         <p className="scoreboard-number mt-2 text-4xl text-gray-100 sm:text-5xl">
           🔥 {talker.heat}
@@ -408,6 +423,12 @@ function TalkerTableRow({ talker }: { talker: TalkerRow }) {
             {talker.subtitle}
             {talker.badge && <Badge label={talker.badge} />}
           </p>
+          <p className="mt-1 flex flex-wrap gap-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-gray-500">
+            <span className="rounded-md border border-lime-300/20 bg-lime-400/5 px-1.5 py-0.5 text-lime-300">{talker.levelTitle}</span>
+            <span className="rounded-md border border-purple-300/20 bg-purple-500/5 px-1.5 py-0.5 text-purple-300">{talker.signal}</span>
+            <span className="rounded-md border border-white/10 bg-white/[0.03] px-1.5 py-0.5">{talker.movement}</span>
+            <span className="rounded-md border border-white/10 bg-white/[0.03] px-1.5 py-0.5">{talker.badgePreview}</span>
+          </p>
         </div>
       </div>
 
@@ -450,6 +471,12 @@ function TableStat({ label, value, tone }: { label: string; value: string; tone:
 function YourRankCard({ profile }: { profile?: Profile | null }) {
   const username = profile?.username || "You";
   const favoriteTeams = profile?.favorite_teams?.length ? profile.favorite_teams.slice(0, 3).join(" · ") : "The board is within reach.";
+  const wins = profile?.hits_count ?? 0;
+  const losses = profile?.misses_count ?? 0;
+  const reputation = profile?.reputation_score ?? profile?.reputation ?? 0;
+  const activityCount = (profile?.created_takes_count ?? 0) + (profile?.receipts_count ?? 0);
+  const level = getReputationLevel(reputation, activityCount);
+  const heatStatus = getHeatStatus({ heat: reputation, reputation, streak: wins >= 3 ? 3 : 0 });
 
   return (
     <section className="rounded-[1.75rem] border border-lime-300/25 bg-lime-400/10 p-4 shadow-[0_0_34px_rgba(132,204,22,0.1)]">
@@ -457,7 +484,7 @@ function YourRankCard({ profile }: { profile?: Profile | null }) {
         <div className="flex items-end justify-between gap-3 sm:block">
           <div>
             <p className="sports-display text-3xl italic leading-none text-lime-300">Your Rank</p>
-            <p className="mt-1 text-sm font-black uppercase text-lime-200">Up 5 spots ↑</p>
+            <p className="mt-1 text-sm font-black uppercase text-lime-200">{heatStatus.label} · {level.title}</p>
           </div>
           <p className="hidden rounded-full border border-lime-300/25 bg-black/25 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-lime-200 min-[390px]:block sm:hidden">
             In range
@@ -485,10 +512,10 @@ function YourRankCard({ profile }: { profile?: Profile | null }) {
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-center min-[430px]:grid-cols-4 sm:min-w-[21rem]">
-          <MiniRankStat label="Heat" value="🔥 4.2K" />
-          <MiniRankStat label="Wins" value="24" />
-          <MiniRankStat label="Accuracy" value="56%" />
-          <MiniRankStat label="Viral" value="3" />
+          <MiniRankStat label="REP" value={formatCompact(reputation)} />
+          <MiniRankStat label="Wins" value={String(wins)} />
+          <MiniRankStat label="Accuracy" value={`${wins + losses ? Math.round((wins / (wins + losses)) * 100) : 0}%`} />
+          <MiniRankStat label="Takes" value={formatCompact(profile?.created_takes_count ?? 0)} />
         </div>
       </div>
     </section>
@@ -592,6 +619,20 @@ function profilesToTalkers(realProfiles: Profile[], currentProfile?: Profile | n
     const total = wins + losses;
     const accuracy = total ? `${Math.round((wins / total) * 100)}%` : "0%";
     const isCurrentUser = currentProfile?.id === realProfile.id;
+    const reputation = realProfile.reputation_score ?? realProfile.reputation ?? 0;
+    const activityCount = (realProfile.created_takes_count ?? 0) + (realProfile.receipts_count ?? 0);
+    const level = getReputationLevel(reputation, activityCount);
+    const signal = getHeatStatus({ heat: reputation, reputation, streak: wins >= 3 ? 3 : 0 }).label;
+    const earnedBadge = getReputationBadges({
+      reputation,
+      wins,
+      losses,
+      takes: realProfile.created_takes_count ?? 0,
+      receipts: realProfile.receipts_count ?? 0,
+      streak: wins >= 3 ? 3 : 0,
+      heat: reputation,
+      rank: index + 1,
+    }).find((badgeItem) => badgeItem.earned);
 
     return {
       rank: index + 1,
@@ -599,7 +640,12 @@ function profilesToTalkers(realProfiles: Profile[], currentProfile?: Profile | n
       avatar: getInitials(realProfile.username || "ST"),
       subtitle: isCurrentUser ? "Your record" : `${formatCompact(realProfile.receipts_count ?? 0)} receipts`,
       badge: isCurrentUser ? "You" : realProfile.created_takes_count > 0 ? "Rising" : undefined,
-      heat: formatCompact(realProfile.reputation_score ?? realProfile.reputation ?? 0),
+      levelTitle: level.title,
+      signal,
+      streak: wins >= 3 ? 3 : 0,
+      movement: realProfile.created_takes_count > 0 ? "Rising" : "New",
+      badgePreview: earnedBadge?.name ?? "No badge yet",
+      heat: formatCompact(reputation),
       wins: String(wins),
       accuracy,
       viral: formatCompact(realProfile.created_takes_count ?? 0),
@@ -608,17 +654,37 @@ function profilesToTalkers(realProfiles: Profile[], currentProfile?: Profile | n
 }
 
 function seededProfilesToTalkers(): TalkerRow[] {
-  return seededProfiles.map((profile, index) => ({
-    rank: index + 1,
-    handle: `@${profile.username}`,
-    avatar: profile.avatar,
-    subtitle: profile.title,
-    badge: profile.username === "TalkHeavy23" || profile.username === "HoopDreams" ? "Rising" : profile.streak >= 6 ? "Hot" : undefined,
-    heat: formatCompact(profile.heat),
-    wins: String(profile.wins),
-    accuracy: `${profile.hit_rate}%`,
-    viral: String(profile.viral),
-  }));
+  return seededProfiles.map((profile, index) => {
+    const level = getReputationLevel(profile.reputation_score, profile.created_takes_count);
+    const signal = getHeatStatus({ heat: profile.heat, reputation: profile.reputation_score, streak: profile.streak }).label;
+    const earnedBadge = getReputationBadges({
+      reputation: profile.reputation_score,
+      wins: profile.wins,
+      losses: profile.losses,
+      takes: profile.created_takes_count,
+      receipts: profile.wins + profile.losses,
+      streak: profile.streak,
+      heat: profile.heat,
+      rank: index + 1,
+    }).find((badgeItem) => badgeItem.earned);
+
+    return {
+      rank: index + 1,
+      handle: `@${profile.username}`,
+      avatar: profile.avatar,
+      subtitle: profile.title,
+      badge: profile.username === "TalkHeavy23" || profile.username === "HoopDreams" ? "Rising" : profile.streak >= 6 ? "Hot" : undefined,
+      levelTitle: level.title,
+      signal,
+      streak: profile.streak,
+      movement: profile.streak >= 6 ? "Up fast" : profile.streak >= 3 ? "Holding" : "Steady",
+      badgePreview: earnedBadge?.name ?? "No badge yet",
+      heat: formatCompact(profile.heat),
+      wins: String(profile.wins),
+      accuracy: `${profile.hit_rate}%`,
+      viral: String(profile.viral),
+    };
+  });
 }
 
 function rowsToPodium(rows: TalkerRow[]): PodiumTalker[] {
@@ -629,6 +695,8 @@ function rowsToPodium(rows: TalkerRow[]): PodiumTalker[] {
     rank: (index + 1) as 1 | 2 | 3,
     handle: row.handle,
     avatar: row.avatar,
+    levelTitle: row.levelTitle,
+    signal: row.signal,
     heat: row.heat,
     wins: row.wins,
     accuracy: row.accuracy,
@@ -641,8 +709,8 @@ function getMetricValue(talker: TalkerRow, metric: Exclude<TalkersTab, "search">
   if (metric === "heat" || metric === "overall") return parseCompactNumber(talker.heat);
   if (metric === "viral") return parseCompactNumber(talker.viral);
   if (metric === "accuracy") return Number(talker.accuracy.replace("%", ""));
-  if (metric === "streaks") return Number(talker.wins) + Number(talker.viral);
-  if (metric === "rising") return talker.badge?.toLowerCase() === "rising" ? 1000 - talker.rank : 100 - talker.rank;
+  if (metric === "streaks") return talker.streak;
+  if (metric === "rising") return talker.movement.toLowerCase().includes("up") || talker.badge?.toLowerCase() === "rising" ? 1000 - talker.rank : 100 - talker.rank;
   return talker.rank;
 }
 

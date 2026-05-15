@@ -6,6 +6,15 @@ import { useRouter } from "next/navigation";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { getSeededReceiptsByUsername, type SeededReceipt } from "@/data/seededCrowd";
+import {
+  getActivityAlerts,
+  getCurrentWinStreak,
+  getHeatStatus,
+  getHitRate,
+  getReputationBadges,
+  getReputationLevel,
+  type ReputationBadge,
+} from "@/lib/reputation";
 import { getCurrentUserReceipts, getReceiptsByUser } from "@/lib/supabase/receipts";
 import type { Profile, Receipt } from "@/lib/supabase/types";
 
@@ -45,12 +54,7 @@ type ViralReceipt = {
   status: ReceiptStatus;
 };
 
-type PerformanceBadge = {
-  name: string;
-  subtitle: string;
-  icon: string;
-  tone: "green" | "purple" | "blue" | "red" | "teal";
-};
+type PerformanceBadge = ReputationBadge;
 
 export type ReceiptOwner = {
   userId?: string | null;
@@ -197,14 +201,6 @@ const viralReceipts: ViralReceipt[] = [
     comments: "1.6K",
     status: "loss",
   },
-];
-
-const performanceBadges: PerformanceBadge[] = [
-  { name: "Top Talker", subtitle: "Top 1%", icon: "◉", tone: "green" },
-  { name: "Receipt King", subtitle: "100+ Wins", icon: "☠", tone: "purple" },
-  { name: "Viral King", subtitle: "1M+ Views", icon: "▰", tone: "blue" },
-  { name: "Accuracy God", subtitle: "65%+ Hit Rate", icon: "◎", tone: "red" },
-  { name: "Crowd Rider", subtitle: "Ride Master", icon: "☍", tone: "teal" },
 ];
 
 export function ReceiptsScreen({
@@ -423,13 +419,45 @@ function ReceiptIdentityCard({
   const receiptCount = receipts.length || profile?.receipts_count || 0;
   const wins = receipts.length ? receipts.filter((receipt) => receipt.result === "hit").length : profile?.hits_count ?? 0;
   const losses = receipts.length ? receipts.filter((receipt) => receipt.result === "miss").length : profile?.misses_count ?? 0;
-  const total = wins + losses;
-  const hitRate = total ? `${Math.round((wins / total) * 100)}%` : "0%";
-  const streak = receipts.length ? getReceiptStreak(receipts) : 0;
+  const hitRateValue = getHitRate(wins, losses);
+  const hitRate = `${hitRateValue}%`;
+  const streak = receipts.length ? getCurrentWinStreak(receipts) : 0;
   const createdTakes = profile?.created_takes_count ?? 0;
   const receiptsCount = receiptCount;
   const reputation = owner.reputation ?? profile?.reputation_score ?? profile?.reputation ?? 0;
-  const rankTitle = reputation >= 9000 ? "Top Talker" : reputation >= 4000 ? "Receipt Hunter" : "Rookie";
+  const totalHeat = receipts.reduce((sum, receipt) => sum + receipt.heat, 0);
+  const totalRides = receipts.reduce((sum, receipt) => sum + receipt.ride_count, 0);
+  const totalFades = receipts.reduce((sum, receipt) => sum + receipt.fade_count, 0);
+  const totalReplies = receipts.reduce((sum, receipt) => sum + receipt.reply_count, 0);
+  const level = getReputationLevel(reputation, createdTakes + receiptsCount);
+  const heatStatus = getHeatStatus({ heat: totalHeat, reputation, streak });
+  const badges = getReputationBadges({
+    reputation,
+    wins,
+    losses,
+    takes: createdTakes,
+    receipts: receiptsCount,
+    streak,
+    heat: totalHeat,
+    rideCount: totalRides,
+    fadeCount: totalFades,
+    replyCount: totalReplies,
+  });
+  const activityAlerts = getActivityAlerts(
+    {
+      reputation,
+      wins,
+      losses,
+      takes: createdTakes,
+      receipts: receiptsCount,
+      streak,
+      heat: totalHeat,
+      rideCount: totalRides,
+      fadeCount: totalFades,
+      replyCount: totalReplies,
+    },
+    badges,
+  );
   const receiptScore = featuredReceipt ? parseFinalScore(featuredReceipt.final_score) : null;
   const isWin = featuredReceipt?.result !== "miss";
 
@@ -447,13 +475,13 @@ function ReceiptIdentityCard({
               <h2 className="mt-2 truncate text-4xl font-black italic leading-none text-white sm:text-5xl">{owner.handle}</h2>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <span className="rounded-lg border border-lime-300/40 bg-lime-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">
-                  {rankTitle}
+                  {level.title}
                 </span>
                 <span className="rounded-lg border border-purple-300/35 bg-purple-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-purple-200">
-                  Level 18
+                  Level {level.level}
                 </span>
                 <span className="rounded-lg border border-white/10 bg-black/45 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-gray-300">
-                  Heat Status: Live
+                  Heat Status: {heatStatus.label}
                 </span>
               </div>
               <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-gray-300">
@@ -467,7 +495,7 @@ function ReceiptIdentityCard({
             <IdentityStat label="Hit %" value={hitRate} tone="text-white" />
             <IdentityStat label="Wins" value={String(wins)} tone="text-lime-300" />
             <IdentityStat label="Losses" value={String(losses)} tone="text-purple-300" />
-            <IdentityStat label="Streak" value={`${streak}W`} tone="text-lime-200" />
+            <IdentityStat label="Streak" value={streak >= 3 ? `${streak}W Hot` : `${streak}W`} tone="text-lime-200" />
             <IdentityStat label="Takes" value={formatCompact(createdTakes)} tone="text-gray-100" />
             <IdentityStat label="Receipts" value={formatCompact(receiptsCount)} tone="text-purple-200" />
           </div>
@@ -487,10 +515,18 @@ function ReceiptIdentityCard({
               <p className="text-[10px] font-black uppercase tracking-[0.12em] text-purple-300">Proof stack</p>
             </div>
             <div className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1 lg:grid lg:grid-cols-5 lg:overflow-visible">
-              {performanceBadges.map((badge) => (
+              {badges.map((badge) => (
                 <PerformanceBadgeCard key={badge.name} badge={badge} compact />
               ))}
             </div>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-3">
+            {activityAlerts.map((alert) => (
+              <div key={alert} className="rounded-2xl border border-lime-300/15 bg-lime-400/[0.06] px-3 py-2">
+                <p className="truncate text-[10px] font-black uppercase tracking-[0.1em] text-lime-200">ϟ {alert}</p>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -823,14 +859,17 @@ function PerformanceBadgeCard({ badge, compact = false }: { badge: PerformanceBa
     red: "border-red-300/30 text-red-300 shadow-[0_0_24px_rgba(248,113,113,0.1)]",
     teal: "border-teal-300/30 text-teal-300 shadow-[0_0_24px_rgba(45,212,191,0.1)]",
   }[badge.tone];
+  const stateClass = badge.earned
+    ? toneClass
+    : "border-white/10 text-gray-600 shadow-none opacity-70 grayscale";
 
   return (
-    <article className={`group min-w-[8.25rem] snap-start rounded-2xl border bg-black/35 text-center transition duration-200 hover:-translate-y-1 hover:bg-white/[0.035] hover:shadow-[0_0_30px_currentColor] active:scale-[0.985] lg:min-w-0 ${compact ? "p-2.5" : "p-3"} ${toneClass}`}>
+    <article className={`group min-w-[8.25rem] snap-start rounded-2xl border bg-black/35 text-center transition duration-200 hover:-translate-y-1 hover:bg-white/[0.035] hover:shadow-[0_0_30px_currentColor] active:scale-[0.985] lg:min-w-0 ${compact ? "p-2.5" : "p-3"} ${stateClass}`}>
       <div className={`mx-auto grid place-items-center rounded-2xl border border-current bg-current/10 transition group-hover:scale-105 ${compact ? "h-10 w-10 text-lg" : "h-12 w-12 text-xl"}`}>
-        {badge.icon}
+        {badge.earned ? badge.icon : "□"}
       </div>
       <p className="mt-3 text-[10px] font-black uppercase">{badge.name}</p>
-      <p className="mt-1 text-[10px] font-semibold text-gray-500">{badge.subtitle}</p>
+      <p className="mt-1 text-[10px] font-semibold text-gray-500">{badge.earned ? badge.subtitle : `Locked · ${badge.subtitle}`}</p>
     </article>
   );
 }
@@ -967,20 +1006,6 @@ function parseSeededFinalScore(finalScore: string) {
     rightTeam: match[3],
     rightScore: match[4],
   };
-}
-
-function getReceiptStreak(receipts: Receipt[]) {
-  let streak = 0;
-
-  for (const receipt of receipts) {
-    if (receipt.result !== "hit") {
-      break;
-    }
-
-    streak += 1;
-  }
-
-  return streak;
 }
 
 function formatCompact(value: number) {

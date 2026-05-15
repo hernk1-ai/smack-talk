@@ -18,6 +18,7 @@ import {
 } from "@/lib/supabase/arena";
 import { reactToTake } from "@/lib/supabase/reactions";
 import { createLockedTake } from "@/lib/supabase/takes";
+import { getCrowdPressure, getHeatStatus, getReputationLevel } from "@/lib/reputation";
 import { seededChaosAlerts } from "@/data/seededCrowd";
 import type { Game, Profile, TakeReaction } from "@/lib/supabase/types";
 
@@ -492,6 +493,14 @@ function FeaturedHotTakeCard({
   const replies = take ? formatCompact(take.reply_count) : "0";
   const status = game ? formatGameStatus(game.status) : featuredHotTake.status;
   const author = take ? formatTakeForUI(take) : null;
+  const level = getReputationLevel(take?.author?.reputation_score ?? 0, take?.author?.created_takes_count ?? 0);
+  const heatStatus = getHeatStatus({ heat: take?.heat ?? game?.heat ?? 0, reputation: take?.author?.reputation_score ?? 0 });
+  const pressure = getCrowdPressure({
+    rideCount: take?.ride_count ?? game?.ride_count ?? 0,
+    fadeCount: take?.fade_count ?? game?.fade_count ?? 0,
+    heat: take?.heat ?? game?.heat ?? 0,
+    replyCount: take?.reply_count ?? 0,
+  });
   const handle = author?.handle ?? featuredHotTake.handle;
   const avatar = author?.initials ?? featuredHotTake.avatar;
   const avatarUrl = author?.avatarUrl ?? null;
@@ -555,10 +564,25 @@ function FeaturedHotTakeCard({
               </Link>
               <span className="text-sky-300">◆</span>
               <p className="text-xs font-bold text-gray-500">{watching}</p>
+              <span className="rounded-md border border-lime-300/25 bg-lime-400/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-lime-300">
+                {level.title}
+              </span>
             </div>
             <h2 className="mt-2 text-3xl font-black italic leading-tight text-white sm:text-4xl">
               {takeText}
             </h2>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="rounded-lg border border-lime-300/25 bg-lime-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-lime-200">
+                {heatStatus.label}
+              </span>
+              <span className={`rounded-lg border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${
+                pressure.tone === "green"
+                  ? "border-lime-300/25 bg-lime-400/10 text-lime-200"
+                  : "border-purple-300/25 bg-purple-500/10 text-purple-200"
+              }`}>
+                {pressure.label} · {pressure.detail}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -777,6 +801,13 @@ function LiveLockedTakes({
           const activeReaction = reactions[take.id];
           const isLoading = loadingTakeId === take.id;
           const { avatarUrl, handle, initials } = formatTakeForUI(take);
+          const heatStatus = getHeatStatus({ heat: take.heat, reputation: take.author?.reputation_score ?? 0 });
+          const pressure = getCrowdPressure({
+            rideCount: take.ride_count,
+            fadeCount: take.fade_count,
+            heat: take.heat,
+            replyCount: take.reply_count,
+          });
 
           return (
             <article
@@ -809,6 +840,14 @@ function LiveLockedTakes({
                     <span className="text-xs font-bold text-gray-500">{formatTakeAge(take.created_at)}</span>
                   </div>
                   <h3 className="mt-2 text-xl font-black leading-tight text-white">{take.take_text}</h3>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <span className="rounded-md border border-lime-300/20 bg-lime-400/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-lime-300">
+                      {heatStatus.label}
+                    </span>
+                    <span className="rounded-md border border-purple-300/20 bg-purple-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-purple-200">
+                      {pressure.label}
+                    </span>
+                  </div>
                 </div>
                 <span className="rounded-full border border-purple-300/30 bg-purple-500/10 px-2.5 py-1 text-[10px] font-black uppercase text-purple-200">
                   {take.status}
@@ -978,6 +1017,7 @@ function TrendingTakes({
           const { avatarUrl, handle, initials } = formatTakeForUI(take);
           const activeReaction = reactions[take.id];
           const isLoading = loadingTakeId === take.id;
+          const heatStatus = getHeatStatus({ heat: take.heat, reputation: take.author?.reputation_score ?? 0 });
 
           return (
             <article
@@ -1012,6 +1052,9 @@ function TrendingTakes({
               </Link>
               <p className="text-[10px] font-bold text-gray-500">{formatTakeAge(take.created_at)}</p>
               <h3 className="mt-3 min-h-14 text-xl font-black leading-tight text-white">{take.take_text}</h3>
+              <p className="mt-2 rounded-md border border-lime-300/20 bg-lime-400/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-lime-200">
+                {heatStatus.label}
+              </p>
               <p className="mt-3 text-sm font-black text-lime-300">
                 🔥 {formatCompact(take.heat)} <span className="text-xs uppercase text-gray-500">Heat</span>
               </p>

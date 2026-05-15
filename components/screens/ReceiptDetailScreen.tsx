@@ -8,6 +8,7 @@ import { RouteBottomNav } from "@/components/BottomNav";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { getSeededProfileById, getSeededReceiptById } from "@/data/seededCrowd";
+import { getCrowdPressure, getHeatStatus, getReputationLevel } from "@/lib/reputation";
 import { createClient } from "@/lib/supabase/client";
 import { getReceiptById } from "@/lib/supabase/receipts";
 import { getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/replies";
@@ -157,6 +158,14 @@ export function ReceiptDetailScreen({ receiptId, profile }: { receiptId: string;
   const authorHref = getAuthorReceiptHref(author, profile, receipt);
   const score = parseReceiptScore(receipt?.finalScore);
   const isWin = receipt?.result !== "miss";
+  const level = getReputationLevel(author?.reputation_score ?? 0, author?.created_takes_count ?? 0);
+  const heatStatus = getHeatStatus({ heat: receipt?.heat ?? 0, reputation: author?.reputation_score ?? 0, result: receipt?.result });
+  const pressure = getCrowdPressure({
+    rideCount: receipt?.rideCount ?? 0,
+    fadeCount: receipt?.fadeCount ?? 0,
+    heat: receipt?.heat ?? 0,
+    replyCount: Math.max(receipt?.replyCount ?? 0, replies.length),
+  });
 
   return (
     <>
@@ -219,7 +228,17 @@ export function ReceiptDetailScreen({ receiptId, profile }: { receiptId: string;
                         Receipts don&apos;t lie
                       </p>
                       <h2 className="mt-1 truncate text-3xl font-black italic text-white">@{username}</h2>
-                      <p className="mt-1 text-xs font-bold text-gray-400">{formatAge(receipt.createdAt)}</p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <span className="rounded-md border border-lime-300/25 bg-lime-400/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-lime-300">
+                          {level.title}
+                        </span>
+                        <span className="rounded-md border border-purple-300/25 bg-purple-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-purple-200">
+                          {heatStatus.label}
+                        </span>
+                        <span className="rounded-md border border-white/10 bg-black/35 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-gray-300">
+                          {formatAge(receipt.createdAt)}
+                        </span>
+                      </div>
                     </div>
                   </Link>
                   <span
@@ -235,6 +254,13 @@ export function ReceiptDetailScreen({ receiptId, profile }: { receiptId: string;
                   {receipt.takeText}
                 </h3>
                 <p className="mt-3 text-sm font-black uppercase tracking-[0.14em] text-sky-300">{receipt.gameLabel}</p>
+                <p className={`mt-3 inline-flex rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.1em] ${
+                  pressure.tone === "green"
+                    ? "border-lime-300/25 bg-lime-400/10 text-lime-200"
+                    : "border-purple-300/25 bg-purple-500/10 text-purple-200"
+                }`}>
+                  {pressure.label} · {pressure.detail}
+                </p>
 
                 <div className="mt-6 grid max-w-xl grid-cols-[1fr_auto_1fr] items-end gap-3 text-center">
                   <ScoreMini team={score?.leftTeam ?? "LAL"} score={score?.leftScore ?? "108"} />
