@@ -5,6 +5,14 @@ export const ACTIVE_GAME_ID = "lal-gsw-live";
 export type GamePickSide = "ride" | "fade";
 
 export async function getLiveGames() {
+  return getGamesByStatuses(["live"]);
+}
+
+export async function getArenaGames() {
+  return getGamesByStatuses(["live", "scheduled", "final"]);
+}
+
+async function getGamesByStatuses(statuses: Game["status"][]) {
   const supabase = createClient();
 
   if (!supabase) {
@@ -14,7 +22,8 @@ export async function getLiveGames() {
   const { data, error } = await supabase
     .from("games")
     .select("*")
-    .eq("status", "live")
+    .in("status", statuses)
+    .order("starts_at", { ascending: true, nullsFirst: false })
     .order("heat", { ascending: false });
 
   return { games: data ?? [], error };

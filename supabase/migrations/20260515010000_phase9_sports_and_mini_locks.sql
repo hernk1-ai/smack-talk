@@ -1,4 +1,4 @@
--- Phase 9: sport/event groundwork plus mini-lock support for game picks.
+-- Phase 9: sport/event groundwork plus quick-pick support for game picks.
 -- Safe to run more than once.
 
 alter table public.games

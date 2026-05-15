@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { getSeededReceiptsByUsername, type SeededReceipt } from "@/data/seededCrowd";
+import { LOCK_WIN } from "@/lib/engagement";
 import {
   getActivityAlerts,
   getCurrentWinStreak,
@@ -263,6 +264,17 @@ export function ReceiptsScreen({
     const shareUrl = window.location.href;
 
     try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `${owner.handle} Receipts`,
+          text: "Receipts don't lie.",
+          url: shareUrl,
+        });
+        setShareCopied(true);
+        window.setTimeout(() => setShareCopied(false), 1800);
+        return;
+      }
+
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(shareUrl);
       } else {
@@ -582,7 +594,7 @@ function ReceiptIdentityCard({
                 </div>
                 <div className="min-[430px]:text-right">
                   <p className="scoreboard-number text-5xl leading-none text-white drop-shadow-[0_0_18px_rgba(132,204,22,0.22)]">
-                    {featuredReceipt ? formatSignedRep(featuredReceipt.reputation_delta) : "+25"}
+                    {featuredReceipt ? formatSignedRep(featuredReceipt.reputation_delta) : `+${LOCK_WIN}`}
                   </p>
                   <p className={`text-xs font-black uppercase tracking-[0.12em] ${isWin ? "text-lime-300" : "text-red-300"}`}>
                     REP Delta
@@ -603,7 +615,7 @@ function ReceiptIdentityCard({
               onClick={onShare}
               className="mt-4 min-h-12 rounded-2xl border border-purple-300/60 bg-purple-500/15 px-5 text-sm font-black uppercase tracking-[0.1em] text-purple-100 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition hover:-translate-y-0.5 hover:bg-purple-500/25 hover:shadow-[0_0_34px_rgba(168,85,247,0.24)] active:scale-95"
             >
-              {copied ? "Receipt link copied" : "Share"}
+              {copied ? "Copied" : "Share"}
             </button>
           </div>
         </article>

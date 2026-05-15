@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
-import { ACTIVE_GAME_ID, createGamePick, getGameById, getMyGamePick } from "@/lib/supabase/games";
+import { formatRepSwing, QUICK_PICK_LOSS, QUICK_PICK_WIN } from "@/lib/engagement";
+import { ACTIVE_GAME_ID, getGameById } from "@/lib/supabase/games";
+import { createQuickPick, getMyQuickPicks } from "@/lib/supabase/quickPicks";
 import type { Game } from "@/lib/supabase/types";
 
 type ArenaTab = "chat" | "calls" | "control-room" | "top-talkers";
@@ -23,6 +25,16 @@ type TopTalker = {
   handle: string;
   heat: string;
   avatar: string;
+};
+
+type QuickPickQuestion = {
+  key: string;
+  questionText: string;
+  options: Array<{
+    label: string;
+    value: string;
+    tone: "green" | "purple";
+  }>;
 };
 
 const chatTakes: ChatTake[] = [
@@ -105,83 +117,67 @@ const topTalkers: TopTalker[] = [
 export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string; onBack: () => void }) {
   const [activeTab, setActiveTab] = useState<ArenaTab>("chat");
   const [game, setGame] = useState<Game | null>(null);
-  const [gamePickSide, setGamePickSide] = useState<Side>();
-  const [pendingMiniLockSide, setPendingMiniLockSide] = useState<Side | null>(null);
-  const [isGamePickSaving, setIsGamePickSaving] = useState(false);
-  const [gamePickMessage, setGamePickMessage] = useState("");
-  const rideLabel = `Ride ${game?.away_team ?? "LAL"}`;
-  const fadeLabel = `Fade ${game?.home_team ?? "GSW"}`;
+  const [quickPickSelections, setQuickPickSelections] = useState<Record<string, string>>({});
+  const [quickPickMessage, setQuickPickMessage] = useState("");
+  const [savingQuickPickKey, setSavingQuickPickKey] = useState<string | null>(null);
+  const awayTeam = game?.away_team ?? "LAL";
+  const homeTeam = game?.home_team ?? "GSW";
+  const quickPickQuestions = getQuickPickQuestions({
+    awayTeam,
+    homeTeam,
+    awayScore: game?.away_score ?? 108,
+    homeScore: game?.home_score ?? 103,
+  });
 
   useEffect(() => {
     let isMounted = true;
 
-    async function loadGamePick() {
-      const [{ game: loadedGame }, { gamePick }] = await Promise.all([getGameById(gameId), getMyGamePick(gameId)]);
+    async function loadGameAndQuickPicks() {
+      const [{ game: loadedGame }, { quickPicks }] = await Promise.all([getGameById(gameId), getMyQuickPicks(gameId)]);
 
       if (!isMounted) {
         return;
       }
 
       setGame(loadedGame);
-
-      if (!gamePick) {
-        return;
-      }
-
-      if (gamePick.is_locked) {
-        setGamePickSide(gamePick.pick);
-        setGamePickMessage(`Mini lock: ${gamePick.pick === "ride" ? `Ride ${loadedGame?.away_team ?? "LAL"}` : `Fade ${loadedGame?.home_team ?? "GSW"}`}`);
-        return;
-      }
-
-      setPendingMiniLockSide(gamePick.pick);
+      setQuickPickSelections(
+        Object.fromEntries((quickPicks ?? []).map((quickPick) => [toQuickPickKey(quickPick.question_text), quickPick.selected_side])),
+      );
     }
 
-    loadGamePick();
+    loadGameAndQuickPicks();
 
     return () => {
       isMounted = false;
     };
   }, [gameId]);
 
-  function previewMiniLock(side: Side) {
-    if (gamePickSide || isGamePickSaving) {
+  async function lockQuickPick(question: QuickPickQuestion, selectedSide: string) {
+    if (quickPickSelections[question.key] || savingQuickPickKey) {
       return;
     }
 
-    setPendingMiniLockSide(side);
-    setGamePickMessage(`Want to lock ${side === "ride" ? rideLabel : fadeLabel}?`);
-  }
+    setSavingQuickPickKey(question.key);
+    setQuickPickMessage("");
 
-  function cancelMiniLock() {
-    if (isGamePickSaving) {
+    const { quickPick, error } = await createQuickPick({
+      gameId,
+      questionText: question.questionText,
+      selectedSide,
+    });
+
+    setSavingQuickPickKey(null);
+
+    if (error || !quickPick) {
+      setQuickPickMessage(error?.message || "Could not save that quick pick.");
       return;
     }
 
-    setPendingMiniLockSide(null);
-    setGamePickMessage("No lock yet. You can still pick a side when the pressure feels right.");
-  }
-
-  async function lockGamePick() {
-    if (gamePickSide || !pendingMiniLockSide || isGamePickSaving) {
-      return;
-    }
-
-    setIsGamePickSaving(true);
-    setGamePickMessage("");
-
-    const { gamePick, error } = await createGamePick({ gameId, pick: pendingMiniLockSide });
-
-    setIsGamePickSaving(false);
-
-    if (error || !gamePick) {
-      setGamePickMessage(error?.message || "Could not lock that game pick.");
-      return;
-    }
-
-    setGamePickSide(gamePick.pick);
-    setPendingMiniLockSide(null);
-    setGamePickMessage(`Mini lock sealed: ${gamePick.pick === "ride" ? rideLabel : fadeLabel} · +3 / -1`);
+    setQuickPickSelections((current) => ({
+      ...current,
+      [question.key]: quickPick.selected_side,
+    }));
+    setQuickPickMessage(`Quick Pick locked: ${question.questionText} · ${quickPick.selected_side} · ${formatRepSwing(QUICK_PICK_WIN, QUICK_PICK_LOSS)}`);
   }
 
   return (
@@ -190,13 +186,11 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
         <ArenaHeader onBack={onBack} />
         <ArenaScoreboard
           game={game}
-          gamePickSide={gamePickSide}
-          pendingMiniLockSide={pendingMiniLockSide}
-          isGamePickSaving={isGamePickSaving}
-          gamePickMessage={gamePickMessage}
-          onGamePick={previewMiniLock}
-          onConfirmMiniLock={lockGamePick}
-          onCancelMiniLock={cancelMiniLock}
+          quickPickQuestions={quickPickQuestions}
+          quickPickSelections={quickPickSelections}
+          savingQuickPickKey={savingQuickPickKey}
+          quickPickMessage={quickPickMessage}
+          onQuickPick={lockQuickPick}
         />
         <ArenaTabs activeTab={activeTab} onSelect={setActiveTab} />
 
@@ -206,7 +200,7 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
             {activeTab === "calls" && (
               <CallsPanel
                 onChoose={() => {
-                  setGamePickMessage("Ride/Fade a live call from the main Arena feed. Game picks lock on the board above.");
+                  setQuickPickMessage("Ride/Fade stays public. Quick Picks sit on the board above when you want something faster.");
                 }}
               />
             )}
@@ -291,22 +285,18 @@ function HeaderIcon({
 
 function ArenaScoreboard({
   game,
-  gamePickSide,
-  pendingMiniLockSide,
-  isGamePickSaving,
-  gamePickMessage,
-  onGamePick,
-  onConfirmMiniLock,
-  onCancelMiniLock,
+  quickPickQuestions,
+  quickPickSelections,
+  savingQuickPickKey,
+  quickPickMessage,
+  onQuickPick,
 }: {
   game: Game | null;
-  gamePickSide?: Side;
-  pendingMiniLockSide: Side | null;
-  isGamePickSaving: boolean;
-  gamePickMessage: string;
-  onGamePick: (side: Side) => void;
-  onConfirmMiniLock: () => void;
-  onCancelMiniLock: () => void;
+  quickPickQuestions: QuickPickQuestion[];
+  quickPickSelections: Record<string, string>;
+  savingQuickPickKey: string | null;
+  quickPickMessage: string;
+  onQuickPick: (question: QuickPickQuestion, selectedSide: string) => void;
 }) {
   const awayTeam = game?.away_team ?? "LAL";
   const homeTeam = game?.home_team ?? "GSW";
@@ -351,16 +341,12 @@ function ArenaScoreboard({
         </div>
       </div>
 
-      <GamePickPanel
-        lockedSide={gamePickSide}
-        pendingSide={pendingMiniLockSide}
-        rideLabel={`Ride ${awayTeam}`}
-        fadeLabel={`Fade ${homeTeam}`}
-        isSaving={isGamePickSaving}
-        message={gamePickMessage}
-        onPick={onGamePick}
-        onConfirm={onConfirmMiniLock}
-        onCancel={onCancelMiniLock}
+      <QuickPickPanel
+        questions={quickPickQuestions}
+        selections={quickPickSelections}
+        savingQuestionKey={savingQuickPickKey}
+        message={quickPickMessage}
+        onPick={onQuickPick}
       />
 
       <div className="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-black/50 p-3.5 sm:grid-cols-[0.8fr_1.25fr_0.85fr] sm:items-center">
@@ -390,134 +376,145 @@ function formatCompact(value: number) {
   }).format(value);
 }
 
-function GamePickPanel({
-  lockedSide,
-  pendingSide,
-  rideLabel,
-  fadeLabel,
-  isSaving,
+function QuickPickPanel({
+  questions,
+  selections,
+  savingQuestionKey,
   message,
   onPick,
-  onConfirm,
-  onCancel,
 }: {
-  lockedSide?: Side;
-  pendingSide: Side | null;
-  rideLabel: string;
-  fadeLabel: string;
-  isSaving: boolean;
+  questions: QuickPickQuestion[];
+  selections: Record<string, string>;
+  savingQuestionKey: string | null;
   message: string;
-  onPick: (side: Side) => void;
-  onConfirm: () => void;
-  onCancel: () => void;
+  onPick: (question: QuickPickQuestion, selectedSide: string) => void;
 }) {
-  const pendingLabel = pendingSide === "ride" ? rideLabel : fadeLabel;
-
   return (
     <section className="mt-5 rounded-2xl border border-white/10 bg-black/55 p-3.5 shadow-[0_0_30px_rgba(132,204,22,0.08)]">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-gray-400">Pick a side</p>
-          <p className="mt-1 text-xs font-bold text-gray-300">Mini lock: +3 / -1</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-gray-400">Quick Picks</p>
+          <p className="mt-1 text-xs font-bold text-gray-300">Low stakes · {formatRepSwing(QUICK_PICK_WIN, QUICK_PICK_LOSS)} REP</p>
         </div>
-        {lockedSide && (
-          <span className="rounded-full border border-lime-300/45 bg-lime-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">
-            Locked
-          </span>
-        )}
+        <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-gray-300">
+          Fast lane
+        </span>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <GamePickButton
-          label={rideLabel}
-          tone="ride"
-          isLocked={lockedSide === "ride"}
-          isPending={pendingSide === "ride"}
-          disabled={Boolean(lockedSide) || isSaving}
-          onClick={() => onPick("ride")}
-        />
-        <GamePickButton
-          label={fadeLabel}
-          tone="fade"
-          isLocked={lockedSide === "fade"}
-          isPending={pendingSide === "fade"}
-          disabled={Boolean(lockedSide) || isSaving}
-          onClick={() => onPick("fade")}
-        />
-      </div>
+      <div className="mt-3 grid gap-3">
+        {questions.map((question) => {
+          const lockedSelection = selections[question.key];
+          const isSaving = savingQuestionKey === question.key;
 
-      {!lockedSide && pendingSide && (
-        <div className="mt-3 rounded-xl border border-lime-300/25 bg-lime-400/10 p-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime-300">Want to lock it?</p>
-              <p className="mt-1 text-xs font-bold text-gray-300">{pendingLabel} becomes permanent for this game.</p>
+          return (
+            <div key={question.key} className="rounded-xl border border-white/10 bg-black/40 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-black uppercase tracking-[0.12em] text-white">{question.questionText}</p>
+                {lockedSelection && (
+                  <span className="rounded-full border border-lime-300/45 bg-lime-300/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">
+                    Locked
+                  </span>
+                )}
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {question.options.map((option) => (
+                  <QuickPickButton
+                    key={option.value}
+                    label={option.label}
+                    tone={option.tone}
+                    isLocked={lockedSelection === option.value}
+                    disabled={Boolean(lockedSelection) || isSaving}
+                    onClick={() => onPick(question, option.value)}
+                  />
+                ))}
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={onConfirm}
-                disabled={isSaving}
-                className="min-h-9 rounded-lg border border-lime-300/45 bg-lime-400 px-3 text-[10px] font-black uppercase tracking-[0.12em] text-black transition active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
-              >
-                {isSaving ? "Locking" : "Lock It"}
-              </button>
-              <button
-                type="button"
-                onClick={onCancel}
-                disabled={isSaving}
-                className="min-h-9 rounded-lg border border-white/15 bg-black/35 px-3 text-[10px] font-black uppercase tracking-[0.12em] text-gray-300 transition active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
-              >
-                Naw
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          );
+        })}
+      </div>
 
       <p className="mt-3 text-center text-[11px] font-bold text-gray-400">
-        {message || "Ride/Fade is quick. Mini locks put a little REP on it."}
+        {message || "Quick Picks stay fast. Ride/Fade stays public. Locked Takes stay permanent."}
       </p>
     </section>
   );
 }
 
-function GamePickButton({
+function QuickPickButton({
   label,
   tone,
   isLocked,
-  isPending,
   disabled,
   onClick,
 }: {
   label: string;
-  tone: Side;
+  tone: "green" | "purple";
   isLocked: boolean;
-  isPending: boolean;
   disabled: boolean;
   onClick: () => void;
 }) {
   const toneClass =
-    tone === "ride"
-      ? "border-lime-300/55 text-lime-300 shadow-[0_0_22px_rgba(132,204,22,0.12)]"
-      : "border-purple-300/55 text-purple-300 shadow-[0_0_22px_rgba(168,85,247,0.14)]";
+    tone === "green"
+      ? "border-lime-300/45 text-lime-300 shadow-[0_0_18px_rgba(132,204,22,0.08)]"
+      : "border-purple-300/45 text-purple-300 shadow-[0_0_18px_rgba(168,85,247,0.1)]";
 
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`min-h-12 rounded-xl border bg-black/45 text-sm font-black uppercase tracking-[0.1em] transition active:scale-[0.98] disabled:cursor-not-allowed ${toneClass} ${
-        isLocked
-          ? "bg-white/10 ring-2 ring-white/10"
-          : isPending
-            ? "bg-white/[0.06] ring-2 ring-lime-300/20"
-            : "hover:-translate-y-0.5 hover:bg-white/[0.04]"
+      className={`min-h-10 rounded-xl border bg-black/35 px-3 text-xs font-black uppercase tracking-[0.12em] transition active:scale-[0.98] disabled:cursor-not-allowed ${toneClass} ${
+        isLocked ? "bg-white/[0.08] ring-2 ring-white/10" : "hover:-translate-y-0.5 hover:bg-white/[0.04]"
       }`}
     >
-      {isLocked ? `${label} ✓` : isPending ? `${label} ?` : label}
+      {isLocked ? `${label} ✓` : label}
     </button>
   );
+}
+
+function getQuickPickQuestions({
+  awayTeam,
+  homeTeam,
+  awayScore,
+  homeScore,
+}: {
+  awayTeam: string;
+  homeTeam: string;
+  awayScore: number;
+  homeScore: number;
+}) {
+  const trailingTeam = awayScore === homeScore ? awayTeam : awayScore < homeScore ? awayTeam : homeTeam;
+
+  return [
+    {
+      key: "next-bucket",
+      questionText: "Next bucket?",
+      options: [
+        { label: awayTeam, value: awayTeam, tone: "green" as const },
+        { label: homeTeam, value: homeTeam, tone: "purple" as const },
+      ],
+    },
+    {
+      key: "ot-incoming",
+      questionText: "OT incoming?",
+      options: [
+        { label: "Yes", value: "yes", tone: "purple" as const },
+        { label: "No", value: "no", tone: "green" as const },
+      ],
+    },
+    {
+      key: "comeback-alive",
+      questionText: `${trailingTeam} comeback alive?`,
+      options: [
+        { label: "Alive", value: "alive", tone: "green" as const },
+        { label: "Cooked", value: "cooked", tone: "purple" as const },
+      ],
+    },
+  ];
+}
+
+function toQuickPickKey(questionText: string) {
+  return questionText.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
 function ScoreTeam({

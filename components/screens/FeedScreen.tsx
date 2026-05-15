@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
-import { ACTIVE_GAME_ID, getLiveGames } from "@/lib/supabase/games";
+import { ACTIVE_GAME_ID, getArenaGames } from "@/lib/supabase/games";
 import {
   attachAuthorToTake,
   formatTakeForUI,
@@ -386,7 +386,10 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   const featuredTake = getFeaturedTakeFromList(visibleTakes);
   const trendingRealTakes = getTrendingTakesFromList(visibleTakes, 4);
   const activeSportGames = liveGames.filter((game) => getGameSportFromRow(game) === activeSport);
-  const activeSportGame = activeSportGames[0] ?? (activeSport === "NBA" ? activeGame : null);
+  const liveSportGames = activeSportGames.filter((game) => game.status === "live");
+  const scheduledSportGames = activeSportGames.filter((game) => game.status === "scheduled");
+  const finalSportGames = activeSportGames.filter((game) => game.status === "final");
+  const activeSportGame = liveSportGames[0] ?? scheduledSportGames[0] ?? (activeSport === "NBA" ? activeGame : null);
   const combinedReactions = { ...takeChoices, ...takeReactions } as Record<string, TakeReaction["reaction"]>;
   const dynamicChaosAlerts = buildChaosAlerts(visibleTakes);
 
@@ -396,7 +399,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
     async function loadArenaData() {
       const [{ game, feed, reactionMap }, { games }] = await Promise.all([
         refreshArenaData(ACTIVE_GAME_ID),
-        getLiveGames(),
+        getArenaGames(),
       ]);
 
       if (!isMounted) {
@@ -583,7 +586,13 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
         onOpenTake={openTakeThread}
         onReact={reactToLockedTake}
       />
-      <LiveArenas activeSport={activeSport} games={activeSportGames} onEnterArena={onEnterArena} />
+      <GameGroups
+        activeSport={activeSport}
+        liveGames={liveSportGames}
+        scheduledGames={scheduledSportGames}
+        finalGames={finalSportGames}
+        onEnterArena={onEnterArena}
+      />
       <ChaosAlerts alerts={dynamicChaosAlerts} />
     </div>
   );
@@ -1420,6 +1429,28 @@ function TrendingTakes({
   );
 }
 
+function GameGroups({
+  activeSport,
+  liveGames,
+  scheduledGames,
+  finalGames,
+  onEnterArena,
+}: {
+  activeSport: SportKey;
+  liveGames: Game[];
+  scheduledGames: Game[];
+  finalGames: Game[];
+  onEnterArena: (gameId?: string) => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <LiveArenas activeSport={activeSport} games={liveGames} onEnterArena={onEnterArena} />
+      <ScheduledGames activeSport={activeSport} games={scheduledGames} onEnterArena={onEnterArena} />
+      {finalGames.length > 0 && <FinalGames games={finalGames.slice(0, 4)} onEnterArena={onEnterArena} />}
+    </div>
+  );
+}
+
 function LiveArenas({
   activeSport,
   games,
@@ -1434,7 +1465,7 @@ function LiveArenas({
   const arenas = realArenas.length ? realArenas : fallbackArenas;
 
   return (
-    <FeedSection title="Live Arenas" icon="≋" action="See all">
+    <FeedSection title="Live Now" icon="≋" action="See all">
       <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
         {arenas.map((arena) => {
           const [left, right] = arena.matchup.split(" vs ");
@@ -1485,13 +1516,115 @@ function LiveArenas({
           <div className="min-w-full rounded-2xl border border-white/10 bg-black/35 p-4">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-lime-300">{activeSport} rooms warming up</p>
             <p className="mt-2 text-sm font-semibold text-gray-400">
-              The sport lane is ready. Live rooms will plug into the same takes, replies, heat, and mini-lock structure.
+              The sport lane is ready. Live rooms will plug into the same takes, replies, heat, and Quick Pick structure.
             </p>
           </div>
         )}
       </div>
     </FeedSection>
   );
+}
+
+function ScheduledGames({
+  activeSport,
+  games,
+  onEnterArena,
+}: {
+  activeSport: SportKey;
+  games: Game[];
+  onEnterArena: (gameId?: string) => void;
+}) {
+  if (!games.length) {
+    return null;
+  }
+
+  return (
+    <FeedSection title="Tonight / Upcoming" icon="◷" action={`${games.length} scheduled`}>
+      <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
+        {games.map((game) => (
+          <ScheduledGameCard key={game.id} game={game} activeSport={activeSport} onEnterArena={onEnterArena} />
+        ))}
+      </div>
+    </FeedSection>
+  );
+}
+
+function ScheduledGameCard({
+  game,
+  activeSport,
+  onEnterArena,
+}: {
+  game: Game;
+  activeSport: SportKey;
+  onEnterArena: (gameId?: string) => void;
+}) {
+  const startTime = formatStartTime(game.starts_at);
+
+  return (
+    <article className="premium-card min-w-[16.5rem] snap-start rounded-2xl border border-purple-300/20 p-4 shadow-[0_18px_45px_rgba(0,0,0,0.34)]">
+      <div className="flex items-center justify-between gap-3 text-[10px] font-black uppercase tracking-[0.12em]">
+        <span className="rounded-md border border-purple-300/45 bg-purple-500/10 px-2 py-1 text-purple-200">
+          {game.league || activeSport}
+        </span>
+        <span className="rounded-md border border-white/15 bg-white/[0.04] px-2 py-1 text-gray-300">Scheduled</span>
+      </div>
+      <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
+        <p className="sports-display text-4xl leading-none text-white">{game.away_team}</p>
+        <span className="text-xs font-black text-purple-200">VS</span>
+        <p className="sports-display text-4xl leading-none text-white">{game.home_team}</p>
+      </div>
+      <p className="mt-4 text-center text-xs font-black uppercase tracking-[0.12em] text-lime-300">
+        {startTime}
+      </p>
+      {game.event_name && (
+        <p className="mt-2 text-center text-[10px] font-black uppercase tracking-[0.12em] text-gray-500">{game.event_name}</p>
+      )}
+      <button
+        type="button"
+        onClick={() => onEnterArena(game.id)}
+        className="mt-4 min-h-11 w-full rounded-xl border border-purple-300/45 bg-purple-500/10 text-sm font-black uppercase tracking-[0.1em] text-purple-200 transition hover:bg-purple-500/15 active:scale-[0.98]"
+      >
+        Preview Game Room
+      </button>
+    </article>
+  );
+}
+
+function FinalGames({ games, onEnterArena }: { games: Game[]; onEnterArena: (gameId?: string) => void }) {
+  return (
+    <FeedSection title="Final" icon="✓" action="Archive">
+      <div className="grid gap-2 sm:grid-cols-2">
+        {games.map((game) => (
+          <button
+            key={game.id}
+            type="button"
+            onClick={() => onEnterArena(game.id)}
+            className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-2xl border border-white/10 bg-black/35 px-3 py-3 text-center transition hover:border-purple-300/25 hover:bg-white/[0.03] active:scale-[0.99]"
+          >
+            <span className="text-sm font-black text-white">
+              {game.away_team} <span className="text-lime-300">{game.away_score}</span>
+            </span>
+            <span className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-500">Final</span>
+            <span className="text-sm font-black text-white">
+              {game.home_team} <span className="text-purple-300">{game.home_score}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </FeedSection>
+  );
+}
+
+function formatStartTime(startsAt: string | null) {
+  if (!startsAt) {
+    return "Tipoff TBD";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(startsAt));
 }
 
 function ChaosAlerts({ alerts }: { alerts: ChaosAlert[] }) {

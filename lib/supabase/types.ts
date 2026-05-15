@@ -191,6 +191,57 @@ export type Database = {
           },
         ];
       };
+      quick_picks: {
+        Row: {
+          id: string;
+          user_id: string;
+          game_id: string;
+          question_text: string;
+          selected_side: string;
+          result: "pending" | "hit" | "miss";
+          rep_delta: number;
+          created_at: string;
+          settled_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          game_id: string;
+          question_text: string;
+          selected_side: string;
+          result?: "pending" | "hit" | "miss";
+          rep_delta?: number;
+          created_at?: string;
+          settled_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          game_id?: string;
+          question_text?: string;
+          selected_side?: string;
+          result?: "pending" | "hit" | "miss";
+          rep_delta?: number;
+          created_at?: string;
+          settled_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "quick_picks_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "quick_picks_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       takes: {
         Row: {
           id: string;
@@ -260,7 +311,10 @@ export type Database = {
           take_id: string;
           user_id: string;
           reaction: "ride" | "fade";
+          result: "pending" | "hit" | "miss";
+          rep_delta: number;
           created_at: string;
+          settled_at: string | null;
           updated_at: string;
         };
         Insert: {
@@ -268,7 +322,10 @@ export type Database = {
           take_id: string;
           user_id: string;
           reaction: "ride" | "fade";
+          result?: "pending" | "hit" | "miss";
+          rep_delta?: number;
           created_at?: string;
+          settled_at?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -276,7 +333,10 @@ export type Database = {
           take_id?: string;
           user_id?: string;
           reaction?: "ride" | "fade";
+          result?: "pending" | "hit" | "miss";
+          rep_delta?: number;
           created_at?: string;
+          settled_at?: string | null;
           updated_at?: string;
         };
         Relationships: [
@@ -464,6 +524,7 @@ export type Database = {
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Game = Database["public"]["Tables"]["games"]["Row"];
 export type GamePick = Database["public"]["Tables"]["game_picks"]["Row"];
+export type QuickPick = Database["public"]["Tables"]["quick_picks"]["Row"];
 export type Take = Database["public"]["Tables"]["takes"]["Row"];
 export type TakeReaction = Database["public"]["Tables"]["take_reactions"]["Row"];
 export type TakeReply = Database["public"]["Tables"]["take_replies"]["Row"];
