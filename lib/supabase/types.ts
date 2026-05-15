@@ -66,6 +66,8 @@ export type Database = {
         Row: {
           id: string;
           league: string;
+          event_slug: string | null;
+          event_name: string | null;
           home_team: string;
           away_team: string;
           home_score: number;
@@ -85,6 +87,8 @@ export type Database = {
         Insert: {
           id: string;
           league: string;
+          event_slug?: string | null;
+          event_name?: string | null;
           home_team: string;
           away_team: string;
           home_score?: number;
@@ -104,6 +108,8 @@ export type Database = {
         Update: {
           id?: string;
           league?: string;
+          event_slug?: string | null;
+          event_name?: string | null;
           home_team?: string;
           away_team?: string;
           home_score?: number;
@@ -130,8 +136,10 @@ export type Database = {
           pick: "ride" | "fade";
           status: "locked" | "settled";
           result: "pending" | "hit" | "miss";
+          is_locked: boolean;
           reputation_delta: number;
           created_at: string;
+          locked_at: string | null;
           settled_at: string | null;
         };
         Insert: {
@@ -141,8 +149,10 @@ export type Database = {
           pick: "ride" | "fade";
           status?: "locked" | "settled";
           result?: "pending" | "hit" | "miss";
+          is_locked?: boolean;
           reputation_delta?: number;
           created_at?: string;
+          locked_at?: string | null;
           settled_at?: string | null;
         };
         Update: {
@@ -152,8 +162,10 @@ export type Database = {
           pick?: "ride" | "fade";
           status?: "locked" | "settled";
           result?: "pending" | "hit" | "miss";
+          is_locked?: boolean;
           reputation_delta?: number;
           created_at?: string;
+          locked_at?: string | null;
           settled_at?: string | null;
         };
         Relationships: [

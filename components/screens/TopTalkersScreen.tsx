@@ -6,6 +6,7 @@ import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { createClient } from "@/lib/supabase/client";
 import { seededProfiles } from "@/data/seededCrowd";
+import { getPresenceMeta, getPresenceStatus } from "@/lib/presence";
 import { getHeatStatus, getReputationBadges, getReputationLevel } from "@/lib/reputation";
 import type { Profile } from "@/lib/supabase/types";
 
@@ -410,6 +411,8 @@ function TopTalkersBoard({ activeTab, talkers }: { activeTab: TalkersTab; talker
 }
 
 function TalkerTableRow({ talker }: { talker: TalkerRow }) {
+  const presence = getPresenceMeta(getPresenceStatus(talker.handle));
+
   return (
     <Link href={getReceiptHref(talker.handle)} className="grid gap-2.5 border-b border-white/10 px-3 py-2.5 last:border-b-0 transition hover:bg-white/[0.035] sm:grid-cols-[minmax(0,1fr)_4.25rem_3.5rem_4.25rem_3.25rem] sm:items-center">
       <div className="grid min-w-0 grid-cols-[1.75rem_auto_1fr] items-center gap-2.5">
@@ -420,6 +423,8 @@ function TalkerTableRow({ talker }: { talker: TalkerRow }) {
             {talker.handle} <span className="text-sky-300">◆</span>
           </p>
           <p className="truncate text-xs font-semibold text-gray-400">
+            <span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle ${presence.className}`} />
+            <span className={`mr-1.5 font-black uppercase ${presence.textClassName}`}>{presence.label}</span>
             {talker.subtitle}
             {talker.badge && <Badge label={talker.badge} />}
           </p>

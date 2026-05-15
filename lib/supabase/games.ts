@@ -80,6 +80,8 @@ export async function createGamePick({ gameId, pick }: { gameId: string; pick: G
       user_id: user.id,
       game_id: gameId,
       pick,
+      is_locked: true,
+      locked_at: new Date().toISOString(),
     })
     .select("*")
     .single();

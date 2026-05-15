@@ -345,7 +345,7 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
                       setMessage("");
                     }
                   }}
-                  placeholder="Talk back..."
+                  placeholder="Talk back... 🔥 😂 🧾"
                   className="min-h-24 w-full resize-none rounded-2xl border border-purple-300/45 bg-black/55 px-4 py-4 pr-16 text-base font-semibold text-white outline-none transition placeholder:text-gray-600 focus:border-lime-300/60 focus:shadow-[0_0_24px_rgba(132,204,22,0.12)]"
                 />
                 <span className="absolute bottom-3 right-4 text-xs font-bold text-gray-500">{replyText.length}/280</span>

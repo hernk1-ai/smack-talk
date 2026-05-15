@@ -19,7 +19,9 @@ import {
 import { reactToTake } from "@/lib/supabase/reactions";
 import { createLockedTake } from "@/lib/supabase/takes";
 import { getCrowdPressure, getHeatStatus, getReputationLevel } from "@/lib/reputation";
+import { getPresenceMeta, getPresenceStatus } from "@/lib/presence";
 import { seededChaosAlerts } from "@/data/seededCrowd";
+import { getGameSport, sportTabs, type SportKey } from "@/data/sportsStructure";
 import type { Game, Profile, TakeReaction } from "@/lib/supabase/types";
 
 type Side = "ride" | "fade";
@@ -39,6 +41,7 @@ type TrendingTake = {
 
 type LiveArenaCard = {
   id: string;
+  league: SportKey;
   matchup: string;
   quarter: string;
   viewers: string;
@@ -72,6 +75,150 @@ const featuredHotTake = {
   fades: "842",
   score: "LAL 108 — 103 GSW",
   movement: "LAL +21% last 5 min",
+};
+
+const featuredHotTakesBySport: Record<SportKey, typeof featuredHotTake> = {
+  NBA: featuredHotTake,
+  NFL: {
+    matchup: "KC vs PHI",
+    status: "Live",
+    period: "4th · 8:41",
+    watching: "18.4K watching",
+    handle: "@PrimeTalker",
+    avatar: "PT",
+    text: "Chiefs are built for this exact ugly game.",
+    heat: "2.4K",
+    rides: "1.4K",
+    fades: "822",
+    score: "KC 24 — 20 PHI",
+    movement: "KC +12% last drive",
+  },
+  MLB: {
+    matchup: "NYY vs BOS",
+    status: "Live",
+    period: "8th inning",
+    watching: "9.2K watching",
+    handle: "@RealDeal",
+    avatar: "RD",
+    text: "Boston crowd is about to swallow this bullpen.",
+    heat: "1.4K",
+    rides: "781",
+    fades: "512",
+    score: "NYY 4 — 5 BOS",
+    movement: "BOS +17% last inning",
+  },
+  NHL: {
+    matchup: "EDM vs DAL",
+    status: "Live",
+    period: "3rd · 11:08",
+    watching: "6.8K watching",
+    handle: "@NoMercy",
+    avatar: "NM",
+    text: "Next goal wins this. Dallas looks nervous.",
+    heat: "1.2K",
+    rides: "602",
+    fades: "447",
+    score: "EDM 2 — 2 DAL",
+    movement: "EDM +9% last shift",
+  },
+  Soccer: {
+    matchup: "ARS vs MCI",
+    status: "Live",
+    period: "76'",
+    watching: "15.1K watching",
+    handle: "@SharpMind",
+    avatar: "SM",
+    text: "City are baiting Arsenal into the late mistake.",
+    heat: "2.2K",
+    rides: "963",
+    fades: "1.1K",
+    score: "ARS 1 — 1 MCI",
+    movement: "Fade wave +14%",
+  },
+  "NCAA Football": {
+    matchup: "OSU vs MICH",
+    status: "Live",
+    period: "3rd · 4:12",
+    watching: "21.6K watching",
+    handle: "@ClutchCallz",
+    avatar: "CC",
+    text: "Michigan is bullying the line. Everybody sees it.",
+    heat: "2.8K",
+    rides: "1.6K",
+    fades: "923",
+    score: "OSU 17 — 21 MICH",
+    movement: "MICH +18% this quarter",
+  },
+  "NCAA Basketball": {
+    matchup: "DUKE vs UNC",
+    status: "Live",
+    period: "2nd · 3:04",
+    watching: "17.7K watching",
+    handle: "@MidRange",
+    avatar: "MR",
+    text: "UNC wants the smoke. Duke is leaking confidence.",
+    heat: "2.1K",
+    rides: "1.1K",
+    fades: "684",
+    score: "DUKE 68 — 72 UNC",
+    movement: "UNC +15% last run",
+  },
+  UFC: {
+    matchup: "Main Card",
+    status: "Live",
+    period: "Round 3",
+    watching: "14.3K watching",
+    handle: "@FadeKing",
+    avatar: "FK",
+    text: "That gas tank is gone. Fade the favorite now.",
+    heat: "1.9K",
+    rides: "735",
+    fades: "1.0K",
+    score: "R3 · 2:18",
+    movement: "Fade +22% this round",
+  },
+  Tennis: {
+    matchup: "WIM Final",
+    status: "Live",
+    period: "Set 4",
+    watching: "11.2K watching",
+    handle: "@RealDeal",
+    avatar: "RD",
+    text: "One break point away from a total collapse.",
+    heat: "1.5K",
+    rides: "802",
+    fades: "441",
+    score: "6-4 · 3-6 · 7-6 · 4-4",
+    movement: "Pressure +11%",
+  },
+  "World Cup": {
+    matchup: "USA vs BRA",
+    status: "Live",
+    period: "64'",
+    watching: "24.8K watching",
+    handle: "@HoopDreams",
+    avatar: "HD",
+    text: "Brazil are sleeping. This upset is sitting right there.",
+    heat: "3.1K",
+    rides: "1.8K",
+    fades: "902",
+    score: "USA 1 — 1 BRA",
+    movement: "USA +19% last 10 min",
+  },
+  Playoffs: {
+    matchup: "Finals Live",
+    status: "Live",
+    period: "Clutch Time",
+    watching: "31.4K watching",
+    handle: "@TalkHeavy23",
+    avatar: "TH",
+    text: "Legacy quarter. Somebody is getting exposed.",
+    heat: "4.7K",
+    rides: "2.7K",
+    fades: "1.4K",
+    score: "Finals pressure",
+    movement: "Heat +28%",
+  },
 };
 
 const trendingTakes: TrendingTake[] = [
@@ -128,6 +275,7 @@ const trendingTakes: TrendingTake[] = [
 const liveArenas: LiveArenaCard[] = [
   {
     id: "lal-gsw",
+    league: "NBA",
     matchup: "LAL vs GSW",
     quarter: "Q4 2:47",
     viewers: "12.8K",
@@ -140,6 +288,7 @@ const liveArenas: LiveArenaCard[] = [
   },
   {
     id: "bos-nyk",
+    league: "NBA",
     matchup: "BOS vs NYK",
     quarter: "Q3 6:12",
     viewers: "7.3K",
@@ -152,6 +301,7 @@ const liveArenas: LiveArenaCard[] = [
   },
   {
     id: "mia-atl",
+    league: "NBA",
     matchup: "MIA vs ATL",
     quarter: "Q2 3:38",
     viewers: "5.1K",
@@ -161,6 +311,58 @@ const liveArenas: LiveArenaCard[] = [
     heat: "1.2K",
     trend: "Ride Surge",
     trendDirection: "up",
+  },
+  {
+    id: "kc-phi",
+    league: "NFL",
+    matchup: "KC vs PHI",
+    quarter: "Q4 8:41",
+    viewers: "18.4K",
+    score: "24 - 20",
+    riding: "54% Riding KC",
+    fading: "46% Fading PHI",
+    heat: "2.4K",
+    trend: "Drive Surge",
+    trendDirection: "up",
+  },
+  {
+    id: "nyy-bos",
+    league: "MLB",
+    matchup: "NYY vs BOS",
+    quarter: "8TH",
+    viewers: "9.2K",
+    score: "4 - 5",
+    riding: "47% Riding NYY",
+    fading: "53% Fading BOS",
+    heat: "1.4K",
+    trend: "Crowd Split",
+    trendDirection: "down",
+  },
+  {
+    id: "edm-dal",
+    league: "NHL",
+    matchup: "EDM vs DAL",
+    quarter: "3RD 11:08",
+    viewers: "6.8K",
+    score: "2 - 2",
+    riding: "51% Riding EDM",
+    fading: "49% Fading DAL",
+    heat: "1.2K",
+    trend: "Next Goal",
+    trendDirection: "up",
+  },
+  {
+    id: "ars-mci",
+    league: "Soccer",
+    matchup: "ARS vs MCI",
+    quarter: "76'",
+    viewers: "15.1K",
+    score: "1 - 1",
+    riding: "48% Riding ARS",
+    fading: "52% Fading MCI",
+    heat: "2.2K",
+    trend: "Fade Wave",
+    trendDirection: "down",
   },
 ];
 
@@ -177,10 +379,14 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void
   const [reactionLoadingTakeId, setReactionLoadingTakeId] = useState<string | null>(null);
   const [reactionMessage, setReactionMessage] = useState("");
   const [recentActivity, setRecentActivity] = useState<string[]>([]);
-  const featuredTake = getFeaturedTakeFromList(gameTakes);
-  const trendingRealTakes = getTrendingTakesFromList(gameTakes, 4);
+  const [activeSport, setActiveSport] = useState<SportKey>("NBA");
+  const sportTakes = gameTakes.filter((take) => getGameSport(take.game_id) === activeSport);
+  const visibleTakes = activeSport === "NBA" ? sportTakes : [];
+  const featuredTake = getFeaturedTakeFromList(visibleTakes);
+  const trendingRealTakes = getTrendingTakesFromList(visibleTakes, 4);
+  const activeSportGame = activeSport === "NBA" ? activeGame : null;
   const combinedReactions = { ...takeChoices, ...takeReactions } as Record<string, TakeReaction["reaction"]>;
-  const dynamicChaosAlerts = buildChaosAlerts(gameTakes);
+  const dynamicChaosAlerts = buildChaosAlerts(visibleTakes);
 
   useEffect(() => {
     let isMounted = true;
@@ -318,8 +524,10 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void
   return (
     <div className="space-y-5">
       <FeedHeader profile={profile} />
+      <SportSelector activeSport={activeSport} onSelect={setActiveSport} />
       <FeaturedHotTakeCard
-        game={activeGame}
+        sport={activeSport}
+        game={activeSportGame}
         take={featuredTake}
         onJoinLive={onEnterArena}
         onOpenTake={featuredTake ? () => openTakeThread(featuredTake.id) : undefined}
@@ -352,7 +560,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void
         onLock={lockTake}
       />
       <LiveLockedTakes
-        takes={gameTakes}
+        takes={visibleTakes}
         reactions={combinedReactions}
         loadingTakeId={reactionLoadingTakeId}
         message={reactionMessage}
@@ -369,9 +577,39 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void
         onOpenTake={openTakeThread}
         onReact={reactToLockedTake}
       />
-      <LiveArenas onEnterArena={onEnterArena} />
+      <LiveArenas activeSport={activeSport} onEnterArena={onEnterArena} />
       <ChaosAlerts alerts={dynamicChaosAlerts} />
     </div>
+  );
+}
+
+function SportSelector({
+  activeSport,
+  onSelect,
+}: {
+  activeSport: SportKey;
+  onSelect: (sport: SportKey) => void;
+}) {
+  return (
+    <nav className="rounded-[1.5rem] border border-white/10 bg-black/30 p-2 shadow-[0_18px_48px_rgba(0,0,0,0.3)] backdrop-blur">
+      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" aria-label="Sport filters">
+        {sportTabs.map((sport) => (
+          <button
+            key={sport}
+            type="button"
+            onClick={() => onSelect(sport)}
+            aria-pressed={activeSport === sport}
+            className={`min-h-10 shrink-0 rounded-xl border px-3 text-[10px] font-black uppercase tracking-[0.12em] transition active:scale-[0.98] ${
+              activeSport === sport
+                ? "border-lime-300/60 bg-lime-400/15 text-lime-200 shadow-[0_0_22px_rgba(132,204,22,0.14)]"
+                : "border-white/10 bg-white/[0.03] text-gray-400 hover:border-purple-300/35 hover:text-purple-200"
+            }`}
+          >
+            {sport}
+          </button>
+        ))}
+      </div>
+    </nav>
   );
 }
 
@@ -471,27 +709,30 @@ function formatGameStatus(status: Game["status"]) {
 }
 
 function FeaturedHotTakeCard({
+  sport,
   game,
   take,
   onJoinLive,
   onOpenTake,
 }: {
+  sport: SportKey;
   game: Game | null;
   take: ArenaTake | null;
   onJoinLive: () => void;
   onOpenTake?: () => void;
 }) {
-  const matchup = game ? `${game.away_team} vs ${game.home_team}` : featuredHotTake.matchup;
-  const period = game ? [game.period, game.clock].filter(Boolean).join(" · ") : featuredHotTake.period;
-  const watching = game ? `${formatCompact(game.watching_count)} watching` : featuredHotTake.watching;
+  const fallbackTake = featuredHotTakesBySport[sport];
+  const matchup = game ? `${game.away_team} vs ${game.home_team}` : fallbackTake.matchup;
+  const period = game ? [game.period, game.clock].filter(Boolean).join(" · ") : fallbackTake.period;
+  const watching = game ? `${formatCompact(game.watching_count)} watching` : fallbackTake.watching;
   const score = game
     ? `${game.away_team} ${game.away_score} — ${game.home_score} ${game.home_team}`
-    : featuredHotTake.score;
-  const heat = take ? formatCompact(take.heat) : game ? formatCompact(game.heat) : featuredHotTake.heat;
-  const rides = take ? formatCompact(take.ride_count) : game ? formatCompact(game.ride_count) : featuredHotTake.rides;
-  const fades = take ? formatCompact(take.fade_count) : game ? formatCompact(game.fade_count) : featuredHotTake.fades;
+    : fallbackTake.score;
+  const heat = take ? formatCompact(take.heat) : game ? formatCompact(game.heat) : fallbackTake.heat;
+  const rides = take ? formatCompact(take.ride_count) : game ? formatCompact(game.ride_count) : fallbackTake.rides;
+  const fades = take ? formatCompact(take.fade_count) : game ? formatCompact(game.fade_count) : fallbackTake.fades;
   const replies = take ? formatCompact(take.reply_count) : "0";
-  const status = game ? formatGameStatus(game.status) : featuredHotTake.status;
+  const status = game ? formatGameStatus(game.status) : fallbackTake.status;
   const author = take ? formatTakeForUI(take) : null;
   const level = getReputationLevel(take?.author?.reputation_score ?? 0, take?.author?.created_takes_count ?? 0);
   const heatStatus = getHeatStatus({ heat: take?.heat ?? game?.heat ?? 0, reputation: take?.author?.reputation_score ?? 0 });
@@ -501,10 +742,11 @@ function FeaturedHotTakeCard({
     heat: take?.heat ?? game?.heat ?? 0,
     replyCount: take?.reply_count ?? 0,
   });
-  const handle = author?.handle ?? featuredHotTake.handle;
-  const avatar = author?.initials ?? featuredHotTake.avatar;
+  const handle = author?.handle ?? fallbackTake.handle;
+  const avatar = author?.initials ?? fallbackTake.avatar;
   const avatarUrl = author?.avatarUrl ?? null;
-  const takeText = take?.take_text ?? featuredHotTake.text;
+  const takeText = take?.take_text ?? fallbackTake.text;
+  const presence = getPresenceMeta(getPresenceStatus(handle));
 
   return (
     <section className="arena-scoreboard overflow-hidden rounded-[1.75rem] border border-lime-300/25 p-4 shadow-[0_26px_80px_rgba(0,0,0,0.56),0_0_34px_rgba(132,204,22,0.08)]">
@@ -564,6 +806,10 @@ function FeaturedHotTakeCard({
               </Link>
               <span className="text-sky-300">◆</span>
               <p className="text-xs font-bold text-gray-500">{watching}</p>
+              <span className="flex items-center gap-1 rounded-md border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-gray-400">
+                <span className={`h-1.5 w-1.5 rounded-full ${presence.className}`} />
+                <span className={presence.textClassName}>{presence.label}</span>
+              </span>
               <span className="rounded-md border border-lime-300/25 bg-lime-400/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-lime-300">
                 {level.title}
               </span>
@@ -609,7 +855,7 @@ function FeaturedHotTakeCard({
           <div className="rounded-2xl border border-white/10 bg-black/45 p-3 sm:min-w-48 sm:text-right">
             <p className="text-[10px] font-black uppercase text-gray-500">Game context</p>
             <p className="mt-1 text-sm font-black text-white">{score}</p>
-            <p className="mt-1 text-xs font-black uppercase text-lime-300">{featuredHotTake.movement}</p>
+            <p className="mt-1 text-xs font-black uppercase text-lime-300">{fallbackTake.movement}</p>
           </div>
         </div>
       </div>
@@ -735,7 +981,7 @@ function LockTakeComposer({
             value={value}
             maxLength={150}
             onChange={(event) => onChange(event.target.value)}
-            placeholder="Say it with your chest..."
+            placeholder="Say it with your chest... 🔥 😂 👀"
             className="min-h-24 w-full resize-none rounded-2xl border border-purple-300/45 bg-black/55 px-4 py-4 pr-16 text-base font-semibold text-white outline-none transition placeholder:text-gray-600 focus:border-lime-300/60 focus:shadow-[0_0_24px_rgba(132,204,22,0.12)] md:min-h-16"
           />
           <span className="absolute bottom-3 right-4 text-xs font-bold text-gray-500">{value.length}/150</span>
@@ -808,6 +1054,7 @@ function LiveLockedTakes({
             heat: take.heat,
             replyCount: take.reply_count,
           });
+          const presence = getPresenceMeta(getPresenceStatus(handle));
 
           return (
             <article
@@ -837,6 +1084,8 @@ function LiveLockedTakes({
                       {handle}
                     </Link>
                     <span className="text-sky-300">◆</span>
+                    <span className={`h-1.5 w-1.5 rounded-full ${presence.className}`} />
+                    <span className={`text-[10px] font-black uppercase ${presence.textClassName}`}>{presence.label}</span>
                     <span className="text-xs font-bold text-gray-500">{formatTakeAge(take.created_at)}</span>
                   </div>
                   <h3 className="mt-2 text-xl font-black leading-tight text-white">{take.take_text}</h3>
@@ -1018,6 +1267,7 @@ function TrendingTakes({
           const activeReaction = reactions[take.id];
           const isLoading = loadingTakeId === take.id;
           const heatStatus = getHeatStatus({ heat: take.heat, reputation: take.author?.reputation_score ?? 0 });
+          const presence = getPresenceMeta(getPresenceStatus(handle));
 
           return (
             <article
@@ -1050,7 +1300,12 @@ function TrendingTakes({
               >
                 {handle} <span className="text-sky-300">◆</span>
               </Link>
-              <p className="text-[10px] font-bold text-gray-500">{formatTakeAge(take.created_at)}</p>
+              <p className="flex items-center gap-1 text-[10px] font-bold text-gray-500">
+                <span className={`h-1.5 w-1.5 rounded-full ${presence.className}`} />
+                <span className={presence.textClassName}>{presence.label}</span>
+                <span>·</span>
+                <span>{formatTakeAge(take.created_at)}</span>
+              </p>
               <h3 className="mt-3 min-h-14 text-xl font-black leading-tight text-white">{take.take_text}</h3>
               <p className="mt-2 rounded-md border border-lime-300/20 bg-lime-400/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-lime-200">
                 {heatStatus.label}
@@ -1125,11 +1380,13 @@ function TrendingTakes({
   );
 }
 
-function LiveArenas({ onEnterArena }: { onEnterArena: () => void }) {
+function LiveArenas({ activeSport, onEnterArena }: { activeSport: SportKey; onEnterArena: () => void }) {
+  const arenas = liveArenas.filter((arena) => arena.league === activeSport);
+
   return (
     <FeedSection title="Live Arenas" icon="≋" action="See all">
       <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
-        {liveArenas.map((arena) => {
+        {arenas.map((arena) => {
           const [left, right] = arena.matchup.split(" vs ");
           const [leftScore, rightScore] = arena.score.split(" - ");
 
@@ -1174,6 +1431,14 @@ function LiveArenas({ onEnterArena }: { onEnterArena: () => void }) {
             </article>
           );
         })}
+        {!arenas.length && (
+          <div className="min-w-full rounded-2xl border border-white/10 bg-black/35 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-lime-300">{activeSport} rooms warming up</p>
+            <p className="mt-2 text-sm font-semibold text-gray-400">
+              The sport lane is ready. Live rooms will plug into the same takes, replies, heat, and mini-lock structure.
+            </p>
+          </div>
+        )}
       </div>
     </FeedSection>
   );

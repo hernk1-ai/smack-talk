@@ -104,6 +104,7 @@ const topTalkers: TopTalker[] = [
 export function LiveArena({ onBack }: { onBack: () => void }) {
   const [activeTab, setActiveTab] = useState<ArenaTab>("chat");
   const [gamePickSide, setGamePickSide] = useState<Side>();
+  const [pendingMiniLockSide, setPendingMiniLockSide] = useState<Side | null>(null);
   const [isGamePickSaving, setIsGamePickSaving] = useState(false);
   const [gamePickMessage, setGamePickMessage] = useState("");
 
@@ -117,8 +118,13 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
         return;
       }
 
-      setGamePickSide(gamePick.pick);
-      setGamePickMessage(`Locked: ${gamePick.pick === "ride" ? "Ride LAL" : "Fade GSW"}`);
+      if (gamePick.is_locked) {
+        setGamePickSide(gamePick.pick);
+        setGamePickMessage(`Mini lock: ${gamePick.pick === "ride" ? "Ride LAL" : "Fade GSW"}`);
+        return;
+      }
+
+      setPendingMiniLockSide(gamePick.pick);
     }
 
     loadGamePick();
@@ -128,15 +134,33 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
     };
   }, []);
 
-  async function lockGamePick(side: Side) {
+  function previewMiniLock(side: Side) {
     if (gamePickSide || isGamePickSaving) {
+      return;
+    }
+
+    setPendingMiniLockSide(side);
+    setGamePickMessage(`Want to lock ${side === "ride" ? "Ride LAL" : "Fade GSW"}?`);
+  }
+
+  function cancelMiniLock() {
+    if (isGamePickSaving) {
+      return;
+    }
+
+    setPendingMiniLockSide(null);
+    setGamePickMessage("No lock yet. You can still pick a side when the pressure feels right.");
+  }
+
+  async function lockGamePick() {
+    if (gamePickSide || !pendingMiniLockSide || isGamePickSaving) {
       return;
     }
 
     setIsGamePickSaving(true);
     setGamePickMessage("");
 
-    const { gamePick, error } = await createGamePick({ gameId: ACTIVE_GAME_ID, pick: side });
+    const { gamePick, error } = await createGamePick({ gameId: ACTIVE_GAME_ID, pick: pendingMiniLockSide });
 
     setIsGamePickSaving(false);
 
@@ -146,7 +170,8 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
     }
 
     setGamePickSide(gamePick.pick);
-    setGamePickMessage(`Locked: ${gamePick.pick === "ride" ? "Ride LAL" : "Fade GSW"}`);
+    setPendingMiniLockSide(null);
+    setGamePickMessage(`Mini lock sealed: ${gamePick.pick === "ride" ? "Ride LAL" : "Fade GSW"} · +3 / -1`);
   }
 
   return (
@@ -155,9 +180,12 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
         <ArenaHeader onBack={onBack} />
         <ArenaScoreboard
           gamePickSide={gamePickSide}
+          pendingMiniLockSide={pendingMiniLockSide}
           isGamePickSaving={isGamePickSaving}
           gamePickMessage={gamePickMessage}
-          onGamePick={lockGamePick}
+          onGamePick={previewMiniLock}
+          onConfirmMiniLock={lockGamePick}
+          onCancelMiniLock={cancelMiniLock}
         />
         <ArenaTabs activeTab={activeTab} onSelect={setActiveTab} />
 
@@ -252,14 +280,20 @@ function HeaderIcon({
 
 function ArenaScoreboard({
   gamePickSide,
+  pendingMiniLockSide,
   isGamePickSaving,
   gamePickMessage,
   onGamePick,
+  onConfirmMiniLock,
+  onCancelMiniLock,
 }: {
   gamePickSide?: Side;
+  pendingMiniLockSide: Side | null;
   isGamePickSaving: boolean;
   gamePickMessage: string;
   onGamePick: (side: Side) => void;
+  onConfirmMiniLock: () => void;
+  onCancelMiniLock: () => void;
 }) {
   return (
     <section className="arena-scoreboard overflow-hidden rounded-[1.75rem] border border-white/10 p-4 pt-5 shadow-[0_26px_80px_rgba(0,0,0,0.56),0_0_34px_rgba(168,85,247,0.08)] sm:p-5">
@@ -297,9 +331,12 @@ function ArenaScoreboard({
 
       <GamePickPanel
         lockedSide={gamePickSide}
+        pendingSide={pendingMiniLockSide}
         isSaving={isGamePickSaving}
         message={gamePickMessage}
         onPick={onGamePick}
+        onConfirm={onConfirmMiniLock}
+        onCancel={onCancelMiniLock}
       />
 
       <div className="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-black/50 p-3.5 sm:grid-cols-[0.8fr_1.25fr_0.85fr] sm:items-center">
@@ -324,21 +361,29 @@ function ArenaScoreboard({
 
 function GamePickPanel({
   lockedSide,
+  pendingSide,
   isSaving,
   message,
   onPick,
+  onConfirm,
+  onCancel,
 }: {
   lockedSide?: Side;
+  pendingSide: Side | null;
   isSaving: boolean;
   message: string;
   onPick: (side: Side) => void;
+  onConfirm: () => void;
+  onCancel: () => void;
 }) {
+  const pendingLabel = pendingSide === "ride" ? "Ride LAL" : "Fade GSW";
+
   return (
     <section className="mt-5 rounded-2xl border border-white/10 bg-black/55 p-3.5 shadow-[0_0_30px_rgba(132,204,22,0.08)]">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-gray-400">Pick a side</p>
-          <p className="mt-1 text-xs font-bold text-gray-300">Game pick: +10 / -5</p>
+          <p className="mt-1 text-xs font-bold text-gray-300">Mini lock: +3 / -1</p>
         </div>
         {lockedSide && (
           <span className="rounded-full border border-lime-300/45 bg-lime-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">
@@ -352,6 +397,7 @@ function GamePickPanel({
           label="Ride LAL"
           tone="ride"
           isLocked={lockedSide === "ride"}
+          isPending={pendingSide === "ride"}
           disabled={Boolean(lockedSide) || isSaving}
           onClick={() => onPick("ride")}
         />
@@ -359,13 +405,43 @@ function GamePickPanel({
           label="Fade GSW"
           tone="fade"
           isLocked={lockedSide === "fade"}
+          isPending={pendingSide === "fade"}
           disabled={Boolean(lockedSide) || isSaving}
           onClick={() => onPick("fade")}
         />
       </div>
 
+      {!lockedSide && pendingSide && (
+        <div className="mt-3 rounded-xl border border-lime-300/25 bg-lime-400/10 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime-300">Want to lock it?</p>
+              <p className="mt-1 text-xs font-bold text-gray-300">{pendingLabel} becomes permanent for this game.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={onConfirm}
+                disabled={isSaving}
+                className="min-h-9 rounded-lg border border-lime-300/45 bg-lime-400 px-3 text-[10px] font-black uppercase tracking-[0.12em] text-black transition active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
+              >
+                {isSaving ? "Locking" : "Lock It"}
+              </button>
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={isSaving}
+                className="min-h-9 rounded-lg border border-white/15 bg-black/35 px-3 text-[10px] font-black uppercase tracking-[0.12em] text-gray-300 transition active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
+              >
+                Naw
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <p className="mt-3 text-center text-[11px] font-bold text-gray-400">
-        {message || "One game pick per matchup. Once it is locked, it stays locked."}
+        {message || "Ride/Fade is quick. Mini locks put a little REP on it."}
       </p>
     </section>
   );
@@ -375,12 +451,14 @@ function GamePickButton({
   label,
   tone,
   isLocked,
+  isPending,
   disabled,
   onClick,
 }: {
   label: string;
   tone: Side;
   isLocked: boolean;
+  isPending: boolean;
   disabled: boolean;
   onClick: () => void;
 }) {
@@ -395,10 +473,14 @@ function GamePickButton({
       onClick={onClick}
       disabled={disabled}
       className={`min-h-12 rounded-xl border bg-black/45 text-sm font-black uppercase tracking-[0.1em] transition active:scale-[0.98] disabled:cursor-not-allowed ${toneClass} ${
-        isLocked ? "bg-white/10 ring-2 ring-white/10" : "hover:-translate-y-0.5 hover:bg-white/[0.04]"
+        isLocked
+          ? "bg-white/10 ring-2 ring-white/10"
+          : isPending
+            ? "bg-white/[0.06] ring-2 ring-lime-300/20"
+            : "hover:-translate-y-0.5 hover:bg-white/[0.04]"
       }`}
     >
-      {isLocked ? `${label} ✓` : label}
+      {isLocked ? `${label} ✓` : isPending ? `${label} ?` : label}
     </button>
   );
 }
