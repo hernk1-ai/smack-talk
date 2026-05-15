@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
-import { ACTIVE_GAME_ID } from "@/lib/supabase/games";
+import { ACTIVE_GAME_ID, getLiveGames } from "@/lib/supabase/games";
 import {
   attachAuthorToTake,
   formatTakeForUI,
@@ -366,7 +366,7 @@ const liveArenas: LiveArenaCard[] = [
   },
 ];
 
-export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void; profile?: Profile | null }) {
+export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: string) => void; profile?: Profile | null }) {
   const router = useRouter();
   const [takeChoices, setTakeChoices] = useState<Record<string, Side>>({});
   const [featuredChoice, setFeaturedChoice] = useState<Side | null>(null);
@@ -374,6 +374,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void
   const [lockTakeStatus, setLockTakeStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [lockTakeMessage, setLockTakeMessage] = useState("");
   const [activeGame, setActiveGame] = useState<Game | null>(null);
+  const [liveGames, setLiveGames] = useState<Game[]>([]);
   const [gameTakes, setGameTakes] = useState<ArenaTake[]>([]);
   const [takeReactions, setTakeReactions] = useState<Record<string, TakeReaction["reaction"]>>({});
   const [reactionLoadingTakeId, setReactionLoadingTakeId] = useState<string | null>(null);
@@ -384,7 +385,8 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void
   const visibleTakes = activeSport === "NBA" ? sportTakes : [];
   const featuredTake = getFeaturedTakeFromList(visibleTakes);
   const trendingRealTakes = getTrendingTakesFromList(visibleTakes, 4);
-  const activeSportGame = activeSport === "NBA" ? activeGame : null;
+  const activeSportGames = liveGames.filter((game) => getGameSportFromRow(game) === activeSport);
+  const activeSportGame = activeSportGames[0] ?? (activeSport === "NBA" ? activeGame : null);
   const combinedReactions = { ...takeChoices, ...takeReactions } as Record<string, TakeReaction["reaction"]>;
   const dynamicChaosAlerts = buildChaosAlerts(visibleTakes);
 
@@ -392,13 +394,17 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void
     let isMounted = true;
 
     async function loadArenaData() {
-      const { game, feed, reactionMap } = await refreshArenaData(ACTIVE_GAME_ID);
+      const [{ game, feed, reactionMap }, { games }] = await Promise.all([
+        refreshArenaData(ACTIVE_GAME_ID),
+        getLiveGames(),
+      ]);
 
       if (!isMounted) {
         return;
       }
 
       setActiveGame(game);
+      setLiveGames(games);
       const mergedFeed = mergeArenaFeedWithSeeded(feed, game?.id ?? ACTIVE_GAME_ID);
       setGameTakes(mergedFeed);
       setTakeReactions(reactionMap);
@@ -423,7 +429,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void
     setLockTakeMessage("");
 
     const { take, error } = await createLockedTake({
-      gameId: activeGame?.id ?? ACTIVE_GAME_ID,
+      gameId: activeSportGame?.id ?? activeGame?.id ?? ACTIVE_GAME_ID,
       takeText: lockedTake,
     });
 
@@ -529,7 +535,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void
         sport={activeSport}
         game={activeSportGame}
         take={featuredTake}
-        onJoinLive={onEnterArena}
+        onJoinLive={() => onEnterArena(activeSportGame?.id ?? ACTIVE_GAME_ID)}
         onOpenTake={featuredTake ? () => openTakeThread(featuredTake.id) : undefined}
       />
       <FeaturedRideFade
@@ -577,7 +583,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void
         onOpenTake={openTakeThread}
         onReact={reactToLockedTake}
       />
-      <LiveArenas activeSport={activeSport} onEnterArena={onEnterArena} />
+      <LiveArenas activeSport={activeSport} games={activeSportGames} onEnterArena={onEnterArena} />
       <ChaosAlerts alerts={dynamicChaosAlerts} />
     </div>
   );
@@ -706,6 +712,40 @@ function formatGameStatus(status: Game["status"]) {
   }
 
   return "Scheduled";
+}
+
+function getGameSportFromRow(game: Game): SportKey {
+  const leagueSport = sportTabs.find((sport) => sport.toLowerCase() === game.league.toLowerCase());
+
+  if (leagueSport) {
+    return leagueSport;
+  }
+
+  if (game.sport?.toLowerCase() === "basketball") {
+    return "NBA";
+  }
+
+  return getGameSport(game.id);
+}
+
+function gameToLiveArenaCard(game: Game): LiveArenaCard {
+  const total = Math.max(game.ride_count + game.fade_count, 1);
+  const ridePercent = Math.round((game.ride_count / total) * 100);
+  const fadePercent = 100 - ridePercent;
+
+  return {
+    id: game.id,
+    league: getGameSportFromRow(game),
+    matchup: `${game.away_team} vs ${game.home_team}`,
+    quarter: [game.period, game.clock].filter(Boolean).join(" ") || formatGameStatus(game.status),
+    viewers: formatCompact(game.watching_count),
+    score: `${game.away_score} - ${game.home_score}`,
+    riding: `${ridePercent}% Riding ${game.away_team}`,
+    fading: `${fadePercent}% Fading ${game.home_team}`,
+    heat: formatCompact(game.heat),
+    trend: game.event_name ?? "Live Room",
+    trendDirection: ridePercent >= fadePercent ? "up" : "down",
+  };
 }
 
 function FeaturedHotTakeCard({
@@ -1380,8 +1420,18 @@ function TrendingTakes({
   );
 }
 
-function LiveArenas({ activeSport, onEnterArena }: { activeSport: SportKey; onEnterArena: () => void }) {
-  const arenas = liveArenas.filter((arena) => arena.league === activeSport);
+function LiveArenas({
+  activeSport,
+  games,
+  onEnterArena,
+}: {
+  activeSport: SportKey;
+  games: Game[];
+  onEnterArena: (gameId?: string) => void;
+}) {
+  const realArenas = games.map(gameToLiveArenaCard);
+  const fallbackArenas = liveArenas.filter((arena) => arena.league === activeSport);
+  const arenas = realArenas.length ? realArenas : fallbackArenas;
 
   return (
     <FeedSection title="Live Arenas" icon="≋" action="See all">
@@ -1423,7 +1473,7 @@ function LiveArenas({ activeSport, onEnterArena }: { activeSport: SportKey; onEn
               </div>
               <button
                 type="button"
-                onClick={onEnterArena}
+                onClick={() => onEnterArena(arena.id)}
                 className="mt-4 min-h-11 w-full rounded-xl border border-lime-300/30 bg-lime-400/5 text-sm font-black uppercase text-lime-300 transition active:scale-[0.98]"
               >
                 Join Live

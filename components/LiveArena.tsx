@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
-import { ACTIVE_GAME_ID, createGamePick, getMyGamePick } from "@/lib/supabase/games";
+import { ACTIVE_GAME_ID, createGamePick, getGameById, getMyGamePick } from "@/lib/supabase/games";
+import type { Game } from "@/lib/supabase/types";
 
 type ArenaTab = "chat" | "calls" | "control-room" | "top-talkers";
 type Side = "ride" | "fade";
@@ -101,26 +102,35 @@ const topTalkers: TopTalker[] = [
   { rank: 5, handle: "@HoopDreams", heat: "2.1K", avatar: "HD" },
 ];
 
-export function LiveArena({ onBack }: { onBack: () => void }) {
+export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string; onBack: () => void }) {
   const [activeTab, setActiveTab] = useState<ArenaTab>("chat");
+  const [game, setGame] = useState<Game | null>(null);
   const [gamePickSide, setGamePickSide] = useState<Side>();
   const [pendingMiniLockSide, setPendingMiniLockSide] = useState<Side | null>(null);
   const [isGamePickSaving, setIsGamePickSaving] = useState(false);
   const [gamePickMessage, setGamePickMessage] = useState("");
+  const rideLabel = `Ride ${game?.away_team ?? "LAL"}`;
+  const fadeLabel = `Fade ${game?.home_team ?? "GSW"}`;
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadGamePick() {
-      const { gamePick } = await getMyGamePick(ACTIVE_GAME_ID);
+      const [{ game: loadedGame }, { gamePick }] = await Promise.all([getGameById(gameId), getMyGamePick(gameId)]);
 
-      if (!isMounted || !gamePick) {
+      if (!isMounted) {
+        return;
+      }
+
+      setGame(loadedGame);
+
+      if (!gamePick) {
         return;
       }
 
       if (gamePick.is_locked) {
         setGamePickSide(gamePick.pick);
-        setGamePickMessage(`Mini lock: ${gamePick.pick === "ride" ? "Ride LAL" : "Fade GSW"}`);
+        setGamePickMessage(`Mini lock: ${gamePick.pick === "ride" ? `Ride ${loadedGame?.away_team ?? "LAL"}` : `Fade ${loadedGame?.home_team ?? "GSW"}`}`);
         return;
       }
 
@@ -132,7 +142,7 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [gameId]);
 
   function previewMiniLock(side: Side) {
     if (gamePickSide || isGamePickSaving) {
@@ -140,7 +150,7 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
     }
 
     setPendingMiniLockSide(side);
-    setGamePickMessage(`Want to lock ${side === "ride" ? "Ride LAL" : "Fade GSW"}?`);
+    setGamePickMessage(`Want to lock ${side === "ride" ? rideLabel : fadeLabel}?`);
   }
 
   function cancelMiniLock() {
@@ -160,7 +170,7 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
     setIsGamePickSaving(true);
     setGamePickMessage("");
 
-    const { gamePick, error } = await createGamePick({ gameId: ACTIVE_GAME_ID, pick: pendingMiniLockSide });
+    const { gamePick, error } = await createGamePick({ gameId, pick: pendingMiniLockSide });
 
     setIsGamePickSaving(false);
 
@@ -171,7 +181,7 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
 
     setGamePickSide(gamePick.pick);
     setPendingMiniLockSide(null);
-    setGamePickMessage(`Mini lock sealed: ${gamePick.pick === "ride" ? "Ride LAL" : "Fade GSW"} · +3 / -1`);
+    setGamePickMessage(`Mini lock sealed: ${gamePick.pick === "ride" ? rideLabel : fadeLabel} · +3 / -1`);
   }
 
   return (
@@ -179,6 +189,7 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
       <div className="arena-shell screen-safe-bottom space-y-5">
         <ArenaHeader onBack={onBack} />
         <ArenaScoreboard
+          game={game}
           gamePickSide={gamePickSide}
           pendingMiniLockSide={pendingMiniLockSide}
           isGamePickSaving={isGamePickSaving}
@@ -279,6 +290,7 @@ function HeaderIcon({
 }
 
 function ArenaScoreboard({
+  game,
   gamePickSide,
   pendingMiniLockSide,
   isGamePickSaving,
@@ -287,6 +299,7 @@ function ArenaScoreboard({
   onConfirmMiniLock,
   onCancelMiniLock,
 }: {
+  game: Game | null;
   gamePickSide?: Side;
   pendingMiniLockSide: Side | null;
   isGamePickSaving: boolean;
@@ -295,32 +308,41 @@ function ArenaScoreboard({
   onConfirmMiniLock: () => void;
   onCancelMiniLock: () => void;
 }) {
+  const awayTeam = game?.away_team ?? "LAL";
+  const homeTeam = game?.home_team ?? "GSW";
+  const awayScore = String(game?.away_score ?? 108);
+  const homeScore = String(game?.home_score ?? 103);
+  const period = game?.period ?? "4th QTR";
+  const clock = game?.clock ?? "2:47";
+  const watching = game?.watching_count ?? 12800;
+  const status = game?.status ?? "live";
+
   return (
     <section className="arena-scoreboard overflow-hidden rounded-[1.75rem] border border-white/10 p-4 pt-5 shadow-[0_26px_80px_rgba(0,0,0,0.56),0_0_34px_rgba(168,85,247,0.08)] sm:p-5">
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2 text-center sm:gap-3">
-        <ScoreTeam team="LAL" score="108" label="Team LAL" tone="ride" />
+        <ScoreTeam team={awayTeam} score={awayScore} label={`Team ${awayTeam}`} tone="ride" />
 
         <div className="pb-1">
           <span className="rounded-md border border-red-400/60 bg-red-500/10 px-2.5 py-1 text-xs font-black uppercase text-red-300">
-            ▷ Live
+            ▷ {status}
           </span>
-          <p className="mt-3 text-xs font-black uppercase text-purple-300">4th QTR</p>
-          <p className="scoreboard-number mt-1 text-4xl text-white">2:47</p>
+          <p className="mt-3 text-xs font-black uppercase text-purple-300">{period}</p>
+          <p className="scoreboard-number mt-1 text-4xl text-white">{clock}</p>
           <p className="mt-2 flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-gray-300">
-            <span className="h-2 w-2 rounded-full bg-lime-400" /> 12.8K Watching
+            <span className="h-2 w-2 rounded-full bg-lime-400" /> {formatCompact(watching)} Watching
           </p>
           <span className="mx-auto mt-3 grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/60 text-[10px] font-black text-gray-300">
             VS
           </span>
         </div>
 
-        <ScoreTeam team="GSW" score="103" label="Team GSW" tone="fade" />
+        <ScoreTeam team={homeTeam} score={homeScore} label={`Team ${homeTeam}`} tone="fade" />
       </div>
 
       <div className="mt-5">
         <div className="flex items-center justify-between gap-3 text-xs font-black uppercase">
-          <span className="text-lime-300">62% Riding LAL</span>
-          <span className="text-purple-300">38% Fading GSW</span>
+          <span className="text-lime-300">62% Riding {awayTeam}</span>
+          <span className="text-purple-300">38% Fading {homeTeam}</span>
         </div>
         <div className="mt-2 flex h-3 overflow-hidden rounded-full bg-white/10">
           <div className="w-[62%] bg-gradient-to-r from-lime-400 to-lime-300" />
@@ -332,6 +354,8 @@ function ArenaScoreboard({
       <GamePickPanel
         lockedSide={gamePickSide}
         pendingSide={pendingMiniLockSide}
+        rideLabel={`Ride ${awayTeam}`}
+        fadeLabel={`Fade ${homeTeam}`}
         isSaving={isGamePickSaving}
         message={gamePickMessage}
         onPick={onGamePick}
@@ -359,9 +383,18 @@ function ArenaScoreboard({
   );
 }
 
+function formatCompact(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: value >= 1000 ? 1 : 0,
+  }).format(value);
+}
+
 function GamePickPanel({
   lockedSide,
   pendingSide,
+  rideLabel,
+  fadeLabel,
   isSaving,
   message,
   onPick,
@@ -370,13 +403,15 @@ function GamePickPanel({
 }: {
   lockedSide?: Side;
   pendingSide: Side | null;
+  rideLabel: string;
+  fadeLabel: string;
   isSaving: boolean;
   message: string;
   onPick: (side: Side) => void;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  const pendingLabel = pendingSide === "ride" ? "Ride LAL" : "Fade GSW";
+  const pendingLabel = pendingSide === "ride" ? rideLabel : fadeLabel;
 
   return (
     <section className="mt-5 rounded-2xl border border-white/10 bg-black/55 p-3.5 shadow-[0_0_30px_rgba(132,204,22,0.08)]">
@@ -394,7 +429,7 @@ function GamePickPanel({
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <GamePickButton
-          label="Ride LAL"
+          label={rideLabel}
           tone="ride"
           isLocked={lockedSide === "ride"}
           isPending={pendingSide === "ride"}
@@ -402,7 +437,7 @@ function GamePickPanel({
           onClick={() => onPick("ride")}
         />
         <GamePickButton
-          label="Fade GSW"
+          label={fadeLabel}
           tone="fade"
           isLocked={lockedSide === "fade"}
           isPending={pendingSide === "fade"}

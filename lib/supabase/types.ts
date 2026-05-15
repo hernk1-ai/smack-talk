@@ -65,7 +65,9 @@ export type Database = {
       games: {
         Row: {
           id: string;
+          external_game_id: string | null;
           league: string;
+          sport: string | null;
           event_slug: string | null;
           event_name: string | null;
           home_team: string;
@@ -86,7 +88,9 @@ export type Database = {
         };
         Insert: {
           id: string;
+          external_game_id?: string | null;
           league: string;
+          sport?: string | null;
           event_slug?: string | null;
           event_name?: string | null;
           home_team: string;
@@ -107,7 +111,9 @@ export type Database = {
         };
         Update: {
           id?: string;
+          external_game_id?: string | null;
           league?: string;
+          sport?: string | null;
           event_slug?: string | null;
           event_name?: string | null;
           home_team?: string;

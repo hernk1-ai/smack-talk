@@ -8,22 +8,29 @@ import { FeedScreen } from "@/components/screens/FeedScreen";
 import { ProfileScreen } from "@/components/screens/ProfileScreen";
 import { ReceiptsScreen, type ReceiptOwner } from "@/components/screens/ReceiptsScreen";
 import { TopTalkersScreen } from "@/components/screens/TopTalkersScreen";
+import { ACTIVE_GAME_ID } from "@/lib/supabase/games";
 import type { Profile } from "@/lib/supabase/types";
 
 export function SmackTalkApp({
   profile,
   initialView = "arena",
   receiptOwner,
+  initialGameId = ACTIVE_GAME_ID,
 }: {
   profile?: Profile | null;
   initialView?: AppView;
   receiptOwner?: ReceiptOwner | null;
+  initialGameId?: string;
 }) {
   const router = useRouter();
   const [appView, setAppView] = useState<AppView>(initialView);
+  const [activeGameRoomId, setActiveGameRoomId] = useState(initialGameId);
 
   const goToArena = () => setAppView("arena");
-  const joinLive = () => setAppView("live-arena");
+  const joinLive = (gameId = ACTIVE_GAME_ID) => {
+    setActiveGameRoomId(gameId);
+    setAppView("live-arena");
+  };
   const selectBottomNav = (view: "arena" | "receipts" | "top-talkers" | "settings") => {
     if (view === "arena") {
       router.push("/app");
@@ -52,7 +59,7 @@ export function SmackTalkApp({
   return (
     <>
       {appView === "live-arena" ? (
-        <LiveArena onBack={goToArena} />
+        <LiveArena gameId={activeGameRoomId} onBack={goToArena} />
       ) : appView === "arena" ? (
         <ArenaView onJoinLive={joinLive} profile={profile} />
       ) : appView === "receipts" ? (
@@ -70,7 +77,7 @@ export function SmackTalkApp({
   );
 }
 
-function ArenaView({ onJoinLive, profile }: { onJoinLive: () => void; profile?: Profile | null }) {
+function ArenaView({ onJoinLive, profile }: { onJoinLive: (gameId?: string) => void; profile?: Profile | null }) {
   return (
     <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white sm:py-6">
       <div className="feed-shell screen-safe-bottom">

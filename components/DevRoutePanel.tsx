@@ -81,6 +81,11 @@ const devRoutes = [
     label: "Smack Talk App",
     file: "app/app/page.tsx",
   },
+  {
+    href: "/game/lal-gsw-live",
+    label: "Game Room",
+    file: "app/game/[gameId]/page.tsx",
+  },
 ];
 
 export function DevRoutePanel() {
@@ -88,6 +93,8 @@ export function DevRoutePanel() {
   const [isOpen, setIsOpen] = useState(false);
   const [settlementStatus, setSettlementStatus] = useState("");
   const [settlementLoading, setSettlementLoading] = useState<"hit" | "miss" | null>(null);
+  const [syncStatus, setSyncStatus] = useState("");
+  const [isSyncing, setIsSyncing] = useState(false);
 
   if (process.env.NODE_ENV !== "development") {
     return null;
@@ -101,6 +108,24 @@ export function DevRoutePanel() {
 
     setSettlementStatus(error ? error.message : `Settled ${rows.length} take${rows.length === 1 ? "" : "s"} as ${result}.`);
     setSettlementLoading(null);
+  }
+
+  async function handleSyncGames() {
+    setIsSyncing(true);
+    setSyncStatus("");
+
+    try {
+      const response = await fetch("/api/sync-games", {
+        method: "POST",
+      });
+      const payload = (await response.json()) as { count?: number; error?: string };
+
+      setSyncStatus(response.ok ? `Synced ${payload.count ?? 0} NBA game${payload.count === 1 ? "" : "s"}.` : payload.error ?? "Sync failed.");
+    } catch (error) {
+      setSyncStatus(error instanceof Error ? error.message : "Sync failed.");
+    } finally {
+      setIsSyncing(false);
+    }
   }
 
   return (
@@ -143,6 +168,20 @@ export function DevRoutePanel() {
                 </Link>
               );
             })}
+          </div>
+          <div className="mt-3 border-t border-white/10 pt-3">
+            <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-lime-300">
+              Live Data
+            </p>
+            <button
+              type="button"
+              onClick={handleSyncGames}
+              disabled={isSyncing}
+              className="w-full rounded-full border border-lime-300/35 bg-lime-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.1em] text-lime-200 transition hover:bg-lime-400/20 disabled:cursor-wait disabled:opacity-60"
+            >
+              {isSyncing ? "Syncing..." : "Sync NBA Games"}
+            </button>
+            {syncStatus && <p className="mt-2 text-[10px] font-bold leading-4 text-gray-300">{syncStatus}</p>}
           </div>
           <div className="mt-3 border-t border-white/10 pt-3">
             <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-purple-300">

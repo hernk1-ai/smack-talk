@@ -24,3 +24,14 @@ export async function settleGameForDev(result: "hit" | "miss", gameId = ACTIVE_G
 
   return { rows: data ?? [], error };
 }
+
+export async function settlePendingGame(gameId: string, result: "hit" | "miss") {
+  return settleGameForDev(result, gameId);
+}
+
+export async function handleGameFinalized(gameId: string) {
+  return {
+    rows: [],
+    error: new Error(`Automatic settlement is not enabled yet for ${gameId}. Use dev settlement while MVP scoring is manual.`),
+  };
+}
