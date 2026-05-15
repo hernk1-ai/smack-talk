@@ -71,78 +71,79 @@ returns table (
   receipt_id uuid,
   settled_result text
 )
-language sql
+language plpgsql
 security definer
 set search_path = public
-as $$
-  with valid_result as (
-    select settle_result as requested_result
-    where settle_result in ('hit', 'miss')
-  ),
-  settled_game as (
-    update public.games as game
-    set
-      status = 'final',
-      ended_at = coalesce(game.ended_at, now()),
-      updated_at = now()
-    from valid_result
-    where game.id = target_game_id
-    returning game.id
-  ),
-  newly_settled as (
+as $dev_settle_game$
+declare
+  take_record record;
+  mini_lock_record record;
+  generated_receipt_id uuid;
+begin
+  if settle_result not in ('hit', 'miss') then
+    raise exception 'settle_result must be hit or miss';
+  end if;
+
+  update public.games as game
+  set
+    status = 'final',
+    ended_at = coalesce(game.ended_at, now()),
+    updated_at = now()
+  where game.id = target_game_id;
+
+  for take_record in
     update public.takes as locked_take
     set
       status = 'settled',
-      result = valid_result.requested_result,
+      result = settle_result,
       settled_at = coalesce(locked_take.settled_at, now()),
       updated_at = now()
-    from valid_result
     where locked_take.game_id = target_game_id
       and locked_take.status = 'locked'
       and locked_take.result = 'pending'
     returning locked_take.id, locked_take.result
-  ),
-  generated_receipts as (
-    select
-      newly_settled.id as take_id,
-      public.create_receipt_for_take(newly_settled.id) as receipt_id,
-      newly_settled.result as take_result
-    from newly_settled
-  ),
-  settled_mini_locks as (
+  loop
+    generated_receipt_id := public.create_receipt_for_take(take_record.id);
+
+    if generated_receipt_id is null then
+      select receipt.id
+      into generated_receipt_id
+      from public.receipts as receipt
+      where receipt.take_id = take_record.id
+      limit 1;
+    end if;
+
+    settled_take_id := take_record.id;
+    receipt_id := generated_receipt_id;
+    settled_result := take_record.result::text;
+
+    return next;
+  end loop;
+
+  for mini_lock_record in
     update public.game_picks as game_pick
     set
       status = 'settled',
-      result = valid_result.requested_result,
+      result = settle_result,
       reputation_delta = case
-        when valid_result.requested_result = 'hit' then 3
+        when settle_result = 'hit' then 3
         else -1
       end,
       settled_at = coalesce(game_pick.settled_at, now())
-    from valid_result
     where game_pick.game_id = target_game_id
       and game_pick.is_locked = true
       and game_pick.status = 'locked'
       and game_pick.result = 'pending'
     returning game_pick.user_id, game_pick.reputation_delta
-  ),
-  updated_mini_lock_rep as (
+  loop
     update public.profiles as profile
     set
-      reputation_score = profile.reputation_score + settled_mini_locks.reputation_delta,
-      reputation = profile.reputation + settled_mini_locks.reputation_delta,
+      reputation_score = profile.reputation_score + mini_lock_record.reputation_delta,
+      reputation = profile.reputation + mini_lock_record.reputation_delta,
       updated_at = now()
-    from settled_mini_locks
-    where profile.id = settled_mini_locks.user_id
-    returning profile.id
-  )
-  select
-    generated_receipts.take_id as settled_take_id,
-    coalesce(generated_receipts.receipt_id, receipt.id) as receipt_id,
-    generated_receipts.take_result::text as settled_result
-  from generated_receipts
-  left join public.receipts as receipt on receipt.take_id = generated_receipts.take_id
-  order by generated_receipts.take_id;
-$$;
+    where profile.id = mini_lock_record.user_id;
+  end loop;
+end;
+$dev_settle_game$;
 
 grant execute on function public.dev_settle_game(text, text) to authenticated;
