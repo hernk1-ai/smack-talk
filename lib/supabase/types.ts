@@ -122,6 +122,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      game_picks: {
+        Row: {
+          id: string;
+          user_id: string;
+          game_id: string;
+          pick: "ride" | "fade";
+          status: "locked" | "settled";
+          result: "pending" | "hit" | "miss";
+          reputation_delta: number;
+          created_at: string;
+          settled_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          game_id: string;
+          pick: "ride" | "fade";
+          status?: "locked" | "settled";
+          result?: "pending" | "hit" | "miss";
+          reputation_delta?: number;
+          created_at?: string;
+          settled_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          game_id?: string;
+          pick?: "ride" | "fade";
+          status?: "locked" | "settled";
+          result?: "pending" | "hit" | "miss";
+          reputation_delta?: number;
+          created_at?: string;
+          settled_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "game_picks_game_id_fkey";
+            columns: ["game_id"];
+            isOneToOne: false;
+            referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "game_picks_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       takes: {
         Row: {
           id: string;
@@ -394,6 +445,7 @@ export type Database = {
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Game = Database["public"]["Tables"]["games"]["Row"];
+export type GamePick = Database["public"]["Tables"]["game_picks"]["Row"];
 export type Take = Database["public"]["Tables"]["takes"]["Row"];
 export type TakeReaction = Database["public"]["Tables"]["take_reactions"]["Row"];
 export type TakeReply = Database["public"]["Tables"]["take_replies"]["Row"];

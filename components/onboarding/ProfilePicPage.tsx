@@ -140,13 +140,6 @@ export function ProfilePicPage({ username }: { username?: string }) {
 
           <div className="mt-7 flex items-center justify-center gap-3 text-3xl font-black text-white sm:text-4xl">
             <span>@{cleanUsername}</span>
-            <Link
-              href={`/username?username=${encodeURIComponent(cleanUsername)}`}
-              className="grid h-10 w-10 place-items-center rounded-xl border border-lime-300/30 bg-lime-300/10 text-xl text-lime-300 transition hover:-translate-y-0.5 hover:border-purple-300/60 hover:text-purple-300"
-              aria-label="Edit username"
-            >
-              ✎
-            </Link>
           </div>
 
           <ProfilePreview avatarKey={selectedAvatarKey} previewDataUrl={previewDataUrl} />

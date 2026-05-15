@@ -781,13 +781,14 @@ function PerformanceBadgeCard({ badge, compact = false }: { badge: PerformanceBa
 
 function getReceiptOwner(profile?: Profile | null, recordOwner?: ReceiptOwner | null): ReceiptOwnerMeta {
   const username = recordOwner?.username || profile?.username || "TalkHeavy23";
+  const isViewingRecordOwner = Boolean(recordOwner);
 
   return {
     handle: `@${username.replace(/^@/, "")}`,
     initials: getInitials(username),
-    avatarUrl: recordOwner?.avatarUrl ?? profile?.avatar_url,
-    reputation: recordOwner?.reputation ?? profile?.reputation_score ?? profile?.reputation,
-    isCurrentUser: !recordOwner,
+    avatarUrl: isViewingRecordOwner ? (recordOwner?.avatarUrl ?? null) : profile?.avatar_url,
+    reputation: isViewingRecordOwner ? recordOwner?.reputation : profile?.reputation_score ?? profile?.reputation,
+    isCurrentUser: !isViewingRecordOwner,
   };
 }
 

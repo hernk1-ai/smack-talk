@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { ACTIVE_GAME_ID, createGamePick, getMyGamePick } from "@/lib/supabase/games";
 
 type ArenaTab = "chat" | "calls" | "control-room" | "top-talkers";
 type Side = "ride" | "fade";
@@ -103,18 +104,68 @@ const topTalkers: TopTalker[] = [
 export function LiveArena({ onBack }: { onBack: () => void }) {
   const [activeTab, setActiveTab] = useState<ArenaTab>("chat");
   const [lockedSide, setLockedSide] = useState<Side>();
+  const [gamePickSide, setGamePickSide] = useState<Side>();
+  const [isGamePickSaving, setIsGamePickSaving] = useState(false);
+  const [gamePickMessage, setGamePickMessage] = useState("");
   const [takeText, setTakeText] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadGamePick() {
+      const { gamePick } = await getMyGamePick(ACTIVE_GAME_ID);
+
+      if (!isMounted || !gamePick) {
+        return;
+      }
+
+      setGamePickSide(gamePick.pick);
+      setGamePickMessage(`Locked: ${gamePick.pick === "ride" ? "Ride LAL" : "Fade GSW"}`);
+    }
+
+    loadGamePick();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   function lockTake(side?: Side) {
     setLockedSide(side ?? "ride");
     setTakeText("");
   }
 
+  async function lockGamePick(side: Side) {
+    if (gamePickSide || isGamePickSaving) {
+      return;
+    }
+
+    setIsGamePickSaving(true);
+    setGamePickMessage("");
+
+    const { gamePick, error } = await createGamePick({ gameId: ACTIVE_GAME_ID, pick: side });
+
+    setIsGamePickSaving(false);
+
+    if (error || !gamePick) {
+      setGamePickMessage(error?.message || "Could not lock that game pick.");
+      return;
+    }
+
+    setGamePickSide(gamePick.pick);
+    setGamePickMessage(`Locked: ${gamePick.pick === "ride" ? "Ride LAL" : "Fade GSW"}`);
+  }
+
   return (
     <main className="min-h-dvh overflow-x-hidden bg-transparent pb-4 pt-[calc(1rem+env(safe-area-inset-top))] text-white sm:pb-5 sm:pt-5">
       <div className="arena-shell screen-safe-bottom space-y-5">
         <ArenaHeader onBack={onBack} />
-        <ArenaScoreboard />
+        <ArenaScoreboard
+          gamePickSide={gamePickSide}
+          isGamePickSaving={isGamePickSaving}
+          gamePickMessage={gamePickMessage}
+          onGamePick={lockGamePick}
+        />
         <ArenaTabs activeTab={activeTab} onSelect={setActiveTab} />
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
@@ -207,7 +258,17 @@ function HeaderIcon({
   );
 }
 
-function ArenaScoreboard() {
+function ArenaScoreboard({
+  gamePickSide,
+  isGamePickSaving,
+  gamePickMessage,
+  onGamePick,
+}: {
+  gamePickSide?: Side;
+  isGamePickSaving: boolean;
+  gamePickMessage: string;
+  onGamePick: (side: Side) => void;
+}) {
   return (
     <section className="arena-scoreboard overflow-hidden rounded-[1.75rem] border border-white/10 p-4 pt-5 shadow-[0_26px_80px_rgba(0,0,0,0.56),0_0_34px_rgba(168,85,247,0.08)] sm:p-5">
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2 text-center sm:gap-3">
@@ -242,6 +303,13 @@ function ArenaScoreboard() {
         </div>
       </div>
 
+      <GamePickPanel
+        lockedSide={gamePickSide}
+        isSaving={isGamePickSaving}
+        message={gamePickMessage}
+        onPick={onGamePick}
+      />
+
       <div className="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-black/50 p-3.5 sm:grid-cols-[0.8fr_1.25fr_0.85fr] sm:items-center">
         <div>
           <p className="text-[10px] font-black uppercase text-gray-400">Heat Level</p>
@@ -259,6 +327,87 @@ function ArenaScoreboard() {
         </div>
       </div>
     </section>
+  );
+}
+
+function GamePickPanel({
+  lockedSide,
+  isSaving,
+  message,
+  onPick,
+}: {
+  lockedSide?: Side;
+  isSaving: boolean;
+  message: string;
+  onPick: (side: Side) => void;
+}) {
+  return (
+    <section className="mt-5 rounded-2xl border border-white/10 bg-black/55 p-3.5 shadow-[0_0_30px_rgba(132,204,22,0.08)]">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-gray-400">Pick a side</p>
+          <p className="mt-1 text-xs font-bold text-gray-300">Game pick: +10 / -5</p>
+        </div>
+        {lockedSide && (
+          <span className="rounded-full border border-lime-300/45 bg-lime-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">
+            Locked
+          </span>
+        )}
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <GamePickButton
+          label="Ride LAL"
+          tone="ride"
+          isLocked={lockedSide === "ride"}
+          disabled={Boolean(lockedSide) || isSaving}
+          onClick={() => onPick("ride")}
+        />
+        <GamePickButton
+          label="Fade GSW"
+          tone="fade"
+          isLocked={lockedSide === "fade"}
+          disabled={Boolean(lockedSide) || isSaving}
+          onClick={() => onPick("fade")}
+        />
+      </div>
+
+      <p className="mt-3 text-center text-[11px] font-bold text-gray-400">
+        {message || "One game pick per matchup. Once it is locked, it stays locked."}
+      </p>
+    </section>
+  );
+}
+
+function GamePickButton({
+  label,
+  tone,
+  isLocked,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  tone: Side;
+  isLocked: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const toneClass =
+    tone === "ride"
+      ? "border-lime-300/55 text-lime-300 shadow-[0_0_22px_rgba(132,204,22,0.12)]"
+      : "border-purple-300/55 text-purple-300 shadow-[0_0_22px_rgba(168,85,247,0.14)]";
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`min-h-12 rounded-xl border bg-black/45 text-sm font-black uppercase tracking-[0.1em] transition active:scale-[0.98] disabled:cursor-not-allowed ${toneClass} ${
+        isLocked ? "bg-white/10 ring-2 ring-white/10" : "hover:-translate-y-0.5 hover:bg-white/[0.04]"
+      }`}
+    >
+      {isLocked ? `${label} ✓` : label}
+    </button>
   );
 }
 

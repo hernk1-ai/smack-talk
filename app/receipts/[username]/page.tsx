@@ -20,6 +20,8 @@ export default async function PublicReceiptsPage({ params }: { params: Promise<{
   const { username } = await params;
   const supabase = await createClient();
   let profile = null;
+  const key = decodeURIComponent(username).replace(/^@/, "").toLowerCase();
+  let publicProfileOwner: ReceiptOwner | null = null;
 
   if (supabase) {
     const {
@@ -30,10 +32,24 @@ export default async function PublicReceiptsPage({ params }: { params: Promise<{
       const result = await ensureProfile(supabase, user);
       profile = result.profile;
     }
+
+    const { data: viewedProfile } = await supabase
+      .from("profiles")
+      .select("username, avatar_url, reputation_score, reputation, favorite_teams")
+      .ilike("username", key)
+      .maybeSingle();
+
+    if (viewedProfile) {
+      publicProfileOwner = {
+        username: viewedProfile.username || toDisplayUsername(key),
+        avatarUrl: viewedProfile.avatar_url,
+        reputation: viewedProfile.reputation_score ?? viewedProfile.reputation ?? 0,
+        favoriteTeams: viewedProfile.favorite_teams ?? ["LAL", "NYK", "DEN"],
+      };
+    }
   }
 
-  const key = decodeURIComponent(username).replace(/^@/, "").toLowerCase();
-  const recordOwner = seededOwners[key] ?? {
+  const recordOwner = publicProfileOwner ?? seededOwners[key] ?? {
     username: toDisplayUsername(key),
     avatarUrl: null,
     reputation: 4200,
