@@ -25,12 +25,28 @@ export function SmackTalkApp({
   const goToArena = () => setAppView("arena");
   const joinLive = () => setAppView("live-arena");
   const selectBottomNav = (view: "arena" | "receipts" | "top-talkers" | "settings") => {
+    if (view === "arena") {
+      router.push("/app");
+      setAppView("arena");
+      return;
+    }
+
+    if (view === "receipts") {
+      router.push("/receipts");
+      setAppView("receipts");
+      return;
+    }
+
+    if (view === "top-talkers") {
+      router.push("/top-talkers");
+      setAppView("top-talkers");
+      return;
+    }
+
     if (view === "settings") {
       router.push("/settings");
       return;
     }
-
-    setAppView(view);
   };
 
   return (

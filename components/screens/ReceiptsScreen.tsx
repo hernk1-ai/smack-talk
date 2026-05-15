@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type KeyboardEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
-import { getCurrentUserReceipts } from "@/lib/supabase/receipts";
+import { getSeededReceiptsByUsername, type SeededReceipt } from "@/data/seededCrowd";
+import { getCurrentUserReceipts, getReceiptsByUser } from "@/lib/supabase/receipts";
 import type { Profile, Receipt } from "@/lib/supabase/types";
 
 type ReceiptStatus = "win" | "loss";
@@ -51,6 +53,7 @@ type PerformanceBadge = {
 };
 
 export type ReceiptOwner = {
+  userId?: string | null;
   username: string;
   avatarUrl?: string | null;
   reputation?: number | null;
@@ -58,6 +61,7 @@ export type ReceiptOwner = {
 };
 
 type ReceiptOwnerMeta = {
+  userId?: string | null;
   handle: string;
   initials: string;
   avatarUrl?: string | null;
@@ -210,6 +214,7 @@ export function ReceiptsScreen({
   profile?: Profile | null;
   recordOwner?: ReceiptOwner | null;
 }) {
+  const router = useRouter();
   const owner = getReceiptOwner(profile, recordOwner);
   const currentUser = owner;
   const [realReceipts, setRealReceipts] = useState<Receipt[]>([]);
@@ -220,11 +225,11 @@ export function ReceiptsScreen({
     let isMounted = true;
 
     async function loadReceipts() {
-      if (!owner.isCurrentUser) {
-        return;
-      }
-
-      const { receipts, error } = await getCurrentUserReceipts();
+      const { receipts, error } = owner.isCurrentUser
+        ? await getCurrentUserReceipts()
+        : owner.userId
+          ? await getReceiptsByUser(owner.userId)
+          : { receipts: [] as Receipt[], error: null };
 
       if (!isMounted) {
         return;
@@ -239,12 +244,23 @@ export function ReceiptsScreen({
     return () => {
       isMounted = false;
     };
-  }, [owner.isCurrentUser]);
+  }, [owner.isCurrentUser, owner.userId]);
 
   const recentReceiptCards = useMemo(
-    () => (realReceipts.length ? realReceipts.map((receipt) => mapReceiptToRecent(receipt, owner)) : recentReceipts),
+    () => {
+      if (realReceipts.length) {
+        return realReceipts.map((receipt) => mapReceiptToRecent(receipt, owner));
+      }
+
+      const seededReceipts = getSeededReceiptsByUsername(owner.handle);
+      return seededReceipts.length ? seededReceipts.map((receipt) => mapSeededReceiptToRecent(receipt, owner)) : recentReceipts;
+    },
     [owner, realReceipts],
   );
+  const proofHighlightCards = useMemo(() => {
+    const seededReceipts = realReceipts.length ? [] : getSeededReceiptsByUsername(owner.handle);
+    return seededReceipts.length ? seededReceipts.map((receipt, index) => mapSeededReceiptToViral(receipt, owner, index)) : viralReceipts;
+  }, [owner, realReceipts.length]);
   const featuredReceipt = realReceipts[0] ?? null;
 
   async function copyShareUrl() {
@@ -268,6 +284,10 @@ export function ReceiptsScreen({
         setReceiptError("Could not copy this receipt link.");
       }
     }
+  }
+
+  function openReceiptDetail(receiptId: string) {
+    router.push(`/receipt/${encodeURIComponent(receiptId)}`);
   }
 
   return (
@@ -295,6 +315,7 @@ export function ReceiptsScreen({
               key={receipt.id}
               receipt={receipt}
               currentUser={index === 0 ? currentUser : undefined}
+              onOpen={openReceiptDetail}
             />
           ))}
         </div>
@@ -302,11 +323,12 @@ export function ReceiptsScreen({
 
       <ReceiptSection title="Proof Highlights" icon="◇" action="See all">
         <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
-          {viralReceipts.map((receipt, index) => (
+          {proofHighlightCards.map((receipt, index) => (
             <ViralReceiptCard
               key={receipt.id}
               receipt={receipt}
               currentUser={index === 0 ? currentUser : undefined}
+              onOpen={openReceiptDetail}
             />
           ))}
         </div>
@@ -545,7 +567,7 @@ function ReceiptIdentityCard({
               onClick={onShare}
               className="mt-4 min-h-12 rounded-2xl border border-purple-300/60 bg-purple-500/15 px-5 text-sm font-black uppercase tracking-[0.1em] text-purple-100 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition hover:-translate-y-0.5 hover:bg-purple-500/25 hover:shadow-[0_0_34px_rgba(168,85,247,0.24)] active:scale-95"
             >
-              {copied ? "Receipt link copied" : "Share My Receipts"}
+              {copied ? "Receipt link copied" : "Share"}
             </button>
           </div>
         </article>
@@ -618,15 +640,27 @@ function ReceiptSection({
 function RecentReceiptCard({
   receipt,
   currentUser,
+  onOpen,
 }: {
   receipt: RecentReceipt;
   currentUser?: ReceiptOwnerMeta;
+  onOpen: (receiptId: string) => void;
 }) {
   const isWin = receipt.status === "win";
   const handle = currentUser?.handle ?? receipt.handle;
+  const handleOpenKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onOpen(receipt.id);
+    }
+  };
 
   return (
     <article
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(receipt.id)}
+      onKeyDown={handleOpenKeyDown}
       className={`min-w-[72vw] max-w-[15rem] snap-start rounded-2xl border bg-black/45 p-3 shadow-[0_18px_45px_rgba(0,0,0,0.34)] transition hover:-translate-y-1 active:scale-[0.985] sm:min-w-[13.75rem] ${
         isWin
           ? "border-lime-300/35 hover:shadow-[0_20px_52px_rgba(132,204,22,0.12)]"
@@ -647,6 +681,7 @@ function RecentReceiptCard({
       <div className="mt-3 flex items-center gap-2">
         <Link
           href={getReceiptHref(handle, Boolean(currentUser))}
+          onClick={(event) => event.stopPropagation()}
           className="rounded-full transition hover:scale-105 active:scale-95"
           aria-label={`${handle} receipts`}
         >
@@ -657,7 +692,11 @@ function RecentReceiptCard({
             size="sm"
           />
         </Link>
-        <Link href={getReceiptHref(handle, Boolean(currentUser))} className="truncate text-xs font-black text-white transition hover:text-lime-200">
+        <Link
+          href={getReceiptHref(handle, Boolean(currentUser))}
+          onClick={(event) => event.stopPropagation()}
+          className="truncate text-xs font-black text-white transition hover:text-lime-200"
+        >
           {handle} <span className="text-sky-300">◆</span>
         </Link>
       </div>
@@ -696,15 +735,27 @@ function ScoreMini({ team, score }: { team: string; score: string }) {
 function ViralReceiptCard({
   receipt,
   currentUser,
+  onOpen,
 }: {
   receipt: ViralReceipt;
   currentUser?: ReceiptOwnerMeta;
+  onOpen: (receiptId: string) => void;
 }) {
   const isWin = receipt.status === "win";
   const handle = currentUser?.handle ?? receipt.handle;
+  const handleOpenKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onOpen(receipt.id);
+    }
+  };
 
   return (
     <article
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(receipt.id)}
+      onKeyDown={handleOpenKeyDown}
       className={`relative min-w-[72vw] max-w-[15rem] snap-start overflow-hidden rounded-2xl border bg-black/45 p-3 shadow-[0_18px_45px_rgba(0,0,0,0.34)] transition hover:-translate-y-1 active:scale-[0.985] sm:min-w-[13.75rem] ${
         isWin
           ? "border-lime-300/35 hover:shadow-[0_20px_52px_rgba(132,204,22,0.12)]"
@@ -727,6 +778,7 @@ function ViralReceiptCard({
         <div className="mt-4 flex items-center gap-2">
           <Link
             href={getReceiptHref(handle, Boolean(currentUser))}
+            onClick={(event) => event.stopPropagation()}
             className="rounded-full transition hover:scale-105 active:scale-95"
             aria-label={`${handle} receipts`}
           >
@@ -737,7 +789,11 @@ function ViralReceiptCard({
               size="sm"
             />
           </Link>
-          <Link href={getReceiptHref(handle, Boolean(currentUser))} className="truncate text-xs font-black text-white transition hover:text-lime-200">
+          <Link
+            href={getReceiptHref(handle, Boolean(currentUser))}
+            onClick={(event) => event.stopPropagation()}
+            className="truncate text-xs font-black text-white transition hover:text-lime-200"
+          >
             {handle} <span className="text-sky-300">◆</span>
           </Link>
         </div>
@@ -784,6 +840,7 @@ function getReceiptOwner(profile?: Profile | null, recordOwner?: ReceiptOwner | 
   const isViewingRecordOwner = Boolean(recordOwner);
 
   return {
+    userId: isViewingRecordOwner ? recordOwner?.userId : profile?.id,
     handle: `@${username.replace(/^@/, "")}`,
     initials: getInitials(username),
     avatarUrl: isViewingRecordOwner ? (recordOwner?.avatarUrl ?? null) : profile?.avatar_url,
@@ -837,6 +894,51 @@ function mapReceiptToRecent(receipt: Receipt, owner: ReceiptOwnerMeta): RecentRe
   };
 }
 
+function mapSeededReceiptToRecent(receipt: SeededReceipt, owner: ReceiptOwnerMeta): RecentReceipt {
+  const score = parseSeededFinalScore(receipt.finalScore);
+  const rideTotal = receipt.ride_count + receipt.fade_count;
+  const ridingWon = receipt.ride_count >= receipt.fade_count;
+  const crowdPercent = rideTotal ? Math.round(((ridingWon ? receipt.ride_count : receipt.fade_count) / rideTotal) * 100) : 0;
+
+  return {
+    id: receipt.id,
+    status: receipt.result === "hit" ? "win" : "loss",
+    timestamp: formatReceiptAge(receipt.created_at),
+    handle: owner.handle,
+    avatar: owner.initials,
+    take: receipt.takeText,
+    arena: receipt.gameLabel,
+    leftTeam: score?.leftTeam ?? "LAL",
+    leftScore: score?.leftScore ?? "108",
+    rightTeam: score?.rightTeam ?? "GSW",
+    rightScore: score?.rightScore ?? "103",
+    crowdResult: `${crowdPercent || 50}% ${ridingWon ? "Riding" : "Fading"}`,
+    side: ridingWon ? "riding" : "fading",
+    verdict: `${formatSignedRep(receipt.reputation_delta)} REP`,
+    heat: formatCompact(receipt.heat),
+    views: `${formatCompact(receipt.reply_count)} replies`,
+  };
+}
+
+function mapSeededReceiptToViral(receipt: SeededReceipt, owner: ReceiptOwnerMeta, index: number): ViralReceipt {
+  const total = receipt.ride_count + receipt.fade_count;
+  const hitRate = total ? `${Math.round((receipt.ride_count / total) * 100)}%` : "0%";
+
+  return {
+    id: `${receipt.id}_viral`,
+    rank: index + 1,
+    hitRate,
+    handle: owner.handle,
+    avatar: owner.initials,
+    take: receipt.takeText,
+    arena: receipt.gameLabel,
+    views: index === 0 ? "2.4M" : index === 1 ? "1.8M" : "842K",
+    heat: formatCompact(receipt.heat),
+    comments: formatCompact(receipt.reply_count),
+    status: receipt.result === "hit" ? "win" : "loss",
+  };
+}
+
 function parseFinalScore(finalScore?: string | null) {
   const match = finalScore?.match(/^(\S+)\s+(\d+)\s+-\s+(\d+)\s+(\S+)$/);
 
@@ -849,6 +951,21 @@ function parseFinalScore(finalScore?: string | null) {
     leftScore: match[2],
     rightScore: match[3],
     rightTeam: match[4],
+  };
+}
+
+function parseSeededFinalScore(finalScore: string) {
+  const match = finalScore.match(/^(\S+)\s+(\d+)\s+\/\s+(\S+)\s+(\d+)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    leftTeam: match[1],
+    leftScore: match[2],
+    rightTeam: match[3],
+    rightScore: match[4],
   };
 }
 

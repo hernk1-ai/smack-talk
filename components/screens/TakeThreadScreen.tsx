@@ -9,11 +9,13 @@ import { UserAvatar } from "@/components/UserAvatar";
 import {
   formatTakeForUI,
   getTakeById,
+  isSeededTakeId,
   profileToCard,
   type ArenaTake,
 } from "@/lib/supabase/arena";
 import { createReply, getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/replies";
 import { getMyReactionForTake, reactToTake } from "@/lib/supabase/reactions";
+import { getSeededProfileById, getSeededRepliesForTake } from "@/data/seededCrowd";
 import type { Profile, TakeReaction } from "@/lib/supabase/types";
 
 type Side = "ride" | "fade";
@@ -35,8 +37,13 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
 
     async function loadThread() {
       setLoading(true);
+      const isSeededTake = isSeededTakeId(takeId);
       const [{ take: loadedTake, error: takeError }, { replies: loadedReplies }, { reaction: loadedReaction }] =
-        await Promise.all([getTakeById(takeId), getRepliesForTake(takeId), getMyReactionForTake(takeId)]);
+        await Promise.all([
+          getTakeById(takeId),
+          isSeededTake ? Promise.resolve({ replies: getSeededThreadReplies(takeId) }) : getRepliesForTake(takeId),
+          isSeededTake ? Promise.resolve({ reaction: null }) : getMyReactionForTake(takeId),
+        ]);
 
       if (!isMounted) {
         return;
@@ -63,6 +70,29 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
     setReactionLoading(true);
     setMessage("");
 
+    if (isSeededTakeId(takeId)) {
+      setTake((currentTake) => {
+        if (!currentTake || reaction === side) {
+          return currentTake;
+        }
+
+        const wasRide = reaction === "ride";
+        const wasFade = reaction === "fade";
+        const nextRideCount = Math.max(currentTake.ride_count + (side === "ride" ? 1 : 0) - (wasRide ? 1 : 0), 0);
+        const nextFadeCount = Math.max(currentTake.fade_count + (side === "fade" ? 1 : 0) - (wasFade ? 1 : 0), 0);
+
+        return {
+          ...currentTake,
+          ride_count: nextRideCount,
+          fade_count: nextFadeCount,
+          heat: nextRideCount + nextFadeCount + currentTake.reply_count * 2,
+        };
+      });
+      setReaction(side);
+      setReactionLoading(false);
+      return;
+    }
+
     const { reaction: savedReaction, take: updatedTake, error } = await reactToTake({ takeId, reaction: side });
 
     if (error) {
@@ -88,6 +118,50 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
   async function postReply() {
     setReplyStatus("loading");
     setMessage("");
+
+    if (isSeededTakeId(takeId)) {
+      const cleanReplyText = replyText.trim();
+
+      if (!cleanReplyText) {
+        setReplyStatus("error");
+        setMessage("Say something before you reply.");
+        return;
+      }
+
+      if (cleanReplyText.length > 280) {
+        setReplyStatus("error");
+        setMessage("Keep replies under 280 characters.");
+        return;
+      }
+
+      const localReply: TakeReplyWithAuthor = {
+        id: `seeded_local_reply_${Date.now()}`,
+        take_id: takeId,
+        user_id: profile?.id ?? "seeded_local_user",
+        parent_reply_id: replyingTo?.id ?? null,
+        reply_text: cleanReplyText,
+        heat: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        author: profileToCard(profile),
+      };
+
+      setReplies((currentReplies) => [...currentReplies, localReply]);
+      setTake((currentTake) =>
+        currentTake
+          ? {
+              ...currentTake,
+              reply_count: currentTake.reply_count + 1,
+              heat: currentTake.heat + 2,
+            }
+          : currentTake,
+      );
+      setReplyText("");
+      setReplyingTo(null);
+      setReplyStatus("success");
+      setMessage("Demo reply added locally. Lock a real take to make it permanent.");
+      return;
+    }
 
     const { reply, error } = await createReply({ takeId, replyText, parentReplyId: replyingTo?.id });
 
@@ -145,6 +219,15 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
     return accumulator;
   }, {});
 
+  function goBack() {
+    if (window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    router.push("/app");
+  }
+
   return (
     <>
       <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white sm:py-6">
@@ -153,7 +236,7 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={goBack}
               className="grid h-12 w-12 place-items-center rounded-2xl border border-white/15 bg-white/[0.04] text-2xl text-white transition hover:border-lime-300/30 active:scale-95"
               aria-label="Go back"
             >
@@ -511,4 +594,30 @@ function getInitials(username: string) {
 
 function getReceiptHref(handle: string) {
   return `/receipts/${handle.replace(/^@/, "").toLowerCase()}`;
+}
+
+function getSeededThreadReplies(takeId: string): TakeReplyWithAuthor[] {
+  return getSeededRepliesForTake(takeId).map((reply) => {
+    const author = getSeededProfileById(reply.userId);
+
+    return {
+      id: reply.id,
+      take_id: reply.takeId,
+      user_id: reply.userId,
+      parent_reply_id: reply.parentReplyId ?? null,
+      reply_text: reply.replyText,
+      heat: 0,
+      created_at: reply.created_at,
+      updated_at: reply.created_at,
+      author: author
+        ? {
+            id: author.id,
+            username: author.username,
+            avatar_url: null,
+            reputation_score: author.reputation_score,
+            created_takes_count: author.created_takes_count,
+          }
+        : null,
+    };
+  });
 }

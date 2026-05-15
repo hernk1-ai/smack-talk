@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { createClient } from "@/lib/supabase/client";
+import { seededProfiles } from "@/data/seededCrowd";
 import type { Profile } from "@/lib/supabase/types";
 
 type TalkersTab = "overall" | "wins" | "heat" | "viral" | "accuracy" | "streaks" | "rising" | "search";
@@ -60,114 +61,6 @@ const tabCopy: Record<TalkersTab, string> = {
   rising: "Names moving fast before the whole Crowd catches on.",
   search: "Find a talker and inspect the receipts behind the reputation.",
 };
-
-const podiumTalkers: PodiumTalker[] = [
-  {
-    rank: 2,
-    handle: "@MidRange",
-    avatar: "MR",
-    heat: "22.4K",
-    wins: "118",
-    accuracy: "66%",
-    viral: "18",
-  },
-  {
-    rank: 1,
-    handle: "@TalkHeavy23",
-    avatar: "TH",
-    heat: "28.6K",
-    wins: "142",
-    accuracy: "69%",
-    viral: "24",
-  },
-  {
-    rank: 3,
-    handle: "@BucketsOnly",
-    avatar: "BO",
-    heat: "20.1K",
-    wins: "112",
-    accuracy: "64%",
-    viral: "16",
-  },
-];
-
-const talkerRows: TalkerRow[] = [
-  {
-    rank: 4,
-    handle: "@HoopDreams",
-    avatar: "HD",
-    subtitle: "Crowd Rider",
-    badge: "Rising",
-    heat: "18.7K",
-    wins: "98",
-    accuracy: "63%",
-    viral: "14",
-  },
-  {
-    rank: 5,
-    handle: "@FadeKing",
-    avatar: "FK",
-    subtitle: "Fade God",
-    badge: "Hot",
-    heat: "16.9K",
-    wins: "93",
-    accuracy: "61%",
-    viral: "22",
-  },
-  {
-    rank: 6,
-    handle: "@NoMercy",
-    avatar: "NM",
-    subtitle: "No Mercy",
-    badge: "Hot",
-    heat: "15.2K",
-    wins: "87",
-    accuracy: "62%",
-    viral: "11",
-  },
-  {
-    rank: 7,
-    handle: "@PrimeTalker",
-    avatar: "PT",
-    subtitle: "Prime Time",
-    badge: "Steady",
-    heat: "13.8K",
-    wins: "79",
-    accuracy: "60%",
-    viral: "9",
-  },
-  {
-    rank: 8,
-    handle: "@ClutchCallz",
-    avatar: "CC",
-    subtitle: "Clutch Calls Only",
-    heat: "12.1K",
-    wins: "71",
-    accuracy: "59%",
-    viral: "8",
-  },
-  {
-    rank: 9,
-    handle: "@RealDeal",
-    avatar: "RD",
-    subtitle: "Straight Shooter",
-    heat: "11.2K",
-    wins: "66",
-    accuracy: "58%",
-    viral: "7",
-  },
-  {
-    rank: 10,
-    handle: "@SharpMind",
-    avatar: "SM",
-    subtitle: "Numbers Don't Lie",
-    badge: "Steady",
-    heat: "13.6K",
-    wins: "63",
-    accuracy: "57%",
-    viral: "6",
-  },
-];
 
 const categoryCards: CategoryCard[] = [
   {
@@ -664,14 +557,12 @@ function getRankedTalkers(
   currentProfile?: Profile | null,
 ): TalkerRow[] {
   const realRows = profilesToTalkers(realProfiles, currentProfile);
+  const seededRows = seededProfilesToTalkers().filter(
+    (talker) => !realRows.some((realTalker) => realTalker.handle.toLowerCase() === talker.handle.toLowerCase()),
+  );
   const combinedTalkers: TalkerRow[] = [
     ...realRows,
-    ...podiumTalkers.map((talker) => ({
-      ...talker,
-      subtitle: talker.rank === 1 ? "Top Talker" : talker.rank === 2 ? "Midrange Menace" : "Buckets Only",
-      badge: talker.rank === 1 ? "Rising" : undefined,
-    })).filter((talker) => !realRows.some((realTalker) => realTalker.handle.toLowerCase() === talker.handle.toLowerCase())),
-    ...talkerRows.filter((talker) => !realRows.some((realTalker) => realTalker.handle.toLowerCase() === talker.handle.toLowerCase())),
+    ...seededRows,
   ];
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -681,7 +572,9 @@ function getRankedTalkers(
 
   const metric = activeTab === "search" ? "overall" : activeTab;
 
-  return [...filteredTalkers].sort((a, b) => getMetricValue(b, metric) - getMetricValue(a, metric));
+  return [...filteredTalkers]
+    .sort((a, b) => getMetricValue(b, metric) - getMetricValue(a, metric))
+    .map((talker, index) => ({ ...talker, rank: index + 1 }));
 }
 
 function profilesToTalkers(realProfiles: Profile[], currentProfile?: Profile | null): TalkerRow[] {
@@ -712,6 +605,20 @@ function profilesToTalkers(realProfiles: Profile[], currentProfile?: Profile | n
       viral: formatCompact(realProfile.created_takes_count ?? 0),
     };
   });
+}
+
+function seededProfilesToTalkers(): TalkerRow[] {
+  return seededProfiles.map((profile, index) => ({
+    rank: index + 1,
+    handle: `@${profile.username}`,
+    avatar: profile.avatar,
+    subtitle: profile.title,
+    badge: profile.username === "TalkHeavy23" || profile.username === "HoopDreams" ? "Rising" : profile.streak >= 6 ? "Hot" : undefined,
+    heat: formatCompact(profile.heat),
+    wins: String(profile.wins),
+    accuracy: `${profile.hit_rate}%`,
+    viral: String(profile.viral),
+  }));
 }
 
 function rowsToPodium(rows: TalkerRow[]): PodiumTalker[] {

@@ -1,20 +1,8 @@
 import { SmackTalkApp } from "@/components/SmackTalkApp";
 import type { ReceiptOwner } from "@/components/screens/ReceiptsScreen";
+import { getSeededProfileByUsername } from "@/data/seededCrowd";
 import { ensureProfile } from "@/lib/supabase/profiles";
 import { createClient } from "@/lib/supabase/server";
-
-const seededOwners: Record<string, ReceiptOwner> = {
-  talkheavy23: { username: "TalkHeavy23", avatarUrl: null, reputation: 9250, favoriteTeams: ["LAL", "NYK", "DEN"] },
-  midrange: { username: "MidRange", avatarUrl: null, reputation: 8100, favoriteTeams: ["NYK", "BOS", "DEN"] },
-  bucketsonly: { username: "BucketsOnly", avatarUrl: null, reputation: 7800, favoriteTeams: ["LAL", "GSW", "MIA"] },
-  hoopdreams: { username: "HoopDreams", avatarUrl: null, reputation: 6200, favoriteTeams: ["MIA", "ATL", "DAL"] },
-  fadeking: { username: "FadeKing", avatarUrl: null, reputation: 6900, favoriteTeams: ["DEN", "BOS", "GSW"] },
-  nomercy: { username: "NoMercy", avatarUrl: null, reputation: 5900, favoriteTeams: ["PHX", "NYK", "DAL"] },
-  primetalker: { username: "PrimeTalker", avatarUrl: null, reputation: 5400, favoriteTeams: ["BOS", "LAL", "NYK"] },
-  clutchcallz: { username: "ClutchCallz", avatarUrl: null, reputation: 5100, favoriteTeams: ["GSW", "DAL", "DEN"] },
-  realdeal: { username: "RealDeal", avatarUrl: null, reputation: 4800, favoriteTeams: ["MIA", "BOS", "ATL"] },
-  sharpmind: { username: "SharpMind", avatarUrl: null, reputation: 4600, favoriteTeams: ["DEN", "NYK", "GSW"] },
-};
 
 export default async function PublicReceiptsPage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
@@ -35,12 +23,13 @@ export default async function PublicReceiptsPage({ params }: { params: Promise<{
 
     const { data: viewedProfile } = await supabase
       .from("profiles")
-      .select("username, avatar_url, reputation_score, reputation, favorite_teams")
+      .select("id, username, avatar_url, reputation_score, reputation, favorite_teams")
       .ilike("username", key)
       .maybeSingle();
 
     if (viewedProfile) {
       publicProfileOwner = {
+        userId: viewedProfile.id,
         username: viewedProfile.username || toDisplayUsername(key),
         avatarUrl: viewedProfile.avatar_url,
         reputation: viewedProfile.reputation_score ?? viewedProfile.reputation ?? 0,
@@ -49,7 +38,16 @@ export default async function PublicReceiptsPage({ params }: { params: Promise<{
     }
   }
 
-  const recordOwner = publicProfileOwner ?? seededOwners[key] ?? {
+  const seededProfile = getSeededProfileByUsername(key);
+  const seededOwner: ReceiptOwner | null = seededProfile
+    ? {
+        username: seededProfile.username,
+        avatarUrl: null,
+        reputation: seededProfile.reputation_score,
+        favoriteTeams: seededProfile.favoriteTeams,
+      }
+    : null;
+  const recordOwner = publicProfileOwner ?? seededOwner ?? {
     username: toDisplayUsername(key),
     avatarUrl: null,
     reputation: 4200,

@@ -35,3 +35,15 @@ export async function getReceiptsByUser(userId: string) {
 
   return { receipts: data ?? [], error };
 }
+
+export async function getReceiptById(receiptId: string) {
+  const supabase = createClient();
+
+  if (!supabase) {
+    return { receipt: null as Receipt | null, error: new Error("Supabase is not configured.") };
+  }
+
+  const { data, error } = await supabase.from("receipts").select("*").eq("id", receiptId).maybeSingle();
+
+  return { receipt: data, error };
+}

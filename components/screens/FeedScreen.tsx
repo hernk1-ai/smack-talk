@@ -11,11 +11,14 @@ import {
   formatTakeForUI,
   getFeaturedTakeFromList,
   getTrendingTakesFromList,
+  isSeededTakeId,
+  mergeArenaFeedWithSeeded,
   refreshArenaData,
   type ArenaTake,
 } from "@/lib/supabase/arena";
 import { reactToTake } from "@/lib/supabase/reactions";
 import { createLockedTake } from "@/lib/supabase/takes";
+import { seededChaosAlerts } from "@/data/seededCrowd";
 import type { Game, Profile, TakeReaction } from "@/lib/supabase/types";
 
 type Side = "ride" | "fade";
@@ -160,49 +163,6 @@ const liveArenas: LiveArenaCard[] = [
   },
 ];
 
-const chaosAlerts: ChaosAlert[] = [
-  {
-    id: "alpha-fade",
-    icon: "◎",
-    title: "94% rode Team Alpha.",
-    detail: "Fade opportunity?",
-    time: "2m ago",
-    tone: "green",
-  },
-  {
-    id: "collapse",
-    icon: "▲",
-    title: "Crowd collapse incoming.",
-    detail: "Momentum shifting fast.",
-    time: "4m ago",
-    tone: "green",
-  },
-  {
-    id: "buckets-hit",
-    icon: "ϟ",
-    title: "BucketsOnly just hit again.",
-    detail: "3 for 3 today.",
-    time: "6m ago",
-    tone: "purple",
-  },
-  {
-    id: "toxic",
-    icon: "☠",
-    title: "Arena turning toxic.",
-    detail: "Tempers high. Watch your back.",
-    time: "8m ago",
-    tone: "red",
-  },
-  {
-    id: "omega",
-    icon: "↗",
-    title: "Sharp crowd fading Omega.",
-    detail: "Insiders moving.",
-    time: "11m ago",
-    tone: "green",
-  },
-];
-
 export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void; profile?: Profile | null }) {
   const router = useRouter();
   const [takeChoices, setTakeChoices] = useState<Record<string, Side>>({});
@@ -218,6 +178,8 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void
   const [recentActivity, setRecentActivity] = useState<string[]>([]);
   const featuredTake = getFeaturedTakeFromList(gameTakes);
   const trendingRealTakes = getTrendingTakesFromList(gameTakes, 4);
+  const combinedReactions = { ...takeChoices, ...takeReactions } as Record<string, TakeReaction["reaction"]>;
+  const dynamicChaosAlerts = buildChaosAlerts(gameTakes);
 
   useEffect(() => {
     let isMounted = true;
@@ -230,9 +192,12 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void
       }
 
       setActiveGame(game);
-      setGameTakes(feed);
+      const mergedFeed = mergeArenaFeedWithSeeded(feed, game?.id ?? ACTIVE_GAME_ID);
+      setGameTakes(mergedFeed);
       setTakeReactions(reactionMap);
-      setRecentActivity(feed.slice(0, 3).map((take) => `${formatTakeForUI(take).handle} locked a take`));
+      setRecentActivity(
+        mergedFeed.slice(0, 4).map((take) => `${formatTakeForUI(take).handle} locked a take`),
+      );
     }
 
     loadArenaData();
@@ -276,6 +241,40 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void
   async function reactToLockedTake(takeId: string, reaction: Side) {
     setReactionLoadingTakeId(takeId);
     setReactionMessage("");
+
+    if (isSeededTakeId(takeId)) {
+      setGameTakes((currentTakes) =>
+        currentTakes.map((take) => {
+          if (take.id !== takeId) {
+            return take;
+          }
+
+          const previousReaction = takeChoices[takeId];
+
+          if (previousReaction === reaction) {
+            return take;
+          }
+
+          const nextRideCount = Math.max(take.ride_count + (reaction === "ride" ? 1 : 0) - (previousReaction === "ride" ? 1 : 0), 0);
+          const nextFadeCount = Math.max(take.fade_count + (reaction === "fade" ? 1 : 0) - (previousReaction === "fade" ? 1 : 0), 0);
+
+          return {
+            ...take,
+            ride_count: nextRideCount,
+            fade_count: nextFadeCount,
+            heat: nextRideCount + nextFadeCount + take.reply_count * 2,
+          };
+        }),
+      );
+      setTakeChoices((currentChoices) => ({ ...currentChoices, [takeId]: reaction }));
+      const reactedTake = gameTakes.find((take) => take.id === takeId);
+      const activityHandle = reactedTake ? formatTakeForUI(reactedTake).handle : "@TheCrowd";
+      setRecentActivity((currentActivity) =>
+        [`You ${reaction === "ride" ? "rode" : "faded"} ${activityHandle}`, ...currentActivity].slice(0, 4),
+      );
+      setReactionLoadingTakeId(null);
+      return;
+    }
 
     const { reaction: savedReaction, take, error } = await reactToTake({ takeId, reaction });
 
@@ -326,7 +325,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void
       />
       <FeaturedRideFade
         loading={featuredTake ? reactionLoadingTakeId === featuredTake.id : false}
-        selected={featuredTake ? takeReactions[featuredTake.id] ?? null : featuredChoice}
+        selected={featuredTake ? combinedReactions[featuredTake.id] ?? null : featuredChoice}
         take={featuredTake}
         onChoose={(side) => {
           if (featuredTake) {
@@ -353,7 +352,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void
       />
       <LiveLockedTakes
         takes={gameTakes}
-        reactions={takeReactions}
+        reactions={combinedReactions}
         loadingTakeId={reactionLoadingTakeId}
         message={reactionMessage}
         onOpenTake={openTakeThread}
@@ -363,14 +362,14 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: () => void
       <TrendingTakes
         choices={takeChoices}
         loadingTakeId={reactionLoadingTakeId}
-        reactions={takeReactions}
+        reactions={combinedReactions}
         realTakes={trendingRealTakes}
         onChoose={chooseTake}
         onOpenTake={openTakeThread}
         onReact={reactToLockedTake}
       />
       <LiveArenas onEnterArena={onEnterArena} />
-      <ChaosAlerts />
+      <ChaosAlerts alerts={dynamicChaosAlerts} />
     </div>
   );
 }
@@ -698,7 +697,7 @@ function LockTakeComposer({
           <h2 className="sports-display mt-1 text-2xl italic leading-none text-white">Put your name on it.</h2>
         </div>
         <span className="rounded-full border border-lime-300/25 bg-lime-400/10 px-3 py-1 text-[10px] font-black uppercase text-lime-300">
-          {lockedCount} locks
+          {lockedCount} Arena locks
         </span>
       </div>
 
@@ -1137,11 +1136,11 @@ function LiveArenas({ onEnterArena }: { onEnterArena: () => void }) {
   );
 }
 
-function ChaosAlerts() {
+function ChaosAlerts({ alerts }: { alerts: ChaosAlert[] }) {
   return (
     <FeedSection title="Chaos Alerts" icon="▴" action="See all">
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/35">
-        {chaosAlerts.map((alert) => (
+        {alerts.map((alert) => (
           <button
             key={alert.id}
             type="button"
@@ -1163,6 +1162,45 @@ function ChaosAlerts() {
       </div>
     </FeedSection>
   );
+}
+
+function buildChaosAlerts(takes: ArenaTake[]): ChaosAlert[] {
+  const hottestTake = getFeaturedTakeFromList(takes);
+  const generatedAlerts: ChaosAlert[] = [];
+
+  if (hottestTake) {
+    const totalReactions = hottestTake.ride_count + hottestTake.fade_count;
+    const ridePercent = totalReactions ? Math.round((hottestTake.ride_count / totalReactions) * 100) : 0;
+    const fadePercent = totalReactions ? 100 - ridePercent : 0;
+    const handle = formatTakeForUI(hottestTake).handle;
+
+    if (totalReactions > 0) {
+      generatedAlerts.push({
+        id: `hot-split-${hottestTake.id}`,
+        icon: "◎",
+        title: `${Math.max(ridePercent, fadePercent)}% ${ridePercent >= fadePercent ? "rode" : "faded"} ${handle}.`,
+        detail: ridePercent >= fadePercent ? "Fade opportunity?" : "Ride side under pressure.",
+        time: "live",
+        tone: ridePercent >= fadePercent ? "green" : "purple",
+      });
+    }
+
+    if (hottestTake.heat > 1000) {
+      generatedAlerts.push({
+        id: `heat-${hottestTake.id}`,
+        icon: "ϟ",
+        title: `${handle} is moving the Crowd.`,
+        detail: `${formatCompact(hottestTake.heat)} heat on one locked take.`,
+        time: "now",
+        tone: "purple",
+      });
+    }
+  }
+
+  const seededRotation = seededChaosAlerts.slice((new Date().getMinutes() % 3), seededChaosAlerts.length);
+  const fallbackRotation = [...seededRotation, ...seededChaosAlerts.slice(0, new Date().getMinutes() % 3)];
+
+  return [...generatedAlerts, ...fallbackRotation].slice(0, 5);
 }
 
 function FeedSection({

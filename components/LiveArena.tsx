@@ -103,11 +103,9 @@ const topTalkers: TopTalker[] = [
 
 export function LiveArena({ onBack }: { onBack: () => void }) {
   const [activeTab, setActiveTab] = useState<ArenaTab>("chat");
-  const [lockedSide, setLockedSide] = useState<Side>();
   const [gamePickSide, setGamePickSide] = useState<Side>();
   const [isGamePickSaving, setIsGamePickSaving] = useState(false);
   const [gamePickMessage, setGamePickMessage] = useState("");
-  const [takeText, setTakeText] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -129,11 +127,6 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
       isMounted = false;
     };
   }, []);
-
-  function lockTake(side?: Side) {
-    setLockedSide(side ?? "ride");
-    setTakeText("");
-  }
 
   async function lockGamePick(side: Side) {
     if (gamePickSide || isGamePickSaving) {
@@ -171,7 +164,13 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
           <section className="space-y-4">
             {activeTab === "chat" && <ChatPanel />}
-            {activeTab === "calls" && <CallsPanel onChoose={lockTake} />}
+            {activeTab === "calls" && (
+              <CallsPanel
+                onChoose={() => {
+                  setGamePickMessage("Ride/Fade a live call from the main Arena feed. Game picks lock on the board above.");
+                }}
+              />
+            )}
             {activeTab === "control-room" && <ControlRoomPanel />}
             {activeTab === "top-talkers" && <TopTalkersPanel />}
           </section>
@@ -182,13 +181,6 @@ export function LiveArena({ onBack }: { onBack: () => void }) {
             <ArenaVibePanel />
           </aside>
         </div>
-
-        <LockTakePanel
-          value={takeText}
-          lockedSide={lockedSide}
-          onChange={setTakeText}
-          onLock={() => lockTake("ride")}
-        />
       </div>
     </main>
   );
@@ -635,53 +627,6 @@ function ArenaVibePanel() {
       <p className="text-xs font-black uppercase tracking-[0.16em] text-purple-200">Arena Vibe</p>
       <p className="sports-display mt-2 text-5xl italic leading-none text-purple-300">Toxic ☠</p>
       <p className="mt-3 text-sm font-semibold text-gray-300">Emotions high. Watch your back.</p>
-    </section>
-  );
-}
-
-function LockTakePanel({
-  value,
-  lockedSide,
-  onChange,
-  onLock,
-}: {
-  value: string;
-  lockedSide?: Side;
-  onChange: (value: string) => void;
-  onLock: () => void;
-}) {
-  return (
-    <section className="rounded-[1.75rem] border border-white/10 bg-black/55 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34),0_0_26px_rgba(168,85,247,0.08)] backdrop-blur">
-      <p className="mb-3 text-center text-xs font-black uppercase tracking-[0.16em] text-purple-300">Lock Your Take</p>
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-stretch">
-        <label className="relative">
-          <span className="sr-only">Type your take</span>
-          <textarea
-            value={value}
-            onChange={(event) => onChange(event.target.value.slice(0, 150))}
-            placeholder="Type your take..."
-            className="min-h-24 w-full resize-none rounded-2xl border border-purple-300/60 bg-black/55 p-4 pr-16 text-base font-semibold text-white outline-none placeholder:text-gray-500 focus:border-purple-200 sm:min-h-20"
-          />
-          <span className="absolute bottom-4 right-4 text-xs font-semibold text-gray-500">{value.length}/150</span>
-        </label>
-        <button
-          type="button"
-          onClick={onLock}
-          className="min-h-16 rounded-2xl border border-purple-300/70 bg-purple-500/15 px-8 text-sm font-black uppercase tracking-[0.12em] text-purple-200 shadow-[0_0_24px_rgba(168,85,247,0.18)] transition active:scale-[0.98]"
-        >
-          Lock Take 🔒
-        </button>
-      </div>
-      {lockedSide && (
-        <p className="mt-3 rounded-xl bg-white/10 px-3 py-2 text-center text-xs font-black uppercase tracking-[0.1em] text-gray-200">
-          Locked. No switching sides.
-        </p>
-      )}
-      <div className="mt-4 grid gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 text-xs font-semibold text-gray-400 sm:grid-cols-3">
-        <p>◉ Locked & permanent. Everyone will see this.</p>
-        <p>◌ Ride or Fade. The Crowd will react.</p>
-        <p>▣ No switching sides. Receipts don’t lie.</p>
-      </div>
     </section>
   );
 }

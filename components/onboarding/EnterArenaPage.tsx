@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { UserAvatar } from "@/components/UserAvatar";
 import { createClient } from "@/lib/supabase/client";
 
 const fallbackTeams = ["Chiefs", "Eagles", "Lions", "Lakers", "Cowboys"];
@@ -31,14 +32,6 @@ const teamInitials: Record<string, string> = {
   Buccaneers: "TB",
 };
 
-const avatarIcons: Record<string, string> = {
-  lightning: "⚡",
-  skull: "☠",
-  hood: "◒",
-  crown: "♛",
-  target: "◎",
-};
-
 export function EnterArenaPage({
   avatar,
   teams,
@@ -51,9 +44,57 @@ export function EnterArenaPage({
   const router = useRouter();
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const cleanUsername = sanitizeUsername(username) || "FadeKing";
-  const selectedTeams = parseTeams(teams);
-  const avatarIcon = avatarIcons[sanitizeToken(avatar)] ?? avatarIcons.hood;
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null);
+  const [profileUsername, setProfileUsername] = useState<string | null>(null);
+  const [profileTeams, setProfileTeams] = useState<string[]>([]);
+  const cleanUsername = sanitizeUsername(profileUsername ?? username) || "FadeKing";
+  const selectedTeams = useMemo(() => {
+    if (profileTeams.length) {
+      return profileTeams;
+    }
+
+    return parseTeams(teams);
+  }, [profileTeams, teams]);
+  const avatarUrl = profileAvatarUrl ?? avatarFromRouteToken(avatar);
+
+  useEffect(() => {
+    let isMounted = true;
+    const supabase = createClient();
+
+    async function loadProfile() {
+      if (!supabase) {
+        return;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        return;
+      }
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("username, avatar_url, favorite_teams")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!isMounted || !data) {
+        return;
+      }
+
+      setProfileUsername(data.username);
+      setProfileAvatarUrl(data.avatar_url);
+      setProfileTeams(Array.isArray(data.favorite_teams) ? data.favorite_teams.slice(0, 5) : []);
+    }
+
+    loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   async function handleEnterArena() {
     const supabase = createClient();
@@ -117,7 +158,7 @@ export function EnterArenaPage({
             Your receipts <span className="text-lime-300">start now.</span>
           </p>
 
-          <ProfileSummaryCard avatarIcon={avatarIcon} teams={selectedTeams} username={cleanUsername} />
+          <ProfileSummaryCard avatarUrl={avatarUrl} teams={selectedTeams} username={cleanUsername} />
 
           <button
             type="button"
@@ -184,21 +225,26 @@ function EnterArenaHeader() {
 }
 
 function ProfileSummaryCard({
-  avatarIcon,
+  avatarUrl,
   teams,
   username,
 }: {
-  avatarIcon: string;
+  avatarUrl?: string | null;
   teams: string[];
   username: string;
 }) {
   return (
     <section className="relative isolate mx-auto mt-8 w-full max-w-3xl overflow-hidden rounded-[1.75rem] border border-purple-300/45 bg-black/58 px-5 py-7 shadow-[0_28px_90px_rgba(0,0,0,0.58),0_0_48px_rgba(168,85,247,0.16)] backdrop-blur-xl sm:px-8 sm:py-9">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_0%,rgba(132,204,22,0.16),transparent_18rem),radial-gradient(circle_at_82%_10%,rgba(168,85,247,0.2),transparent_20rem)]" />
-      <div className="mx-auto grid h-48 w-48 place-items-center rounded-full border border-white/15 bg-black/45 shadow-[0_0_0_3px_rgba(132,204,22,0.28),0_0_0_5px_rgba(168,85,247,0.24),0_0_50px_rgba(168,85,247,0.22)] sm:h-56 sm:w-56">
-        <div className="grid h-36 w-36 place-items-center rounded-full bg-[radial-gradient(circle_at_50%_15%,rgba(168,85,247,0.18),rgba(0,0,0,0.7)_70%)] text-7xl text-lime-300 sm:h-44 sm:w-44 sm:text-8xl">
-          {avatarIcon}
-        </div>
+      <div className="mx-auto grid h-48 w-48 place-items-center rounded-full border border-white/15 bg-black/45 p-4 shadow-[0_0_0_3px_rgba(132,204,22,0.28),0_0_0_5px_rgba(168,85,247,0.24),0_0_50px_rgba(168,85,247,0.22)] sm:h-56 sm:w-56">
+        <UserAvatar
+          avatarUrl={avatarUrl}
+          initials={getInitials(username)}
+          label={`${username} profile picture`}
+          size="xl"
+          active
+          className="!h-full !w-full !text-6xl"
+        />
       </div>
 
       <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
@@ -253,6 +299,27 @@ function sanitizeUsername(value?: string) {
 
 function sanitizeToken(value?: string) {
   return (value ?? "").trim().replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32);
+}
+
+function avatarFromRouteToken(value?: string) {
+  const token = sanitizeToken(value);
+
+  if (!token || token === "custom") {
+    return null;
+  }
+
+  return token.startsWith("smack-avatar:") ? token : `smack-avatar:${token}`;
+}
+
+function getInitials(username: string) {
+  const cleanUsername = username.replace(/^@/, "").trim();
+  const capitalLetters = cleanUsername.match(/[A-Z]/g);
+
+  if (capitalLetters && capitalLetters.length > 1) {
+    return capitalLetters.slice(0, 2).join("");
+  }
+
+  return cleanUsername.slice(0, 2).toUpperCase() || "ST";
 }
 
 function EnterArenaAtmosphere() {
