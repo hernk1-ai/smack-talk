@@ -12,6 +12,8 @@ import type { Profile } from "@/lib/supabase/types";
 
 type TalkersTab = "overall" | "wins" | "heat" | "viral" | "accuracy" | "streaks" | "rising" | "search";
 
+type SportFilter = "All Sports" | "NBA" | "NFL" | "MLB" | "NHL" | "Soccer" | "NCAA Football" | "NCAA Basketball" | "UFC" | "Tennis";
+
 type PodiumTalker = {
   rank: 1 | 2 | 3;
   handle: string;
@@ -60,6 +62,8 @@ const talkersTabs: { id: TalkersTab; label: string }[] = [
   { id: "search", label: "Search" },
 ];
 
+const sportFilters: SportFilter[] = ["All Sports", "NBA", "NFL", "MLB", "NHL", "Soccer", "NCAA Football", "NCAA Basketball", "UFC", "Tennis"];
+
 const tabCopy: Record<TalkersTab, string> = {
   overall: "Total reputation across heat, wins, accuracy, and viral receipts.",
   wins: "Talkers stacking the most settled wins.",
@@ -98,10 +102,11 @@ const categoryCards: CategoryCard[] = [
 export function TopTalkersScreen({ profile }: { profile?: Profile | null }) {
   const [activeTab, setActiveTab] = useState<TalkersTab>("overall");
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeSport, setActiveSport] = useState<SportFilter>("All Sports");
   const [realProfiles, setRealProfiles] = useState<Profile[]>(profile ? [profile] : []);
   const rankedTalkers = useMemo(
-    () => getRankedTalkers(activeTab, searchQuery, realProfiles, profile),
-    [activeTab, profile, realProfiles, searchQuery],
+    () => getRankedTalkers(activeTab, activeSport, searchQuery, realProfiles, profile),
+    [activeSport, activeTab, profile, realProfiles, searchQuery],
   );
   const podiumRows = useMemo(() => rowsToPodium(rankedTalkers.slice(0, 3)), [rankedTalkers]);
 
@@ -152,10 +157,10 @@ export function TopTalkersScreen({ profile }: { profile?: Profile | null }) {
         </span>
         {tabCopy[activeTab]}
       </p>
+      <SportFilterSelect value={activeSport} onChange={setActiveSport} />
       <TalkerSearch value={searchQuery} onChange={setSearchQuery} />
       {activeTab === "overall" && !searchQuery.trim() ? <Podium talkers={podiumRows} /> : null}
       <TopTalkersBoard activeTab={activeTab} talkers={rankedTalkers} />
-      <YourRankCard profile={profile} />
       <CategoryGrid />
     </div>
   );
@@ -290,6 +295,25 @@ function TalkersTabs({
         </button>
       ))}
     </nav>
+  );
+}
+
+function SportFilterSelect({ value, onChange }: { value: SportFilter; onChange: (value: SportFilter) => void }) {
+  return (
+    <label className="block rounded-[1.25rem] border border-white/10 bg-black/35 p-3 shadow-[0_14px_38px_rgba(0,0,0,0.28)]">
+      <span className="text-[10px] font-black uppercase tracking-[0.18em] text-lime-300">Filter by Sport</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value as SportFilter)}
+        className="mt-2 min-h-12 w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 text-sm font-black text-white outline-none transition focus:border-purple-300/60 focus:bg-purple-500/10"
+      >
+        {sportFilters.map((sport) => (
+          <option key={sport} value={sport} className="bg-[#090b13]">
+            {sport}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -473,69 +497,6 @@ function TableStat({ label, value, tone }: { label: string; value: string; tone:
   );
 }
 
-function YourRankCard({ profile }: { profile?: Profile | null }) {
-  const username = profile?.username || "You";
-  const favoriteTeams = profile?.favorite_teams?.length ? profile.favorite_teams.slice(0, 3).join(" · ") : "The board is within reach.";
-  const wins = profile?.hits_count ?? 0;
-  const losses = profile?.misses_count ?? 0;
-  const reputation = profile?.reputation_score ?? profile?.reputation ?? 0;
-  const activityCount = (profile?.created_takes_count ?? 0) + (profile?.receipts_count ?? 0);
-  const level = getReputationLevel(reputation, activityCount);
-  const heatStatus = getHeatStatus({ heat: reputation, reputation, streak: wins >= 3 ? 3 : 0 });
-
-  return (
-    <section className="rounded-[1.75rem] border border-lime-300/25 bg-lime-400/10 p-4 shadow-[0_0_34px_rgba(132,204,22,0.1)]">
-      <div className="grid gap-4 sm:grid-cols-[auto_auto_1fr_auto] sm:items-center">
-        <div className="flex items-end justify-between gap-3 sm:block">
-          <div>
-            <p className="sports-display text-3xl italic leading-none text-lime-300">Your Rank</p>
-            <p className="mt-1 text-sm font-black uppercase text-lime-200">{heatStatus.label} · {level.title}</p>
-          </div>
-          <p className="hidden rounded-full border border-lime-300/25 bg-black/25 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-lime-200 min-[390px]:block sm:hidden">
-            In range
-          </p>
-        </div>
-
-        <Link
-          href="/receipts"
-          className="rounded-full transition hover:scale-[1.02] active:scale-[0.98]"
-          aria-label={`${username} receipts identity`}
-        >
-          <UserAvatar avatarUrl={profile?.avatar_url} initials={getInitials(username)} size="lg" active />
-        </Link>
-
-        <div className="grid grid-cols-[auto_1fr] items-center gap-3">
-          <p className="scoreboard-number text-5xl text-white">23</p>
-          <div className="min-w-0">
-            <Link href="/receipts" className="text-xl font-black text-white transition hover:text-lime-100">
-              @{username.replace(/^@/, "")} <span className="text-sky-300">◆</span>
-            </Link>
-            <p className="max-w-[15rem] text-sm font-semibold leading-5 text-gray-300">
-              {favoriteTeams}
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 text-center min-[430px]:grid-cols-4 sm:min-w-[21rem]">
-          <MiniRankStat label="REP" value={formatCompact(reputation)} />
-          <MiniRankStat label="Wins" value={String(wins)} />
-          <MiniRankStat label="Accuracy" value={`${wins + losses ? Math.round((wins / (wins + losses)) * 100) : 0}%`} />
-          <MiniRankStat label="Takes" value={formatCompact(profile?.created_takes_count ?? 0)} />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function MiniRankStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-black/25 px-2 py-2">
-      <p className="text-[9px] font-black uppercase text-lime-300">{label}</p>
-      <p className="mt-1 text-sm font-black text-white min-[390px]:text-base">{value}</p>
-    </div>
-  );
-}
-
 function CategoryGrid() {
   return (
     <section className="grid gap-3 sm:grid-cols-3">
@@ -584,6 +545,7 @@ function CategoryPanel({ card }: { card: CategoryCard }) {
 
 function getRankedTalkers(
   activeTab: TalkersTab,
+  activeSport: SportFilter,
   searchQuery: string,
   realProfiles: Profile[],
   currentProfile?: Profile | null,
@@ -598,9 +560,13 @@ function getRankedTalkers(
   ];
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
+  const sportFilteredTalkers = activeSport === "All Sports"
+    ? combinedTalkers
+    : combinedTalkers.filter((talker) => getTalkerSport(talker.handle) === activeSport);
+
   const filteredTalkers = normalizedQuery
-    ? combinedTalkers.filter((talker) => `${talker.handle} ${talker.subtitle}`.toLowerCase().includes(normalizedQuery))
-    : combinedTalkers;
+    ? sportFilteredTalkers.filter((talker) => `${talker.handle} ${talker.subtitle}`.toLowerCase().includes(normalizedQuery))
+    : sportFilteredTalkers;
 
   const metric = activeTab === "search" ? "overall" : activeTab;
 
@@ -693,7 +659,7 @@ function seededProfilesToTalkers(): TalkerRow[] {
 }
 
 function rowsToPodium(rows: TalkerRow[]): PodiumTalker[] {
-  const fallbackRows = getRankedTalkers("overall", "", [], null).slice(0, 3);
+  const fallbackRows = getRankedTalkers("overall", "All Sports", "", [], null).slice(0, 3);
   const podiumSource = rows.length >= 3 ? rows : fallbackRows;
 
   return podiumSource.slice(0, 3).map((row, index) => ({
@@ -707,6 +673,25 @@ function rowsToPodium(rows: TalkerRow[]): PodiumTalker[] {
     accuracy: row.accuracy,
     viral: row.viral,
   }));
+}
+
+
+function getTalkerSport(handle: string): SportFilter {
+  const normalized = handle.replace(/^@/, "").toLowerCase();
+  const map: Record<string, SportFilter> = {
+    talkheavy23: "NBA",
+    midrange: "NBA",
+    bucketsonly: "NBA",
+    fadeking: "NFL",
+    hoopdreams: "NBA",
+    nomercy: "UFC",
+    primetalker: "NFL",
+    clutchcallz: "Soccer",
+    realdeal: "MLB",
+    sharpmind: "NCAA Basketball",
+  };
+
+  return map[normalized] ?? "NBA";
 }
 
 function getMetricValue(talker: TalkerRow, metric: Exclude<TalkersTab, "search">) {

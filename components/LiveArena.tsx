@@ -51,7 +51,7 @@ const chatTakes: ChatTake[] = [
     handle: "@MidRange",
     avatar: "MR",
     timestamp: "1m ago",
-    text: "Momentum is all LAL. Crowd smells blood.",
+    text: "Momentum is shifting. Crowd feels it.",
     heat: 96,
   },
   {
@@ -59,7 +59,7 @@ const chatTakes: ChatTake[] = [
     handle: "@FadeKing",
     avatar: "FK",
     timestamp: "just now",
-    text: "The Crowd is heavy on LAL... trap game incoming.",
+    text: "Crowd pressure rising before tipoff.",
     heat: 212,
     tag: "fade",
   },
@@ -85,21 +85,21 @@ const chatTakes: ChatTake[] = [
 const liveCalls = [
   {
     handle: "@BucketsOnly",
-    text: "LAL closing this. Warriors cooked.",
+    text: "This side closing strong. Opps cooked.",
     rides: "2.1K",
     fades: "842",
     status: "Locked",
   },
   {
     handle: "@FadeKing",
-    text: "Too much Crowd pressure. GSW still has one push.",
+    text: "Too much Crowd pressure. Still one push left.",
     rides: "488",
     fades: "1.4K",
     status: "Fade",
   },
   {
     handle: "@HoopDreams",
-    text: "LAL defense is winning the last three minutes.",
+    text: "Defense is winning the last three minutes.",
     rides: "912",
     fades: "215",
     status: "Ride",
@@ -120,13 +120,13 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
   const [quickPickSelections, setQuickPickSelections] = useState<Record<string, string>>({});
   const [quickPickMessage, setQuickPickMessage] = useState("");
   const [savingQuickPickKey, setSavingQuickPickKey] = useState<string | null>(null);
-  const awayTeam = game?.away_team ?? "LAL";
-  const homeTeam = game?.home_team ?? "GSW";
+  const awayTeam = game?.away_team ?? "AWAY";
+  const homeTeam = game?.home_team ?? "HOME";
   const quickPickQuestions = getQuickPickQuestions({
     awayTeam,
     homeTeam,
-    awayScore: game?.away_score ?? 108,
-    homeScore: game?.home_score ?? 103,
+    awayScore: game?.away_score ?? 0,
+    homeScore: game?.home_score ?? 0,
   });
 
   useEffect(() => {
@@ -204,12 +204,12 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
                 }}
               />
             )}
-            {activeTab === "control-room" && <ControlRoomPanel />}
+            {activeTab === "control-room" && <ControlRoomPanel game={game} />}
             {activeTab === "top-talkers" && <TopTalkersPanel />}
           </section>
 
           <aside className="space-y-4">
-            {activeTab !== "control-room" && <ControlRoomPanel />}
+            {activeTab !== "control-room" && <ControlRoomPanel game={game} />}
             {activeTab !== "top-talkers" && <TopTalkersPanel />}
             <ArenaVibePanel />
           </aside>
@@ -298,14 +298,20 @@ function ArenaScoreboard({
   quickPickMessage: string;
   onQuickPick: (question: QuickPickQuestion, selectedSide: string) => void;
 }) {
-  const awayTeam = game?.away_team ?? "LAL";
-  const homeTeam = game?.home_team ?? "GSW";
-  const awayScore = String(game?.away_score ?? 108);
-  const homeScore = String(game?.home_score ?? 103);
-  const period = game?.period ?? "4th QTR";
-  const clock = game?.clock ?? "2:47";
-  const watching = game?.watching_count ?? 12800;
-  const status = game?.status ?? "live";
+  const awayTeam = game?.away_team ?? "AWAY";
+  const homeTeam = game?.home_team ?? "HOME";
+  const awayScore = String(game?.away_score ?? 0);
+  const homeScore = String(game?.home_score ?? 0);
+  const period = game?.period ?? (game?.status === "scheduled" ? "Pregame" : game?.status === "final" ? "Final" : "Live");
+  const clock = game?.clock ?? (game?.status === "scheduled" ? "Scheduled" : game?.status === "final" ? "Final" : "Live");
+  const watching = game?.watching_count ?? 0;
+  const status = game?.status ?? "scheduled";
+  const startsAt = game?.starts_at ? new Date(game.starts_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "TBD";
+  const rideCount = game?.ride_count ?? 0;
+  const fadeCount = game?.fade_count ?? 0;
+  const totalPicks = rideCount + fadeCount;
+  const ridePct = totalPicks > 0 ? Math.round((rideCount / totalPicks) * 100) : 50;
+  const fadePct = 100 - ridePct;
 
   return (
     <section className="arena-scoreboard overflow-hidden rounded-[1.75rem] border border-white/10 p-4 pt-5 shadow-[0_26px_80px_rgba(0,0,0,0.56),0_0_34px_rgba(168,85,247,0.08)] sm:p-5">
@@ -319,8 +325,9 @@ function ArenaScoreboard({
           <p className="mt-3 text-xs font-black uppercase text-purple-300">{period}</p>
           <p className="scoreboard-number mt-1 text-4xl text-white">{clock}</p>
           <p className="mt-2 flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-gray-300">
-            <span className="h-2 w-2 rounded-full bg-lime-400" /> {formatCompact(watching)} Watching
+            <span className="h-2 w-2 rounded-full bg-lime-400" /> {status === "scheduled" ? `Tipoff ${startsAt}` : `${formatCompact(watching)} Watching`}
           </p>
+          <p className="text-[10px] font-black uppercase text-gray-500">{status === "scheduled" ? "Pregame" : status === "final" ? "Final" : "Live"}</p>
           <span className="mx-auto mt-3 grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/60 text-[10px] font-black text-gray-300">
             VS
           </span>
@@ -331,13 +338,13 @@ function ArenaScoreboard({
 
       <div className="mt-5">
         <div className="flex items-center justify-between gap-3 text-xs font-black uppercase">
-          <span className="text-lime-300">62% Riding {awayTeam}</span>
-          <span className="text-purple-300">38% Fading {homeTeam}</span>
+          <span className="text-lime-300">{ridePct}% Riding {awayTeam}</span>
+          <span className="text-purple-300">{fadePct}% Fading {homeTeam}</span>
         </div>
         <div className="mt-2 flex h-3 overflow-hidden rounded-full bg-white/10">
-          <div className="w-[62%] bg-gradient-to-r from-lime-400 to-lime-300" />
+          <div className="bg-gradient-to-r from-lime-400 to-lime-300" style={{ width: `${ridePct}%` }} />
           <div className="w-3 bg-white/30" />
-          <div className="flex-1 bg-gradient-to-r from-purple-700 to-purple-400" />
+          <div className="bg-gradient-to-r from-purple-700 to-purple-400" style={{ width: `${Math.max(fadePct - 3, 0)}%` }} />
         </div>
       </div>
 
@@ -351,18 +358,18 @@ function ArenaScoreboard({
 
       <div className="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-black/50 p-3.5 sm:grid-cols-[0.8fr_1.25fr_0.85fr] sm:items-center">
         <div>
-          <p className="text-[10px] font-black uppercase text-gray-400">Heat Level</p>
-          <p className="mt-1 text-2xl font-black text-lime-300">🔥 3.6K</p>
-          <p className="text-[10px] font-black uppercase text-red-300">Very Hot</p>
+          <p className="text-[10px] font-black uppercase text-gray-400">Crowd Split</p>
+          <p className="mt-1 text-2xl font-black text-lime-300">{ridePct}% / {fadePct}%</p>
+          <p className="text-[10px] font-black uppercase text-red-300">{status === "scheduled" ? "Pregame split" : status === "final" ? "Final split" : "Live split"}</p>
         </div>
         <div className="border-y border-white/10 py-3 text-center sm:border-x sm:border-y-0 sm:px-4 sm:py-0">
           <p className="text-[10px] font-black uppercase text-gray-400">Momentum</p>
           <Sparkline />
-          <p className="mt-1 text-xs font-black uppercase text-lime-300">↑ LAL</p>
+          <p className="mt-1 text-xs font-black uppercase text-lime-300">{status === "scheduled" ? "Crowd waiting" : `${awayTeam} vs ${homeTeam}`}</p>
         </div>
         <div className="text-left sm:text-right">
-          <p className="text-[10px] font-black uppercase text-gray-400">Upset Threat</p>
-          <p className="scoreboard-number mt-1 text-4xl text-purple-300">68%</p>
+          <p className="text-[10px] font-black uppercase text-gray-400">Game State</p>
+          <p className="scoreboard-number mt-1 text-4xl text-purple-300">{status === "scheduled" ? "PRE" : status === "final" ? "FIN" : "LIVE"}</p>
         </div>
       </div>
     </section>
@@ -602,7 +609,7 @@ function PinnedCall() {
       </div>
       <div className="mt-3 grid grid-cols-[1fr_auto] items-center gap-3">
         <h2 className="sports-display text-2xl italic leading-tight text-white sm:text-3xl">
-          LAL closing this. Warriors cooked.
+          This side closing strong. Opps cooked.
         </h2>
         <span className="text-3xl text-gray-300">›</span>
       </div>
@@ -679,22 +686,28 @@ function CallsPanel({ onChoose }: { onChoose: (side: Side) => void }) {
   );
 }
 
-function ControlRoomPanel() {
+function ControlRoomPanel({ game }: { game: Game | null }) {
+  const rideCount = game?.ride_count ?? 0;
+  const fadeCount = game?.fade_count ?? 0;
+  const totalPicks = rideCount + fadeCount;
+  const ridePct = totalPicks > 0 ? Math.round((rideCount / totalPicks) * 100) : 50;
+  const fadePct = 100 - ridePct;
+
   return (
     <section className="rounded-[1.5rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
       <PanelHeader title="Control Room" />
       <p className="mt-4 text-[10px] font-black uppercase text-gray-400">Crowd Sentiment</p>
       <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
         <div>
-          <p className="scoreboard-number text-4xl text-lime-300">62%</p>
-          <p className="text-[10px] font-black uppercase text-lime-300">Riding LAL</p>
+          <p className="scoreboard-number text-4xl text-lime-300">{ridePct}%</p>
+          <p className="text-[10px] font-black uppercase text-lime-300">Riding {game?.away_team ?? "AWAY"}</p>
         </div>
         <div className="relative h-16 w-16 rounded-full bg-[conic-gradient(#84cc16_0_62%,#a855f7_62%_100%)]">
           <div className="absolute inset-3 rounded-full bg-black" />
         </div>
         <div className="text-right">
-          <p className="scoreboard-number text-4xl text-purple-300">38%</p>
-          <p className="text-[10px] font-black uppercase text-purple-300">Fading GSW</p>
+          <p className="scoreboard-number text-4xl text-purple-300">{fadePct}%</p>
+          <p className="text-[10px] font-black uppercase text-purple-300">Fading {game?.home_team ?? "HOME"}</p>
         </div>
       </div>
 
@@ -705,8 +718,8 @@ function ControlRoomPanel() {
 
       <div className="mt-4 space-y-3">
         <SignalRow icon="◉" label="Crowd Confidence" value="85%" note="Very high" tone="ride" />
-        <SignalRow icon="🔥" label="Overcommitment" value="72%" note="LAL side" tone="ride" />
-        <SignalRow icon="ϟ" label="Momentum Shift" value="LAL ↑" note="Strong" tone="ride" />
+        <SignalRow icon="🔥" label="Overcommitment" value={`${Math.max(game?.ride_count ?? 0, game?.fade_count ?? 0)} picks`} note="Crowd side" tone="ride" />
+        <SignalRow icon="ϟ" label="Momentum Shift" value={`${game?.away_team ?? "AWAY"} ↔ ${game?.home_team ?? "HOME"}`} note="Game-state" tone="ride" />
         <SignalRow icon="☿" label="Upset Threat" value="68%" note="High" tone="fade" />
       </div>
     </section>

@@ -180,7 +180,7 @@ export function getReputationBadges(stats: ReputationStats): ReputationBadge[] {
       earned: heat >= 2500,
     },
     {
-      name: "Accuracy God",
+      name: "Sharp Shooter",
       subtitle: hitRate >= 80 ? `${hitRate}% hit rate` : "80% hit rate",
       icon: "◎",
       tone: "red",
@@ -220,13 +220,6 @@ export function getReputationBadges(stats: ReputationStats): ReputationBadge[] {
       icon: "☇",
       tone: "purple",
       earned: stats.streak >= 3,
-    },
-    {
-      name: "Rookie Crusher",
-      subtitle: stats.takes > 0 || stats.receipts > 0 ? "Rookie no more" : "First action",
-      icon: "✓",
-      tone: "green",
-      earned: stats.takes > 0 || stats.receipts > 0 || stats.reputation >= 25,
     },
   ];
 }
