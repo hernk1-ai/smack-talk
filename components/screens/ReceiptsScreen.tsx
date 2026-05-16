@@ -18,6 +18,7 @@ import {
 } from "@/lib/reputation";
 import { getCurrentUserReceipts, getReceiptsByUser } from "@/lib/supabase/receipts";
 import type { Profile, Receipt } from "@/lib/supabase/types";
+import { ReportModal } from "@/components/moderation/ReportModal";
 
 type ReceiptStatus = "win" | "loss";
 type ReceiptSide = "riding" | "fading";
@@ -218,6 +219,7 @@ export function ReceiptsScreen({
   const [receiptError, setReceiptError] = useState("");
   const [shareCopied, setShareCopied] = useState(false);
   const [sharedReceiptId, setSharedReceiptId] = useState<string | null>(null);
+  const [reportProfileOpen, setReportProfileOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -332,6 +334,7 @@ export function ReceiptsScreen({
         owner={owner}
         profile={profile}
         receipts={realReceipts}
+        onReportUser={() => setReportProfileOpen(true)}
       />
 
       {receiptError && (
@@ -369,6 +372,12 @@ export function ReceiptsScreen({
           ))}
         </div>
       </ReceiptSection>
+    <ReportModal
+      open={reportProfileOpen && Boolean(owner.userId)}
+      onClose={() => setReportProfileOpen(false)}
+      targetType="user"
+      targetId={owner.userId ?? ""}
+    />
     </div>
   );
 }
@@ -445,6 +454,7 @@ function ReceiptIdentityCard({
   copied,
   featuredReceipt,
   onShare,
+  onReportUser,
   owner,
   profile,
   receipts,
@@ -452,6 +462,7 @@ function ReceiptIdentityCard({
   copied: boolean;
   featuredReceipt: Receipt | null;
   onShare: () => void;
+  onReportUser: () => void;
   owner: ReceiptOwnerMeta;
   profile?: Profile | null;
   receipts: Receipt[];
@@ -644,6 +655,13 @@ function ReceiptIdentityCard({
               className="mt-4 min-h-12 rounded-2xl border border-purple-300/60 bg-purple-500/15 px-5 text-sm font-black uppercase tracking-[0.1em] text-purple-100 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition hover:-translate-y-0.5 hover:bg-purple-500/25 hover:shadow-[0_0_34px_rgba(168,85,247,0.24)] active:scale-95"
             >
               {copied ? "LINK COPIED" : "SHARE"}
+            </button>
+            <button
+              type="button"
+              onClick={onReportUser}
+              className="mt-2 min-h-10 rounded-2xl border border-yellow-300 px-4 text-xs font-black uppercase text-yellow-100"
+            >
+              FLAG USER
             </button>
           </div>
         </article>

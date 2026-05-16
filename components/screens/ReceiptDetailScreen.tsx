@@ -13,6 +13,8 @@ import { createClient } from "@/lib/supabase/client";
 import { getReceiptById } from "@/lib/supabase/receipts";
 import { getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/replies";
 import type { Profile, ProfileCard, Receipt } from "@/lib/supabase/types";
+import { ReportModal } from "@/components/moderation/ReportModal";
+import { muteUser, blockUser } from "@/lib/supabase/moderation";
 
 type ReceiptView = {
   id: string;
@@ -37,6 +39,7 @@ export function ReceiptDetailScreen({ receiptId, profile }: { receiptId: string;
   const [replies, setReplies] = useState<TakeReplyWithAuthor[]>([]);
   const [message, setMessage] = useState("");
   const [copied, setCopied] = useState(false);
+  const [reportUserOpen, setReportUserOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -151,6 +154,26 @@ export function ReceiptDetailScreen({ receiptId, profile }: { receiptId: string;
     }
   }
 
+  async function muteReceiptUser() {
+    if (!receipt) return;
+    const { error } = await muteUser(receipt.userId);
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    setMessage("User muted. Their content is hidden from your feed.");
+  }
+
+  async function blockReceiptUser() {
+    if (!receipt) return;
+    const { error } = await blockUser(receipt.userId);
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    setMessage("User blocked. Their content is now hidden.");
+  }
+
   function goBack() {
     if (window.history.length > 1) {
       router.back();
@@ -204,6 +227,27 @@ export function ReceiptDetailScreen({ receiptId, profile }: { receiptId: string;
                 className="min-h-12 rounded-2xl border border-purple-300/45 bg-purple-500/15 px-4 text-xs font-black uppercase tracking-[0.1em] text-purple-100 transition hover:-translate-y-0.5 active:scale-95"
               >
                 {copied ? "LINK COPIED" : "SHARE"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setReportUserOpen(true)}
+                className="ml-2 min-h-12 rounded-2xl border border-yellow-300/45 bg-yellow-500/15 px-3 text-xs font-black uppercase tracking-[0.1em] text-yellow-100 transition hover:-translate-y-0.5 active:scale-95"
+              >
+                FLAG
+              </button>
+              <button
+                type="button"
+                onClick={muteReceiptUser}
+                className="ml-2 min-h-12 rounded-2xl border border-white/35 bg-white/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-gray-100"
+              >
+                MUTE
+              </button>
+              <button
+                type="button"
+                onClick={blockReceiptUser}
+                className="ml-2 min-h-12 rounded-2xl border border-red-300/45 bg-red-500/15 px-3 text-xs font-black uppercase tracking-[0.1em] text-red-100"
+              >
+                BLOCK
               </button>
             </div>
           </header>
@@ -335,6 +379,12 @@ export function ReceiptDetailScreen({ receiptId, profile }: { receiptId: string;
             </p>
           )}
         </div>
+      <ReportModal
+        open={reportUserOpen && Boolean(receipt)}
+        onClose={() => setReportUserOpen(false)}
+        targetType="user"
+        targetId={receipt?.userId ?? ""}
+      />
       </main>
       <RouteBottomNav activeView="receipts" />
     </>

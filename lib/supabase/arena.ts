@@ -1,6 +1,7 @@
 import { ACTIVE_GAME_ID, getGameById } from "@/lib/supabase/games";
 import { getMyReactionsForTakes } from "@/lib/supabase/reactions";
 import { createClient } from "@/lib/supabase/client";
+import { getMyModerationFilters } from "@/lib/supabase/moderation";
 import {
   getSeededProfileById,
   getSeededTakeById,
@@ -52,6 +53,8 @@ export function seededTakeToArenaTake(take: SeededTake): ArenaTake {
     fade_count: take.fade_count,
     reply_count: take.reply_count,
     heat: take.heat,
+    is_hidden: false,
+    moderation_status: "clear",
     created_at: take.created_at,
     updated_at: take.created_at,
     settled_at: null,
@@ -131,10 +134,14 @@ export async function getArenaFeed(gameId = ACTIVE_GAME_ID) {
     return { takes: [] as ArenaTake[], error: new Error("Supabase is not configured.") };
   }
 
+  const { mutedUserIds, blockedUserIds } = await getMyModerationFilters();
+  const excludedUserIds = new Set([...mutedUserIds, ...blockedUserIds]);
+
   const { data: takes, error } = await supabase
     .from("takes")
     .select("*")
     .eq("game_id", gameId)
+    .eq("is_hidden", false)
     .order("created_at", { ascending: false })
     .limit(40);
 
@@ -142,12 +149,18 @@ export async function getArenaFeed(gameId = ACTIVE_GAME_ID) {
     return { takes: [] as ArenaTake[], error };
   }
 
-  const userIds = [...new Set(takes.map((take) => take.user_id))];
+  const visibleTakes = takes.filter((take) => !excludedUserIds.has(take.user_id));
+
+  if (!visibleTakes.length) {
+    return { takes: [] as ArenaTake[], error: null };
+  }
+
+  const userIds = [...new Set(visibleTakes.map((take) => take.user_id))];
   const { data: profileCards } = await supabase.from("profile_cards").select("*").in("id", userIds);
   const profileMap = new Map((profileCards ?? []).map((profileCard) => [profileCard.id, profileCard]));
 
   return {
-    takes: takes.map((take) => ({
+    takes: visibleTakes.map((take) => ({
       ...take,
       author: profileMap.get(take.user_id) ?? null,
     })),
@@ -166,10 +179,17 @@ export async function getTakeById(takeId: string) {
     return { take: null as ArenaTake | null, error: new Error("Supabase is not configured.") };
   }
 
-  const { data: take, error } = await supabase.from("takes").select("*").eq("id", takeId).maybeSingle();
+  const { mutedUserIds, blockedUserIds } = await getMyModerationFilters();
+  const excludedUserIds = new Set([...mutedUserIds, ...blockedUserIds]);
+
+  const { data: take, error } = await supabase.from("takes").select("*").eq("id", takeId).eq("is_hidden", false).maybeSingle();
 
   if (error || !take) {
     return { take: null, error };
+  }
+
+  if (excludedUserIds.has(take.user_id)) {
+    return { take: null, error: new Error("This take is muted or blocked.") };
   }
 
   const { data: profileCard } = await supabase

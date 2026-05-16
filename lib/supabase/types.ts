@@ -18,7 +18,8 @@ export type Database = {
           receipts_count: number;
           onboarding_completed: boolean;
           last_active_at: string;
-          created_at: string;
+          is_suspended: boolean;
+          created_at: string
           updated_at: string;
         };
         Insert: {
@@ -35,6 +36,7 @@ export type Database = {
           receipts_count?: number;
           onboarding_completed?: boolean;
           last_active_at?: string;
+          is_suspended?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -52,6 +54,7 @@ export type Database = {
           receipts_count?: number;
           onboarding_completed?: boolean;
           last_active_at?: string;
+          is_suspended?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -263,6 +266,8 @@ export type Database = {
           fade_count: number;
           reply_count: number;
           heat: number;
+          is_hidden: boolean;
+          moderation_status: "clear" | "under_review" | "removed";
           created_at: string;
           updated_at: string;
           settled_at: string | null;
@@ -278,6 +283,8 @@ export type Database = {
           fade_count?: number;
           reply_count?: number;
           heat?: number;
+          is_hidden?: boolean;
+          moderation_status?: "clear" | "under_review" | "removed";
           created_at?: string;
           updated_at?: string;
           settled_at?: string | null;
@@ -293,6 +300,8 @@ export type Database = {
           fade_count?: number;
           reply_count?: number;
           heat?: number;
+          is_hidden?: boolean;
+          moderation_status?: "clear" | "under_review" | "removed";
           created_at?: string;
           updated_at?: string;
           settled_at?: string | null;
@@ -373,6 +382,8 @@ export type Database = {
           parent_reply_id: string | null;
           reply_text: string;
           heat: number;
+          is_hidden: boolean;
+          moderation_status: "clear" | "under_review" | "removed";
           created_at: string;
           updated_at: string;
         };
@@ -383,6 +394,8 @@ export type Database = {
           parent_reply_id?: string | null;
           reply_text: string;
           heat?: number;
+          is_hidden?: boolean;
+          moderation_status?: "clear" | "under_review" | "removed";
           created_at?: string;
           updated_at?: string;
         };
@@ -393,6 +406,8 @@ export type Database = {
           parent_reply_id?: string | null;
           reply_text?: string;
           heat?: number;
+          is_hidden?: boolean;
+          moderation_status?: "clear" | "under_review" | "removed";
           created_at?: string;
           updated_at?: string;
         };
@@ -419,6 +434,87 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      reports: {
+        Row: {
+          id: string;
+          reporter_user_id: string;
+          target_type: "take" | "reply" | "user";
+          target_id: string;
+          reason: string;
+          details: string | null;
+          status: "open" | "reviewed" | "dismissed" | "actioned";
+          created_at: string;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          reporter_user_id: string;
+          target_type: "take" | "reply" | "user";
+          target_id: string;
+          reason: string;
+          details?: string | null;
+          status?: "open" | "reviewed" | "dismissed" | "actioned";
+          created_at?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          reporter_user_id?: string;
+          target_type?: "take" | "reply" | "user";
+          target_id?: string;
+          reason?: string;
+          details?: string | null;
+          status?: "open" | "reviewed" | "dismissed" | "actioned";
+          created_at?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+        };
+        Relationships: [];
+      };
+      user_mutes: {
+        Row: {
+          id: string;
+          user_id: string;
+          muted_user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          muted_user_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          muted_user_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      user_blocks: {
+        Row: {
+          id: string;
+          user_id: string;
+          blocked_user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          blocked_user_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          blocked_user_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
       };
       receipts: {
         Row: {
@@ -537,5 +633,8 @@ export type QuickPick = Database["public"]["Tables"]["quick_picks"]["Row"];
 export type Take = Database["public"]["Tables"]["takes"]["Row"];
 export type TakeReaction = Database["public"]["Tables"]["take_reactions"]["Row"];
 export type TakeReply = Database["public"]["Tables"]["take_replies"]["Row"];
+export type Report = Database["public"]["Tables"]["reports"]["Row"];
+export type UserMute = Database["public"]["Tables"]["user_mutes"]["Row"];
+export type UserBlock = Database["public"]["Tables"]["user_blocks"]["Row"];
 export type Receipt = Database["public"]["Tables"]["receipts"]["Row"];
 export type ProfileCard = Database["public"]["Views"]["profile_cards"]["Row"];

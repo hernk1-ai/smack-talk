@@ -17,6 +17,7 @@ import { createReply, getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/
 import { getMyReactionForTake, reactToTake } from "@/lib/supabase/reactions";
 import { getSeededProfileById, getSeededRepliesForTake } from "@/data/seededCrowd";
 import type { Profile, TakeReaction } from "@/lib/supabase/types";
+import { ReportModal } from "@/components/moderation/ReportModal";
 
 type Side = "ride" | "fade";
 
@@ -32,6 +33,7 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
   const [replyStatus, setReplyStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const [shareCopied, setShareCopied] = useState(false);
+  const [reportOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -142,6 +144,8 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
         parent_reply_id: replyingTo?.id ?? null,
         reply_text: cleanReplyText,
         heat: 0,
+        is_hidden: false,
+        moderation_status: "clear",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         author: profileToCard(profile),
@@ -527,6 +531,12 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
           </section>
         )}
         </div>
+      <ReportModal
+        open={reportOpen}
+        onClose={() => {}}
+        targetType="take"
+        targetId={takeId}
+      />
       </main>
       <RouteBottomNav activeView="arena" />
     </>
@@ -651,6 +661,8 @@ function getSeededThreadReplies(takeId: string): TakeReplyWithAuthor[] {
       parent_reply_id: reply.parentReplyId ?? null,
       reply_text: reply.replyText,
       heat: 0,
+      is_hidden: false,
+      moderation_status: "clear",
       created_at: reply.created_at,
       updated_at: reply.created_at,
       author: author

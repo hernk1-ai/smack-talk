@@ -1,10 +1,14 @@
 import { createClient } from "@/lib/supabase/client";
+import { getMyModerationFilters } from "@/lib/supabase/moderation";
 import { touchMyPresence } from "@/lib/supabase/presence";
 import type { ProfileCard, TakeReply } from "@/lib/supabase/types";
 
 export type TakeReplyWithAuthor = TakeReply & {
   author: ProfileCard | null;
 };
+
+const REPLY_DUPLICATE_WINDOW_MS = 2 * 60 * 1000;
+const REPLY_ACTION_COOLDOWN_MS = 4 * 1000;
 
 export async function getRepliesForTake(takeId: string) {
   const supabase = createClient();
@@ -13,22 +17,32 @@ export async function getRepliesForTake(takeId: string) {
     return { replies: [] as TakeReplyWithAuthor[], error: new Error("Supabase is not configured.") };
   }
 
+  const { mutedUserIds, blockedUserIds } = await getMyModerationFilters();
+  const excludedUserIds = new Set([...mutedUserIds, ...blockedUserIds]);
+
   const { data: replies, error } = await supabase
     .from("take_replies")
     .select("*")
     .eq("take_id", takeId)
+    .eq("is_hidden", false)
     .order("created_at", { ascending: false });
 
   if (error || !replies?.length) {
     return { replies: [] as TakeReplyWithAuthor[], error };
   }
 
-  const userIds = [...new Set(replies.map((reply) => reply.user_id))];
+  const visibleReplies = replies.filter((reply) => !excludedUserIds.has(reply.user_id));
+
+  if (!visibleReplies.length) {
+    return { replies: [], error: null };
+  }
+
+  const userIds = [...new Set(visibleReplies.map((reply) => reply.user_id))];
   const { data: profileCards } = await supabase.from("profile_cards").select("*").in("id", userIds);
   const profileMap = new Map((profileCards ?? []).map((profileCard) => [profileCard.id, profileCard]));
 
   return {
-    replies: replies.map((reply) => ({
+    replies: visibleReplies.map((reply) => ({
       ...reply,
       author: profileMap.get(reply.user_id) ?? null,
     })),
@@ -72,6 +86,37 @@ export async function createReply({
 
   if (!user) {
     return { reply: null, error: new Error("Log in to reply to takes.") };
+  }
+
+  const now = Date.now();
+  const recentWindowIso = new Date(now - REPLY_DUPLICATE_WINDOW_MS).toISOString();
+  const { data: recentReplies, error: recentError } = await supabase
+    .from("take_replies")
+    .select("reply_text, created_at")
+    .eq("take_id", takeId)
+    .eq("user_id", user.id)
+    .gte("created_at", recentWindowIso)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  if (recentError) {
+    return { reply: null, error: recentError };
+  }
+
+  const duplicateReply = (recentReplies ?? []).find(
+    (candidate) => candidate.reply_text.trim().toLowerCase() === cleanReplyText.toLowerCase(),
+  );
+
+  if (duplicateReply) {
+    return { reply: null, error: new Error("You already said that. Keep the thread moving.") };
+  }
+
+  const latestReply = (recentReplies ?? [])[0];
+  if (latestReply) {
+    const latestCreatedAt = new Date(latestReply.created_at).getTime();
+    if (Number.isFinite(latestCreatedAt) && now - latestCreatedAt < REPLY_ACTION_COOLDOWN_MS) {
+      return { reply: null, error: new Error("Slow down. Give it a few seconds before replying again.") };
+    }
   }
 
   const { data, error } = await supabase
