@@ -4,8 +4,8 @@ import Link from "next/link";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 
 export const metadata: Metadata = {
-  title: "Smack Talk — Terms of Use",
-  description: "Terms of Use for Smack Talk.",
+  title: "LOCKT — Terms of Use",
+  description: "Terms of Use for LOCKT.",
 };
 
 type LegalBlock =
@@ -19,9 +19,9 @@ type LegalBlock =
     };
 
 const intro = [
-  "Welcome to Smack Talk.",
-  "Smack Talk is a competitive social platform built around sports culture, public takes, predictions, community discussion, and reputation systems.",
-  "By accessing or using Smack Talk (“Platform,” “Service,” “we,” “our,” or “us”), you agree to these Terms of Use (“Terms”).",
+  "Welcome to LOCKT.",
+  "LOCKT is a competitive social platform built around sports culture, public takes, predictions, community discussion, and reputation systems.",
+  "By accessing or using LOCKT (“Platform,” “Service,” “we,” “our,” or “us”), you agree to these Terms of Use (“Terms”).",
   "If you do not agree to these Terms, do not use the Platform.",
 ];
 
@@ -31,7 +31,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
     blocks: [
       {
         type: "p",
-        text: "You must be at least 17 years old to use Smack Talk.",
+        text: "You must be at least 17 years old to use LOCKT.",
       },
       {
         type: "p",
@@ -47,7 +47,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
       },
       {
         type: "p",
-        text: "Smack Talk is intended for entertainment and community discussion purposes only.",
+        text: "LOCKT is intended for entertainment and community discussion purposes only.",
       },
     ],
   },
@@ -56,7 +56,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
     blocks: [
       {
         type: "p",
-        text: "Smack Talk is NOT a sportsbook, casino, betting platform, financial exchange, or gambling operator.",
+        text: "LOCKT is NOT a sportsbook, casino, betting platform, financial exchange, or gambling operator.",
       },
       {
         type: "p",
@@ -121,11 +121,11 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
     blocks: [
       {
         type: "p",
-        text: "Smack Talk is built for competition, rivalry, sports chaos, and aggressive takes.",
+        text: "LOCKT is built for competition, rivalry, and confident sports takes.",
       },
       {
         type: "p",
-        text: "Talk your shit.",
+        text: "Bring strong opinions. Keep it respectful.",
       },
       {
         type: "p",
@@ -175,7 +175,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
       },
       {
         type: "p",
-        text: "However, by posting content on Smack Talk, you grant us a worldwide, non-exclusive, royalty-free license to:",
+        text: "However, by posting content on LOCKT, you grant us a worldwide, non-exclusive, royalty-free license to:",
       },
       {
         type: "ul",
@@ -218,7 +218,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
     blocks: [
       {
         type: "p",
-        text: "Smack Talk may use public engagement systems including:",
+        text: "LOCKT may use public engagement systems including:",
       },
       {
         type: "ul",
@@ -262,7 +262,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
     blocks: [
       {
         type: "p",
-        text: "All Smack Talk branding, logos, graphics, software, designs, interfaces, and platform systems are owned by Smack Talk or its licensors.",
+        text: "All LOCKT branding, logos, graphics, software, designs, interfaces, and platform systems are owned by LOCKT or its licensors.",
       },
       {
         type: "p",
@@ -274,7 +274,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
           "copy the Platform;",
           "reverse engineer the Platform;",
           "reproduce proprietary systems;",
-          "use Smack Talk branding without permission.",
+          "use LOCKT branding without permission.",
         ],
       },
       {
@@ -308,7 +308,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
       },
       {
         type: "p",
-        text: "Smack Talk is not officially affiliated with any sports league, team, broadcaster, or entertainment organization unless explicitly stated.",
+        text: "LOCKT is not officially affiliated with any sports league, team, broadcaster, or entertainment organization unless explicitly stated.",
       },
     ],
   },
@@ -356,7 +356,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
       },
       {
         type: "p",
-        text: "User content represents the views of individual users, not Smack Talk.",
+        text: "User content represents the views of individual users, not LOCKT.",
       },
     ],
   },
@@ -365,7 +365,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
     blocks: [
       {
         type: "p",
-        text: "To the maximum extent permitted by law, Smack Talk and its affiliates shall not be liable for:",
+        text: "To the maximum extent permitted by law, LOCKT and its affiliates shall not be liable for:",
       },
       {
         type: "ul",
@@ -449,7 +449,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
     blocks: [
       {
         type: "p",
-        text: "Smack Talk is a competitive social platform built around community, reputation, predictions, and sports culture.",
+        text: "LOCKT is a competitive social platform built around community, reputation, predictions, and sports culture.",
       },
       {
         type: "p",
@@ -524,7 +524,7 @@ export default function TermsPage() {
 
         <section className="rounded-[2rem] border border-lime-300/20 bg-black/55 p-6 shadow-[0_0_60px_rgba(155,77,255,0.12)] sm:p-10">
           <p className="text-xs font-black uppercase tracking-[0.28em] text-lime-300">
-            SMACK TALK — TERMS OF USE
+            LOCKT — TERMS OF USE
           </p>
           <h1 className="mt-4 font-display text-5xl uppercase leading-none tracking-[0.02em] text-white sm:text-7xl">
             TERMS OF USE

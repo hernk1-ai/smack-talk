@@ -14,6 +14,7 @@ import { blockUser, muteUser, type ReportTargetType } from "@/lib/supabase/moder
 import { getMyReactionForTake, reactToTake } from "@/lib/supabase/reactions";
 import { createReply, getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/replies";
 import type { Profile, TakeReaction } from "@/lib/supabase/types";
+import { shareWithFallback, type ShareOutcome } from "@/lib/share";
 
 type Side = "ride" | "fade";
 
@@ -28,7 +29,7 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
   const [reactionLoading, setReactionLoading] = useState(false);
   const [replyStatus, setReplyStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
-  const [shareCopied, setShareCopied] = useState(false);
+  const [shareState, setShareState] = useState<"idle" | ShareOutcome>("idle");
   const [reportOpen, setReportOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState<{ type: ReportTargetType; id: string }>({ type: "take", id: takeId });
 
@@ -213,20 +214,16 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
     const shareUrl = window.location.origin + "/take/" + encodeURIComponent(takeId);
 
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: "Smack Talk Take",
-          text: "Public take thread",
-          url: shareUrl,
-        });
-      } else if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(shareUrl);
-      } else {
-        copyTextFallback(shareUrl);
+      const outcome = await shareWithFallback({
+        title: "LOCKT Take",
+        text: "Locked before tip.",
+        url: shareUrl,
+      });
+      if (outcome === "cancelled") {
+        return;
       }
-
-      setShareCopied(true);
-      window.setTimeout(() => setShareCopied(false), 1800);
+      setShareState(outcome);
+      window.setTimeout(() => setShareState("idle"), 1800);
     } catch {
       setMessage("Could not share this take link.");
     }
@@ -322,7 +319,7 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
                   onClick={shareTakeThread}
                   className="min-h-11 rounded-2xl border border-purple-300/45 bg-purple-500/15 px-3 text-[10px] font-black uppercase tracking-[0.1em] text-purple-100 transition hover:bg-purple-500/25"
                 >
-                  {shareCopied ? "LINK COPIED" : "SHARE"}
+                  {shareState === "shared" ? "SHARED" : shareState === "copied" ? "LINK COPIED" : "SHARE"}
                 </button>
               </div>
             </div>
@@ -659,21 +656,6 @@ function ThreadStat({ label, value, tone }: { label: string; value: string; tone
   );
 }
 
-function copyTextFallback(value: string) {
-  const textarea = document.createElement("textarea");
-  textarea.value = value;
-  textarea.setAttribute("readonly", "");
-  textarea.style.position = "fixed";
-  textarea.style.left = "-9999px";
-  document.body.appendChild(textarea);
-  textarea.select();
-  const copied = document.execCommand("copy");
-  document.body.removeChild(textarea);
-
-  if (!copied) {
-    throw new Error("Copy command failed.");
-  }
-}
 
 function ThreadReactionButton({
   active,

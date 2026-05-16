@@ -9,18 +9,27 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://smacktalk.app";
 export async function generateMetadata({ params }: { params: Promise<{ takeId: string }> }): Promise<Metadata> {
   const { takeId } = await params;
   const shortId = takeId.slice(0, 8);
-  const title = `Smack Talk Take ${shortId}`;
+  const title = `LOCKT Take ${shortId}`;
   const description = "Public takes. Permanent receipts. The Arena remembers.";
   const url = `${BASE_URL}/take/${encodeURIComponent(takeId)}`;
 
   return {
     title,
     description,
+    alternates: {
+      canonical: url,
+    },
     openGraph: {
       title,
       description,
       url,
+      siteName: "LOCKT",
       type: "article",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
     },
   };
 }

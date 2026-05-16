@@ -200,7 +200,7 @@ export function ProfilePicPage({ username }: { username?: string }) {
 function ProfilePicHeader() {
   return (
     <header className="flex items-center justify-center">
-      <Link href="/" className="flex items-center gap-3 transition hover:-translate-y-0.5" aria-label="Smack Talk home">
+      <Link href="/" className="flex items-center gap-3 transition hover:-translate-y-0.5" aria-label="LOCKT home">
         <SmackTalkLogo size={62} />
         <div className="brand-lockup text-4xl leading-[0.82]">
           <span className="block text-white">Smack</span>
@@ -243,7 +243,7 @@ function AvatarChoices({
   return (
     <section className="rounded-[1.35rem] border border-white/10 bg-black/40 p-3 text-left">
       <p className="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-gray-400">
-        Or use a Smack Talk avatar
+        Or use a LOCKT avatar
       </p>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
         {avatarOptions.map((option) => {

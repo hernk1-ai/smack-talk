@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Smack Talk — Talk Smack. Show Receipts.",
+  title: "LOCKT — Lock Your Take. Check The Receipt.",
   description:
     "Lock your takes, ride or fade the Crowd, build REP, and show receipts on the sports reputation platform built for real fans.",
   icons: {

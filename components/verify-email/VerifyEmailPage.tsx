@@ -19,7 +19,7 @@ export function VerifyEmailPage({ email }: { email?: string }) {
       <VerifyAtmosphere />
       <div className="relative z-10 mx-auto flex min-h-dvh w-[min(100%-24px,1180px)] flex-col">
         <header className="flex justify-center py-8 sm:py-10">
-          <Link href="/" className="flex items-center gap-3 transition hover:-translate-y-0.5" aria-label="Smack Talk home">
+          <Link href="/" className="flex items-center gap-3 transition hover:-translate-y-0.5" aria-label="LOCKT home">
             <SmackTalkLogo size={68} />
             <div className="brand-lockup text-4xl leading-[0.82]">
               <span className="block text-white">Smack</span>
@@ -130,7 +130,7 @@ function VerifyCard({ canResend, email }: { canResend: boolean; email: string })
         <span className="block font-black text-lime-300">{email}</span>
       </p>
       <p className="mx-auto mt-3 max-w-md text-sm font-semibold leading-6 text-gray-400">
-        Click the link to verify your email and unlock full access to Smack Talk.
+        Click the link to verify your email and unlock full access to LOCKT.
       </p>
 
       {message && (

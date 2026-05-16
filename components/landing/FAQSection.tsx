@@ -1,11 +1,11 @@
 const faqs = [
   {
-    question: "What is Smack Talk?",
+    question: "What is LOCKT?",
     answer: "A sports reputation platform where locked takes become receipts and your talk becomes your REP.",
   },
   {
     question: "Is this about money?",
-    answer: "No. Smack Talk is about REP, rivalry, receipts, and bragging rights. No bets. No odds.",
+    answer: "No. LOCKT is about REP, rivalry, receipts, and bragging rights. No bets. No odds.",
   },
   {
     question: "What is The First Lock?",

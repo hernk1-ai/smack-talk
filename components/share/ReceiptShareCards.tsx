@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { UserAvatar } from "@/components/UserAvatar";
 
 type ReceiptShareCardProps = {
@@ -20,6 +21,15 @@ type ProfileReceiptShareCardProps = {
   avatarUrl?: string | null;
 };
 
+type ReceiptIdentityShareCardProps = {
+  children: ReactNode;
+  className?: string;
+};
+
+export function ReceiptIdentityShareCard({ children, className }: ReceiptIdentityShareCardProps) {
+  return <article className={`w-full rounded-2xl border border-white/15 bg-black/70 p-4 text-white ${className ?? ""}`}>{children}</article>;
+}
+
 export function ReceiptShareCard({
   handle,
   takeText,
@@ -33,7 +43,7 @@ export function ReceiptShareCard({
   const initials = handle.replace(/^@/, "").slice(0, 2).toUpperCase() || "ST";
 
   return (
-    <article className="w-full rounded-2xl border border-white/15 bg-black/70 p-4 text-white">
+    <ReceiptIdentityShareCard>
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <UserAvatar avatarUrl={avatarUrl ?? null} initials={initials} size="sm" />
@@ -52,7 +62,7 @@ export function ReceiptShareCard({
         <p className="rounded-lg border border-white/10 bg-white/5 py-2 text-lime-300">Ride {rideCount}</p>
         <p className="rounded-lg border border-white/10 bg-white/5 py-2 text-purple-300">Fade {fadeCount}</p>
       </div>
-    </article>
+    </ReceiptIdentityShareCard>
   );
 }
 
@@ -67,11 +77,11 @@ export function ProfileReceiptShareCard({
   const initials = handle.replace(/^@/, "").slice(0, 2).toUpperCase() || "ST";
 
   return (
-    <article className="w-full rounded-2xl border border-white/15 bg-black/70 p-4 text-white">
+    <ReceiptIdentityShareCard>
       <div className="flex items-center gap-3">
         <UserAvatar avatarUrl={avatarUrl ?? null} initials={initials} size="md" />
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-lime-300">Smack Talk Receipts</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-lime-300">LOCKT Receipts</p>
           <h3 className="text-2xl font-black italic">{handle}</h3>
         </div>
       </div>
@@ -82,6 +92,6 @@ export function ProfileReceiptShareCard({
         <p className="rounded-lg border border-white/10 bg-white/5 py-2">Takes {takesCount}</p>
         <p className="rounded-lg border border-white/10 bg-white/5 py-2">Receipts {receiptsCount}</p>
       </div>
-    </article>
+    </ReceiptIdentityShareCard>
   );
 }

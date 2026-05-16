@@ -19,6 +19,7 @@ import {
 import { getCurrentUserReceipts, getReceiptsByUser } from "@/lib/supabase/receipts";
 import type { Profile, Receipt } from "@/lib/supabase/types";
 import { ReportModal } from "@/components/moderation/ReportModal";
+import { shareWithFallback, type ShareOutcome } from "@/lib/share";
 
 type ReceiptStatus = "win" | "loss";
 type ReceiptSide = "riding" | "fading";
@@ -217,8 +218,8 @@ export function ReceiptsScreen({
   const currentUser = owner;
   const [realReceipts, setRealReceipts] = useState<Receipt[]>([]);
   const [receiptError, setReceiptError] = useState("");
-  const [shareCopied, setShareCopied] = useState(false);
-  const [sharedReceiptId, setSharedReceiptId] = useState<string | null>(null);
+  const [profileShareState, setProfileShareState] = useState<"idle" | ShareOutcome>("idle");
+  const [sharedReceiptState, setSharedReceiptState] = useState<{ id: string; outcome: Exclude<ShareOutcome, "cancelled"> } | null>(null);
   const [reportProfileOpen, setReportProfileOpen] = useState(false);
 
   useEffect(() => {
@@ -267,33 +268,18 @@ export function ReceiptsScreen({
     const shareUrl = window.location.origin + getReceiptHref(owner.handle, false);
 
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: `${owner.handle} Receipts`,
-          text: "Receipts don't lie.",
-          url: shareUrl,
-        });
-        setShareCopied(true);
-        window.setTimeout(() => setShareCopied(false), 1800);
+      const outcome = await shareWithFallback({
+        title: `${owner.handle} Receipts`,
+        text: "Check the receipt.",
+        url: shareUrl,
+      });
+      if (outcome === "cancelled") {
         return;
       }
-
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(shareUrl);
-      } else {
-        copyTextFallback(shareUrl);
-      }
-
-      setShareCopied(true);
-      window.setTimeout(() => setShareCopied(false), 1800);
+      setProfileShareState(outcome);
+      window.setTimeout(() => setProfileShareState("idle"), 1800);
     } catch {
-      try {
-        copyTextFallback(shareUrl);
-        setShareCopied(true);
-        window.setTimeout(() => setShareCopied(false), 1800);
-      } catch {
-        setReceiptError("Could not copy this receipt link.");
-      }
+      setReceiptError("Could not share this receipt link.");
     }
   }
 
@@ -301,20 +287,18 @@ export function ReceiptsScreen({
     const shareUrl = window.location.origin + "/receipt/" + encodeURIComponent(receiptId);
 
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: "Smack Talk Receipt",
-          text: "Public takes. Permanent receipts.",
-          url: shareUrl,
-        });
-      } else if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(shareUrl);
-      } else {
-        copyTextFallback(shareUrl);
+      const outcome = await shareWithFallback({
+        title: "LOCKT Receipt",
+        text: "Proof's on the board.",
+        url: shareUrl,
+      });
+      if (outcome === "cancelled") {
+        return;
       }
-
-      setSharedReceiptId(receiptId);
-      window.setTimeout(() => setSharedReceiptId((current) => (current === receiptId ? null : current)), 1800);
+      setSharedReceiptState({ id: receiptId, outcome });
+      window.setTimeout(() => {
+        setSharedReceiptState((current) => (current?.id === receiptId ? null : current));
+      }, 1800);
     } catch {
       setReceiptError("Could not share this receipt link.");
     }
@@ -328,7 +312,7 @@ export function ReceiptsScreen({
     <div className="space-y-5">
       <ReceiptsHeader profile={profile} />
       <ReceiptIdentityCard
-        copied={shareCopied}
+        shareState={profileShareState}
         featuredReceipt={featuredReceipt}
         onShare={copyShareUrl}
         owner={owner}
@@ -352,7 +336,7 @@ export function ReceiptsScreen({
               currentUser={index === 0 ? currentUser : undefined}
               onOpen={openReceiptDetail}
               onShare={shareReceiptLink}
-              isShared={sharedReceiptId === receipt.id}
+              shareState={sharedReceiptState?.id === receipt.id ? sharedReceiptState.outcome : null}
             />
           ))}
         </div>
@@ -367,7 +351,7 @@ export function ReceiptsScreen({
               currentUser={index === 0 ? currentUser : undefined}
               onOpen={openReceiptDetail}
               onShare={shareReceiptLink}
-              isShared={sharedReceiptId === receipt.id}
+              shareState={sharedReceiptState?.id === receipt.id ? sharedReceiptState.outcome : null}
             />
           ))}
         </div>
@@ -383,7 +367,7 @@ export function ReceiptsScreen({
 }
 
 function ReceiptsHeader({ profile }: { profile?: Profile | null }) {
-  const username = profile?.username || "Smack Talk";
+  const username = profile?.username || "LOCKT";
 
   return (
     <header className="rounded-[1.75rem] border border-white/10 bg-black/35 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur">
@@ -451,7 +435,7 @@ function HeaderIcon({
 }
 
 function ReceiptIdentityCard({
-  copied,
+  shareState,
   featuredReceipt,
   onShare,
   onReportUser,
@@ -459,7 +443,7 @@ function ReceiptIdentityCard({
   profile,
   receipts,
 }: {
-  copied: boolean;
+  shareState: "idle" | ShareOutcome;
   featuredReceipt: Receipt | null;
   onShare: () => void;
   onReportUser: () => void;
@@ -654,7 +638,7 @@ function ReceiptIdentityCard({
               onClick={onShare}
               className="mt-4 min-h-12 rounded-2xl border border-purple-300/60 bg-purple-500/15 px-5 text-sm font-black uppercase tracking-[0.1em] text-purple-100 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition hover:-translate-y-0.5 hover:bg-purple-500/25 hover:shadow-[0_0_34px_rgba(168,85,247,0.24)] active:scale-95"
             >
-              {copied ? "LINK COPIED" : "SHARE"}
+              {shareState === "shared" ? "SHARED" : shareState === "copied" ? "LINK COPIED" : "SHARE"}
             </button>
             <button
               type="button"
@@ -668,22 +652,6 @@ function ReceiptIdentityCard({
       </div>
     </section>
   );
-}
-
-function copyTextFallback(value: string) {
-  const textarea = document.createElement("textarea");
-  textarea.value = value;
-  textarea.setAttribute("readonly", "");
-  textarea.style.position = "fixed";
-  textarea.style.left = "-9999px";
-  document.body.appendChild(textarea);
-  textarea.select();
-  const copied = document.execCommand("copy");
-  document.body.removeChild(textarea);
-
-  if (!copied) {
-    throw new Error("Copy command failed.");
-  }
 }
 
 function IdentityStat({ label, value, tone }: { label: string; value: string; tone: string }) {
@@ -736,13 +704,13 @@ function RecentReceiptCard({
   currentUser,
   onOpen,
   onShare,
-  isShared,
+  shareState,
 }: {
   receipt: RecentReceipt;
   currentUser?: ReceiptOwnerMeta;
   onOpen: (receiptId: string) => void;
   onShare: (receiptId: string) => void;
-  isShared: boolean;
+  shareState: Exclude<ShareOutcome, "cancelled"> | null;
 }) {
   const isWin = receipt.status === "win";
   const handle = currentUser?.handle ?? receipt.handle;
@@ -826,7 +794,7 @@ function RecentReceiptCard({
         }}
         className="mt-3 min-h-10 w-full rounded-xl border border-purple-300/40 bg-purple-500/10 px-3 text-[11px] font-black uppercase tracking-[0.1em] text-purple-100 transition hover:bg-purple-500/20"
       >
-        {isShared ? "LINK COPIED" : "SHARE"}
+        {shareState === "shared" ? "SHARED" : shareState === "copied" ? "LINK COPIED" : "SHARE"}
       </button>
     </article>
   );
@@ -846,13 +814,13 @@ function ViralReceiptCard({
   currentUser,
   onOpen,
   onShare,
-  isShared,
+  shareState,
 }: {
   receipt: ViralReceipt;
   currentUser?: ReceiptOwnerMeta;
   onOpen: (receiptId: string) => void;
   onShare: (receiptId: string) => void;
-  isShared: boolean;
+  shareState: Exclude<ShareOutcome, "cancelled"> | null;
 }) {
   const isWin = receipt.status === "win";
   const handle = currentUser?.handle ?? receipt.handle;
@@ -932,7 +900,7 @@ function ViralReceiptCard({
           }}
           className="mt-3 min-h-10 w-full rounded-xl border border-purple-300/40 bg-purple-500/10 px-3 text-[11px] font-black uppercase tracking-[0.1em] text-purple-100 transition hover:bg-purple-500/20"
         >
-          {isShared ? "LINK COPIED" : "SHARE"}
+          {shareState === "shared" ? "SHARED" : shareState === "copied" ? "LINK COPIED" : "SHARE"}
         </button>
       </div>
     </article>

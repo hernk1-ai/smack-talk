@@ -10,9 +10,9 @@ export function HeroSection() {
           </p>
 
           <h1 className="hero-title sports-display mt-4 text-[clamp(3rem,13vw,7.4rem)] leading-[0.83] tracking-[0.01em] text-white sm:text-[8rem] lg:text-[7.2rem] xl:text-[8.7rem]">
-            <span className="block whitespace-nowrap">Talk Smack.</span>
+            <span className="block whitespace-nowrap">Called it.</span>
             <span className="hero-receipts block whitespace-nowrap bg-gradient-to-r from-lime-300 via-white to-purple-500 bg-clip-text text-transparent drop-shadow-[0_0_24px_rgba(132,204,22,0.18)]">
-              Show Receipts.
+              Check the receipt.
             </span>
           </h1>
 

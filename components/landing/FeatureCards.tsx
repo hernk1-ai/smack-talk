@@ -90,7 +90,7 @@ export function FeatureCards() {
       <div className="landing-shell">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-lime-300">This isn’t just talk.</p>
-          <h2 className="sports-display mt-3 text-4xl italic leading-none text-white sm:text-6xl">This is Smack Talk.</h2>
+          <h2 className="sports-display mt-3 text-4xl italic leading-none text-white sm:text-6xl">This is LOCKT.</h2>
         </div>
 
         <div className="mt-10 grid gap-0 overflow-hidden rounded-[2rem] border border-white/10 bg-black/25 sm:grid-cols-2 lg:grid-cols-5">

@@ -10,7 +10,7 @@ export type AvatarOption = {
 export const AVATAR_PREFIX = "smack-avatar:";
 
 export const avatarOptions: AvatarOption[] = [
-  { key: "logo", label: "Smack Talk", glyph: "ST", tone: "green" },
+  { key: "logo", label: "LOCKT", glyph: "ST", tone: "green" },
   { key: "lightning", label: "Lightning", glyph: "ϟ", tone: "green" },
   { key: "skull", label: "Receipt King", glyph: "☠", tone: "purple" },
   { key: "hood", label: "Hooded", glyph: "◒", tone: "purple" },

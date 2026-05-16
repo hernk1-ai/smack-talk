@@ -166,13 +166,13 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <SettingsCard title="Privacy / Safety" eyebrow="Rules">
             <SettingsLink href="/terms" label="Community rules" detail="Attack takes. Not lives." />
-            <SettingsLink href="/terms" label="Terms of Use" detail="How Smack Talk works." />
+            <SettingsLink href="/terms" label="Terms of Use" detail="How LOCKT works." />
             <SettingsLink href="/privacy" label="Privacy Policy" detail="How your data is handled." />
           </SettingsCard>
 
           <SettingsCard title="Session" eyebrow="Access">
             <p className="text-sm font-semibold leading-6 text-gray-400">
-              Signing out clears this browser session and returns you to the public side of Smack Talk.
+              Signing out clears this browser session and returns you to the public side of LOCKT.
             </p>
             <button
               type="button"
@@ -191,7 +191,7 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
 }
 
 function SettingsHeader({ profile, avatarUrl }: { profile?: Profile | null; avatarUrl?: string | null }) {
-  const username = profile?.username || "Smack Talk";
+  const username = profile?.username || "LOCKT";
 
   return (
     <header className="rounded-[1.75rem] border border-white/10 bg-black/35 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur">
@@ -255,7 +255,7 @@ function ProfilePictureSettings({
 
         <div className="min-w-0">
           <p className="text-sm font-semibold leading-6 text-gray-400">
-            Pick a Smack Talk avatar or upload a profile picture. Changes save instantly to your profile.
+            Pick a LOCKT avatar or upload a profile picture. Changes save instantly to your profile.
           </p>
           <button
             type="button"

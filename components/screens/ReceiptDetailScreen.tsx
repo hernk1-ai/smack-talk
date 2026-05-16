@@ -15,6 +15,7 @@ import { getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/repl
 import type { Profile, ProfileCard, Receipt } from "@/lib/supabase/types";
 import { ReportModal } from "@/components/moderation/ReportModal";
 import { muteUser, blockUser } from "@/lib/supabase/moderation";
+import { shareWithFallback, type ShareOutcome } from "@/lib/share";
 
 type ReceiptView = {
   id: string;
@@ -38,7 +39,7 @@ export function ReceiptDetailScreen({ receiptId, profile }: { receiptId: string;
   const [author, setAuthor] = useState<ProfileCard | null>(null);
   const [replies, setReplies] = useState<TakeReplyWithAuthor[]>([]);
   const [message, setMessage] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [shareState, setShareState] = useState<"idle" | ShareOutcome>("idle");
   const [reportUserOpen, setReportUserOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -135,22 +136,18 @@ export function ReceiptDetailScreen({ receiptId, profile }: { receiptId: string;
     const url = window.location.href;
 
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: "Smack Talk Receipt",
-          text: "Public takes. Permanent receipts.",
-          url,
-        });
-      } else if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url);
-      } else {
-        copyTextFallback(url);
+      const outcome = await shareWithFallback({
+        title: "LOCKT Receipt",
+        text: "Proof's on the board.",
+        url,
+      });
+      if (outcome === "cancelled") {
+        return;
       }
-
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
+      setShareState(outcome);
+      window.setTimeout(() => setShareState("idle"), 1800);
     } catch {
-      setMessage("Could not copy this receipt link.");
+      setMessage("Could not share this receipt link.");
     }
   }
 
@@ -226,7 +223,7 @@ export function ReceiptDetailScreen({ receiptId, profile }: { receiptId: string;
                 onClick={shareReceipt}
                 className="min-h-12 rounded-2xl border border-purple-300/45 bg-purple-500/15 px-4 text-xs font-black uppercase tracking-[0.1em] text-purple-100 transition hover:-translate-y-0.5 active:scale-95"
               >
-                {copied ? "LINK COPIED" : "SHARE"}
+                {shareState === "shared" ? "SHARED" : shareState === "copied" ? "LINK COPIED" : "SHARE"}
               </button>
               <button
                 type="button"
@@ -526,20 +523,4 @@ function formatAge(createdAt: string) {
   }
 
   return `${Math.floor(hours / 24)}d ago`;
-}
-
-function copyTextFallback(value: string) {
-  const textarea = document.createElement("textarea");
-  textarea.value = value;
-  textarea.setAttribute("readonly", "");
-  textarea.style.position = "fixed";
-  textarea.style.left = "-9999px";
-  document.body.appendChild(textarea);
-  textarea.select();
-  const copied = document.execCommand("copy");
-  document.body.removeChild(textarea);
-
-  if (!copied) {
-    throw new Error("Copy command failed.");
-  }
 }

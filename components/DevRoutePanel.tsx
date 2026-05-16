@@ -78,7 +78,7 @@ const devRoutes = [
   },
   {
     href: "/app",
-    label: "Smack Talk App",
+    label: "LOCKT App",
     file: "app/app/page.tsx",
   },
   {

@@ -12,18 +12,27 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
   const { username } = await params;
   const key = decodeURIComponent(username).replace(/^@/, "");
   const handle = `@${key}`;
-  const title = `${handle}'s Smack Talk Receipts`;
+  const title = `${handle}'s LOCKT Receipts`;
   const description = "Public takes. Permanent receipts. The Arena remembers.";
   const url = `${BASE_URL}/receipts/${encodeURIComponent(key.toLowerCase())}`;
 
   return {
     title,
     description,
+    alternates: {
+      canonical: url,
+    },
     openGraph: {
       title,
       description,
       url,
+      siteName: "LOCKT",
       type: "profile",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
     },
   };
 }

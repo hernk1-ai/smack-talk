@@ -339,12 +339,12 @@ export const seededReceipts: SeededReceipt[] = [
 ];
 
 export const seededChaosAlerts = [
-  { id: "seeded_alert_ride-heavy", icon: "◎", title: "94% rode Team Alpha.", detail: "Fade opportunity?", time: "2m ago", tone: "green" as const },
-  { id: "seeded_alert_collapse", icon: "▲", title: "Crowd collapse incoming.", detail: "Momentum shifting fast.", time: "4m ago", tone: "green" as const },
-  { id: "seeded_alert_pressure", icon: "ϟ", title: "Fade pressure rising.", detail: "The Crowd is splitting.", time: "5m ago", tone: "purple" as const },
+  { id: "seeded_alert_ride-heavy", icon: "◎", title: "94% riding Team Alpha.", detail: "Fade side is waking up.", time: "2m ago", tone: "green" as const },
+  { id: "seeded_alert_collapse", icon: "▲", title: "Game flipped fast.", detail: "Late run changed the board.", time: "4m ago", tone: "green" as const },
+  { id: "seeded_alert_pressure", icon: "ϟ", title: "Crowd split on this one.", detail: "Ride and fade are neck and neck.", time: "5m ago", tone: "purple" as const },
   { id: "seeded_alert_buckets", icon: "♜", title: "BucketsOnly just hit again.", detail: "3 for 3 today.", time: "6m ago", tone: "purple" as const },
-  { id: "seeded_alert_toxic", icon: "☠", title: "Arena turning toxic.", detail: "Tempers high. Watch your back.", time: "8m ago", tone: "red" as const },
-  { id: "seeded_alert_sharp", icon: "↗", title: "Sharp crowd fading Omega.", detail: "Insiders moving.", time: "11m ago", tone: "green" as const },
+  { id: "seeded_alert_toxic", icon: "☠", title: "Thread getting heated.", detail: "Plenty of takes flying right now.", time: "8m ago", tone: "red" as const },
+  { id: "seeded_alert_sharp", icon: "↗", title: "Crowd leaning fade on Omega.", detail: "Momentum moved in a hurry.", time: "11m ago", tone: "green" as const },
 ];
 
 export function isSeededId(id: string) {

@@ -9,14 +9,14 @@ export default function RulesPage() {
         </header>
 
         <section className="rounded-2xl border border-white/10 bg-black/35 p-5">
-          <h2 className="text-xl font-black uppercase tracking-[0.08em] text-lime-300">Smack Talk Is Built For</h2>
+          <h2 className="text-xl font-black uppercase tracking-[0.08em] text-lime-300">LOCKT Is Built For</h2>
           <ul className="mt-3 space-y-2 text-sm font-semibold text-gray-200">
             <li>• Rivalries</li>
             <li>• Hot takes</li>
             <li>• Emotional sports debates</li>
             <li>• Public accountability</li>
           </ul>
-          <p className="mt-4 text-base font-black italic text-white">Talk your shit.</p>
+          <p className="mt-4 text-base font-black italic text-white">Bring the rivalry. Keep it respectful.</p>
         </section>
 
         <section className="rounded-2xl border border-red-300/30 bg-red-500/10 p-5">

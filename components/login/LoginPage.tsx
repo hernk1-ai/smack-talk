@@ -319,7 +319,7 @@ function LogoLockup({ size }: { size: "small" | "large" }) {
   const textSize = size === "large" ? "text-4xl" : "text-2xl";
 
   return (
-    <Link href="/" className="flex items-center gap-3 transition hover:-translate-y-0.5" aria-label="Smack Talk home">
+    <Link href="/" className="flex items-center gap-3 transition hover:-translate-y-0.5" aria-label="LOCKT home">
       <SmackTalkLogo size={markSize} />
       <div className={`brand-lockup ${textSize} leading-[0.82]`}>
         <span className="block text-white">Smack</span>

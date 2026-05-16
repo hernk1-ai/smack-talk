@@ -151,7 +151,7 @@ export function CreateAccountPage() {
 function SignupHeader() {
   return (
     <header className="flex items-center justify-between gap-4 border-b border-white/10 pb-5">
-      <Link href="/" className="flex items-center gap-3 transition hover:-translate-y-0.5" aria-label="Smack Talk home">
+      <Link href="/" className="flex items-center gap-3 transition hover:-translate-y-0.5" aria-label="LOCKT home">
         <SmackTalkLogo size={54} />
         <div className="brand-lockup text-3xl leading-[0.82]">
           <span className="block text-white">Smack</span>

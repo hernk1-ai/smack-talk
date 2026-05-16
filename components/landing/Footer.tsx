@@ -16,7 +16,7 @@ export function Footer() {
               </span>
             </p>
             <p className="mt-1 text-xs font-black uppercase tracking-[0.18em] text-gray-500">
-              Smack Talk is a sports reputation platform. No betting. No odds. Just takes, receipts, and REP.
+              LOCKT is a sports reputation platform. No betting. No odds. Just takes, receipts, and REP.
             </p>
           </div>
         </div>
@@ -28,7 +28,7 @@ export function Footer() {
           <Link href="/terms" className="transition hover:text-white">
             Terms of Use
           </Link>
-          <span>© 2026 Smack Talk</span>
+          <span>© 2026 LOCKT</span>
         </div>
       </div>
     </footer>

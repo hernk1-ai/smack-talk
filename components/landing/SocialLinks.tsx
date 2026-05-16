@@ -89,7 +89,7 @@ export function SocialLinks() {
     <section className="py-10">
       <div className="landing-shell">
         <div className="grid gap-4 rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-5 sm:grid-cols-[1fr_auto] sm:items-center">
-          <p className="text-sm font-black uppercase italic tracking-[0.18em] text-purple-300">Follow Smack Talk</p>
+          <p className="text-sm font-black uppercase italic tracking-[0.18em] text-purple-300">Follow LOCKT</p>
           <div className="grid grid-cols-2 gap-2 sm:flex">
             {socialLinks.map((link) => (
               <a
@@ -98,7 +98,7 @@ export function SocialLinks() {
                 target={link.isExternal ? "_blank" : undefined}
                 rel={link.isExternal ? "noopener noreferrer" : undefined}
                 className={`group inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/10 bg-black/35 px-4 py-3 text-center text-xs font-black uppercase tracking-[0.12em] text-gray-300 transition duration-200 hover:-translate-y-0.5 hover:text-white active:translate-y-0 active:scale-[0.98] ${link.hoverClass}`}
-                aria-label={`Follow Smack Talk on ${link.label}`}
+                aria-label={`Follow LOCKT on ${link.label}`}
               >
                 <span className="transition group-hover:scale-110">{link.icon}</span>
                 <span>{link.label}</span>

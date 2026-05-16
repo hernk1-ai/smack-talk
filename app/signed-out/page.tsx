@@ -11,7 +11,7 @@ export default function SignedOutPage() {
       </div>
 
       <div className="relative z-10 mx-auto flex min-h-dvh w-[min(100%-24px,760px)] flex-col items-center justify-center py-8 text-center">
-        <Link href="/" className="flex items-center gap-3 transition hover:-translate-y-0.5" aria-label="Smack Talk home">
+        <Link href="/" className="flex items-center gap-3 transition hover:-translate-y-0.5" aria-label="LOCKT home">
           <SmackTalkLogo size={72} />
           <div className="brand-lockup text-4xl leading-[0.82]">
             <span className="block text-white">Smack</span>

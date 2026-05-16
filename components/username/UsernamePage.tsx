@@ -172,7 +172,7 @@ function UsernameHeader() {
       >
         ← Back
       </Link>
-      <Link href="/" className="flex items-center gap-3 transition hover:-translate-y-0.5" aria-label="Smack Talk home">
+      <Link href="/" className="flex items-center gap-3 transition hover:-translate-y-0.5" aria-label="LOCKT home">
         <SmackTalkLogo size={56} />
         <div className="brand-lockup text-3xl leading-[0.82]">
           <span className="block text-white">Smack</span>

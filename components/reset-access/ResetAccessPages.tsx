@@ -250,7 +250,7 @@ function ResetCard({ children, eyebrow }: { children: React.ReactNode; eyebrow: 
 
 function ResetLogo() {
   return (
-    <Link href="/" className="mx-auto flex w-fit items-center gap-3 transition hover:-translate-y-0.5" aria-label="Smack Talk home">
+    <Link href="/" className="mx-auto flex w-fit items-center gap-3 transition hover:-translate-y-0.5" aria-label="LOCKT home">
       <SmackTalkLogo size={52} />
       <div className="brand-lockup text-3xl leading-[0.82]">
         <span className="block text-white">Smack</span>
@@ -397,7 +397,7 @@ function PasswordResetEmailPreview() {
         </h2>
         <p className="mt-4 text-xl font-black text-white">The Arena is waiting.</p>
         <p className="mt-6 max-w-md text-sm font-semibold leading-6 text-gray-400">
-          We received a request to reset your Smack Talk password. Click the button below to create a new password and
+          We received a request to reset your LOCKT password. Click the button below to create a new password and
           get back in the game.
         </p>
         <Link
@@ -409,7 +409,7 @@ function PasswordResetEmailPreview() {
         <p className="mt-5 text-center text-xs font-semibold text-gray-500">This link will expire in 60 minutes.</p>
         <p className="mt-8 text-sm font-semibold text-gray-400">
           Stay loud,
-          <span className="block font-black text-lime-300">Smack Talk Team</span>
+          <span className="block font-black text-lime-300">LOCKT Team</span>
         </p>
         <div className="mt-6 flex gap-5 text-xl text-gray-500">
           <span>X</span>

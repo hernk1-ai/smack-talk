@@ -4,8 +4,8 @@ import Link from "next/link";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 
 export const metadata: Metadata = {
-  title: "Smack Talk — Privacy Policy",
-  description: "Privacy Policy for Smack Talk.",
+  title: "LOCKT — Privacy Policy",
+  description: "Privacy Policy for LOCKT.",
 };
 
 type LegalBlock =
@@ -19,9 +19,9 @@ type LegalBlock =
     };
 
 const intro = [
-  "Smack Talk (“Smack Talk,” “we,” “our,” or “us”) respects your privacy.",
-  "This Privacy Policy explains how we collect, use, store, and protect information when you use the Smack Talk platform, website, and related services (“Platform” or “Service”).",
-  "By using Smack Talk, you agree to this Privacy Policy.",
+  "LOCKT (“LOCKT,” “we,” “our,” or “us”) respects your privacy.",
+  "This Privacy Policy explains how we collect, use, store, and protect information when you use the LOCKT platform, website, and related services (“Platform” or “Service”).",
+  "By using LOCKT, you agree to this Privacy Policy.",
   "If you do not agree, please do not use the Platform.",
 ];
 
@@ -78,7 +78,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
       },
       {
         type: "p",
-        text: "Smack Talk is a public reputation-based platform.",
+        text: "LOCKT is a public reputation-based platform.",
       },
       {
         type: "p",
@@ -136,7 +136,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
     blocks: [
       {
         type: "p",
-        text: "Smack Talk does not sell personal information to third parties.",
+        text: "LOCKT does not sell personal information to third parties.",
       },
       {
         type: "p",
@@ -162,7 +162,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
     blocks: [
       {
         type: "p",
-        text: "Smack Talk is a social platform.",
+        text: "LOCKT is a social platform.",
       },
       {
         type: "p",
@@ -240,7 +240,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
     blocks: [
       {
         type: "p",
-        text: "Smack Talk is intended for users 17 years of age or older.",
+        text: "LOCKT is intended for users 17 years of age or older.",
       },
       {
         type: "p",
@@ -372,7 +372,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
     blocks: [
       {
         type: "p",
-        text: "Smack Talk is operated in the United States.",
+        text: "LOCKT is operated in the United States.",
       },
       {
         type: "p",
@@ -415,7 +415,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
     blocks: [
       {
         type: "p",
-        text: "Smack Talk is built around public competition, community identity, sports culture, and reputation systems.",
+        text: "LOCKT is built around public competition, community identity, sports culture, and reputation systems.",
       },
       {
         type: "p",
@@ -490,7 +490,7 @@ export default function PrivacyPage() {
 
         <section className="rounded-[2rem] border border-lime-300/20 bg-black/55 p-6 shadow-[0_0_60px_rgba(155,77,255,0.12)] sm:p-10">
           <p className="text-xs font-black uppercase tracking-[0.28em] text-lime-300">
-            SMACK TALK — PRIVACY POLICY
+            LOCKT — PRIVACY POLICY
           </p>
           <h1 className="mt-4 font-display text-5xl uppercase leading-none tracking-[0.02em] text-white sm:text-7xl">
             PRIVACY POLICY

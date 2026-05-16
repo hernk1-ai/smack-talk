@@ -7,13 +7,22 @@ import { createClient } from "@/lib/supabase/server";
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://smacktalk.app";
 
 export const metadata: Metadata = {
-  title: "Smack Talk Receipts",
+  title: "LOCKT Receipts",
   description: "Public takes. Permanent receipts. The Arena remembers.",
+  alternates: {
+    canonical: `${BASE_URL}/receipts`,
+  },
   openGraph: {
-    title: "Smack Talk Receipts",
+    title: "LOCKT Receipts",
     description: "Public takes. Permanent receipts. The Arena remembers.",
     url: `${BASE_URL}/receipts`,
+    siteName: "LOCKT",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "LOCKT Receipts",
+    description: "Public takes. Permanent receipts. The Arena remembers.",
   },
 };
 
