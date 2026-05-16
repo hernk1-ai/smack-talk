@@ -3,21 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
 import { RouteBottomNav } from "@/components/BottomNav";
+import { ReportModal } from "@/components/moderation/ReportModal";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { UserAvatar } from "@/components/UserAvatar";
-import {
-  formatTakeForUI,
-  getTakeById,
-  isSeededTakeId,
-  profileToCard,
-  type ArenaTake,
-} from "@/lib/supabase/arena";
-import { createReply, getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/replies";
-import { getMyReactionForTake, reactToTake } from "@/lib/supabase/reactions";
 import { getSeededProfileById, getSeededRepliesForTake } from "@/data/seededCrowd";
+import { formatTakeForUI, getTakeById, isSeededTakeId, profileToCard, type ArenaTake } from "@/lib/supabase/arena";
+import { blockUser, muteUser, type ReportTargetType } from "@/lib/supabase/moderation";
+import { getMyReactionForTake, reactToTake } from "@/lib/supabase/reactions";
+import { createReply, getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/replies";
 import type { Profile, TakeReaction } from "@/lib/supabase/types";
-import { ReportModal } from "@/components/moderation/ReportModal";
 
 type Side = "ride" | "fade";
 
@@ -33,7 +29,8 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
   const [replyStatus, setReplyStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const [shareCopied, setShareCopied] = useState(false);
-  const [reportOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ type: ReportTargetType; id: string }>({ type: "take", id: takeId });
 
   useEffect(() => {
     let isMounted = true;
@@ -212,18 +209,6 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
     setMessage("Reply posted. Everyone can see it.");
   }
 
-  const author = take ? formatTakeForUI(take) : null;
-  const canPostReply = replyStatus !== "loading" && replyText.trim().length > 0;
-  const visibleReplyCount = take ? Math.max(take.reply_count, replies.length) : replies.length;
-  const rootReplies = replies.filter((reply) => !reply.parent_reply_id);
-  const childRepliesByParent = replies.reduce<Record<string, TakeReplyWithAuthor[]>>((accumulator, reply) => {
-    if (reply.parent_reply_id) {
-      accumulator[reply.parent_reply_id] = [...(accumulator[reply.parent_reply_id] ?? []), reply];
-    }
-
-    return accumulator;
-  }, {});
-
   async function shareTakeThread() {
     const shareUrl = window.location.origin + "/take/" + encodeURIComponent(takeId);
 
@@ -247,6 +232,37 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
     }
   }
 
+  function openReport(type: ReportTargetType, id: string) {
+    setReportTarget({ type, id });
+    setReportOpen(true);
+  }
+
+  async function handleMuteUser(userId: string) {
+    const { error } = await muteUser(userId);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setMessage("User muted. Refreshing thread...");
+    const { replies: loadedReplies } = await getRepliesForTake(takeId);
+    setReplies(loadedReplies);
+  }
+
+  async function handleBlockUser(userId: string) {
+    const { error } = await blockUser(userId);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setMessage("User blocked. Refreshing thread...");
+    const { replies: loadedReplies } = await getRepliesForTake(takeId);
+    setReplies(loadedReplies);
+  }
+
   function goBack() {
     if (window.history.length > 1) {
       router.back();
@@ -256,287 +272,376 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
     router.push("/app");
   }
 
+  const author = take ? formatTakeForUI(take) : null;
+  const canPostReply = replyStatus !== "loading" && replyText.trim().length > 0;
+  const visibleReplyCount = take ? Math.max(take.reply_count, replies.length) : replies.length;
+  const rootReplies = replies.filter((reply) => !reply.parent_reply_id);
+  const childRepliesByParent = replies.reduce<Record<string, TakeReplyWithAuthor[]>>((accumulator, reply) => {
+    if (reply.parent_reply_id) {
+      accumulator[reply.parent_reply_id] = [...(accumulator[reply.parent_reply_id] ?? []), reply];
+    }
+
+    return accumulator;
+  }, {});
+
   return (
     <>
       <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white sm:py-6">
         <div className="feed-shell screen-safe-bottom space-y-5">
-        <header className="rounded-[1.75rem] border border-white/10 bg-black/35 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur">
-          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
-            <button
-              type="button"
-              onClick={goBack}
-              className="grid h-12 w-12 place-items-center rounded-2xl border border-white/15 bg-white/[0.04] text-2xl text-white transition hover:border-lime-300/30 active:scale-95"
-              aria-label="Go back"
-            >
-              ‹
-            </button>
-            <div className="flex min-w-0 items-center gap-3">
-              <SmackTalkLogo size={54} />
-              <div className="min-w-0">
-                <h1 className="brand-lockup text-[1.8rem] leading-[0.82]">
-                  <span className="block text-white">Take</span>
-                  <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">
-                    Thread
-                  </span>
-                </h1>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={shareTakeThread}
-              className="min-h-11 rounded-2xl border border-purple-300/45 bg-purple-500/15 px-3 text-[10px] font-black uppercase tracking-[0.1em] text-purple-100 transition hover:bg-purple-500/25"
-            >
-              {shareCopied ? "LINK COPIED" : "SHARE"}
-            </button>
-          </div>
-        </header>
-
-        {loading ? (
-          <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-6 text-center">
-            <p className="text-sm font-black uppercase tracking-[0.14em] text-gray-400">Loading take...</p>
-          </section>
-        ) : take ? (
-          <>
-            <section className="rounded-[1.75rem] border border-lime-300/25 bg-black/45 p-4 shadow-[0_26px_80px_rgba(0,0,0,0.52),0_0_34px_rgba(132,204,22,0.08)]">
-              <div className="flex items-start gap-3">
-                <Link
-                  href={getReceiptHref(author?.handle ?? "@LockedTalker")}
-                  className="rounded-full transition hover:scale-105 active:scale-95"
-                  aria-label={`${author?.handle ?? "@LockedTalker"} receipts`}
-                >
-                  <UserAvatar avatarUrl={author?.avatarUrl} initials={author?.initials ?? "ST"} size="md" />
-                </Link>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Link
-                      href={getReceiptHref(author?.handle ?? "@LockedTalker")}
-                      className="text-sm font-black text-white transition hover:text-lime-200"
-                    >
-                      {author?.handle ?? "@LockedTalker"}
-                    </Link>
-                    <span className="text-sky-300">◆</span>
-                    <span className="text-xs font-bold text-gray-500">{formatTakeAge(take.created_at)}</span>
-                  </div>
-                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-purple-300">
-                    {take.game_id.replaceAll("-", " ")}
-                  </p>
-                </div>
-                <span className="rounded-full border border-purple-300/30 bg-purple-500/10 px-2.5 py-1 text-[10px] font-black uppercase text-purple-200">
-                  {take.status}
-                </span>
-              </div>
-
-              <h2 className="mt-5 text-4xl font-black italic leading-[0.95] text-white sm:text-5xl">{take.take_text}</h2>
-
-              <div className="mt-5 grid grid-cols-4 gap-2 rounded-2xl border border-white/10 bg-black/45 p-3 text-center">
-                <ThreadStat label="Heat" value={`🔥 ${formatCompact(take.heat)}`} tone="lime" />
-                <ThreadStat label="Riding" value={formatCompact(take.ride_count)} tone="lime" />
-                <ThreadStat label="Fading" value={formatCompact(take.fade_count)} tone="purple" />
-                <ThreadStat label="Replies" value={formatCompact(visibleReplyCount)} tone="white" />
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <ThreadReactionButton
-                  active={reaction === "ride"}
-                  disabled={reactionLoading}
-                  side="ride"
-                  onClick={() => chooseReaction("ride")}
-                />
-                <ThreadReactionButton
-                  active={reaction === "fade"}
-                  disabled={reactionLoading}
-                  side="fade"
-                  onClick={() => chooseReaction("fade")}
-                />
-              </div>
-            </section>
-
-            <section className="rounded-[1.75rem] border border-purple-300/30 bg-purple-500/10 p-4 shadow-[0_0_34px_rgba(168,85,247,0.14)]">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-300">Talk back</p>
-                  <h2 className="sports-display mt-1 text-2xl italic leading-none text-white">Public replies</h2>
-                </div>
-                <span className="rounded-full border border-lime-300/25 bg-lime-400/10 px-3 py-1 text-[10px] font-black uppercase text-lime-300">
-                  {visibleReplyCount} replies
-                </span>
-              </div>
-
-              <label className="sr-only" htmlFor="thread-reply">
-                Reply to this take
-              </label>
-              <div className="relative">
-                <textarea
-                  id="thread-reply"
-                  value={replyText}
-                  maxLength={280}
-                  onChange={(event) => {
-                    setReplyText(event.target.value);
-                    if (replyStatus !== "loading") {
-                      setReplyStatus("idle");
-                      setMessage("");
-                    }
-                  }}
-                  placeholder="Talk back... 🔥 😂 🧾"
-                  className="min-h-24 w-full resize-none rounded-2xl border border-purple-300/45 bg-black/55 px-4 py-4 pr-16 text-base font-semibold text-white outline-none transition placeholder:text-gray-600 focus:border-lime-300/60 focus:shadow-[0_0_24px_rgba(132,204,22,0.12)]"
-                />
-                <span className="absolute bottom-3 right-4 text-xs font-bold text-gray-500">{replyText.length}/280</span>
-              </div>
-              {replyingTo && (
-                <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-purple-300/25 bg-purple-500/10 px-3 py-2">
-                  <p className="truncate text-xs font-bold text-purple-100">
-                    Replying to @{replyingTo.author?.username ?? "Talker"}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setReplyingTo(null)}
-                    className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-400 transition hover:text-white"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
+          <header className="rounded-[1.75rem] border border-white/10 bg-black/35 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur">
+            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
               <button
                 type="button"
-                onClick={postReply}
-                disabled={!canPostReply}
-                className="mt-3 min-h-12 w-full rounded-2xl border border-purple-300/60 bg-purple-500/15 px-6 text-sm font-black uppercase tracking-[0.12em] text-purple-100 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition hover:-translate-y-0.5 hover:bg-purple-500/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                onClick={goBack}
+                className="grid h-12 w-12 place-items-center rounded-2xl border border-white/15 bg-white/[0.04] text-2xl text-white transition hover:border-lime-300/30 active:scale-95"
+                aria-label="Go back"
               >
-                {replyStatus === "loading" ? "Posting..." : "Post Reply"}
+                ‹
               </button>
-              <p className="mt-3 text-xs font-semibold text-gray-400">Replies are public. Attack takes, not lives.</p>
-            </section>
-
-            {message && (
-              <p
-                className={`rounded-2xl border px-3 py-2 text-xs font-black uppercase tracking-[0.1em] ${
-                  replyStatus === "error"
-                    ? "border-red-400/35 bg-red-500/10 text-red-200"
-                    : "border-lime-300/30 bg-lime-400/10 text-lime-300"
-                }`}
-              >
-                {message}
-              </p>
-            )}
-
-            <section className="rounded-[1.75rem] border border-white/10 bg-black/30 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.34)] backdrop-blur">
-              <div className="mb-3 flex items-center justify-between gap-3 px-1">
-                <h2 className="sports-display text-2xl italic leading-none text-white">
-                  <span className="mr-2 not-italic">▣</span>
-                  Replies
-                </h2>
-                <span className="text-xs font-black uppercase text-purple-300">{replies.length} live</span>
+              <div className="flex min-w-0 items-center gap-3">
+                <SmackTalkLogo size={54} />
+                <div className="min-w-0">
+                  <h1 className="brand-lockup text-[1.8rem] leading-[0.82]">
+                    <span className="block text-white">Take</span>
+                    <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">
+                      Thread
+                    </span>
+                  </h1>
+                </div>
               </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => openReport("take", takeId)}
+                  className="min-h-11 rounded-2xl border border-yellow-300/45 bg-yellow-500/15 px-3 text-[10px] font-black uppercase tracking-[0.1em] text-yellow-100 transition hover:bg-yellow-500/25"
+                >
+                  FLAG
+                </button>
+                <button
+                  type="button"
+                  onClick={shareTakeThread}
+                  className="min-h-11 rounded-2xl border border-purple-300/45 bg-purple-500/15 px-3 text-[10px] font-black uppercase tracking-[0.1em] text-purple-100 transition hover:bg-purple-500/25"
+                >
+                  {shareCopied ? "LINK COPIED" : "SHARE"}
+                </button>
+              </div>
+            </div>
+          </header>
 
-              {replies.length ? (
-                <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/35">
-                  {rootReplies.map((reply) => {
-                    const username = reply.author?.username ?? "Talker";
-                    const handle = username.startsWith("@") ? username : `@${username}`;
-                    const childReplies = childRepliesByParent[reply.id] ?? [];
-
-                    return (
-                      <article key={reply.id} className="border-b border-white/10 p-3 last:border-b-0">
-                        <div className="grid grid-cols-[auto_1fr] gap-3">
-                          <Link
-                            href={getReceiptHref(handle)}
-                            className="rounded-full transition hover:scale-105 active:scale-95"
-                            aria-label={`${handle} receipts`}
-                          >
-                            <UserAvatar
-                              avatarUrl={reply.author?.avatar_url}
-                              initials={getInitials(username)}
-                              size="sm"
-                            />
-                          </Link>
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Link
-                                href={getReceiptHref(handle)}
-                                className="truncate text-sm font-black text-white transition hover:text-lime-200"
-                              >
-                                {handle}
-                              </Link>
-                              <span className="text-xs font-bold text-gray-500">{formatTakeAge(reply.created_at)}</span>
-                            </div>
-                            <p className="mt-1 text-sm font-semibold leading-relaxed text-gray-200">{reply.reply_text}</p>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setReplyingTo(reply);
-                                setReplyStatus("idle");
-                                setMessage("");
-                              }}
-                              className="mt-2 text-[10px] font-black uppercase tracking-[0.12em] text-purple-300 transition hover:text-lime-200"
-                            >
-                              Reply
-                            </button>
-                          </div>
-                        </div>
-
-                        {childReplies.length > 0 && (
-                          <div className="ml-10 mt-3 space-y-2 border-l border-purple-300/20 pl-3">
-                            {childReplies.map((childReply) => {
-                              const childUsername = childReply.author?.username ?? "Talker";
-                              const childHandle = childUsername.startsWith("@") ? childUsername : `@${childUsername}`;
-
-                              return (
-                                <div key={childReply.id} className="grid grid-cols-[auto_1fr] gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-                                  <Link
-                                    href={getReceiptHref(childHandle)}
-                                    className="rounded-full transition hover:scale-105 active:scale-95"
-                                    aria-label={`${childHandle} receipts`}
-                                  >
-                                    <UserAvatar
-                                      avatarUrl={childReply.author?.avatar_url}
-                                      initials={getInitials(childUsername)}
-                                      size="sm"
-                                    />
-                                  </Link>
-                                  <div className="min-w-0">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <Link
-                                        href={getReceiptHref(childHandle)}
-                                        className="truncate text-xs font-black text-white transition hover:text-lime-200"
-                                      >
-                                        {childHandle}
-                                      </Link>
-                                      <span className="text-[10px] font-bold text-gray-500">{formatTakeAge(childReply.created_at)}</span>
-                                    </div>
-                                    <p className="mt-1 text-xs font-semibold leading-relaxed text-gray-300">{childReply.reply_text}</p>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </article>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-white/10 bg-black/35 p-5 text-center">
-                  <p className="text-sm font-black uppercase tracking-[0.12em] text-gray-400">
-                    Nobody has talked back yet.
-                  </p>
-                  <p className="mt-1 text-xs font-semibold text-gray-500">Be the first to defend or pile on.</p>
-                </div>
-              )}
+          {loading ? (
+            <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-6 text-center">
+              <p className="text-sm font-black uppercase tracking-[0.14em] text-gray-400">Loading take...</p>
             </section>
-          </>
-        ) : (
-          <section className="rounded-[1.75rem] border border-red-400/25 bg-red-500/10 p-6 text-center">
-            <h2 className="sports-display text-3xl italic text-white">Take not found.</h2>
-            <p className="mt-2 text-sm font-semibold text-gray-300">This lock may not exist yet.</p>
-          </section>
-        )}
+          ) : take ? (
+            <>
+              <section className="rounded-[1.75rem] border border-lime-300/25 bg-black/45 p-4 shadow-[0_26px_80px_rgba(0,0,0,0.52),0_0_34px_rgba(132,204,22,0.08)]">
+                <div className="flex items-start gap-3">
+                  <Link
+                    href={getReceiptHref(author?.handle ?? "@LockedTalker")}
+                    className="rounded-full transition hover:scale-105 active:scale-95"
+                    aria-label={`${author?.handle ?? "@LockedTalker"} receipts`}
+                  >
+                    <UserAvatar avatarUrl={author?.avatarUrl} initials={author?.initials ?? "ST"} size="md" />
+                  </Link>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        href={getReceiptHref(author?.handle ?? "@LockedTalker")}
+                        className="text-sm font-black text-white transition hover:text-lime-200"
+                      >
+                        {author?.handle ?? "@LockedTalker"}
+                      </Link>
+                      <span className="text-sky-300">◆</span>
+                      <span className="text-xs font-bold text-gray-500">{formatTakeAge(take.created_at)}</span>
+                    </div>
+                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-purple-300">
+                      {take.game_id.replaceAll("-", " ")}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openReport("user", take.user_id)}
+                        className="rounded-md border border-yellow-300/35 bg-yellow-500/10 px-2 py-1 text-[9px] font-black uppercase text-yellow-200"
+                      >
+                        Flag User
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMuteUser(take.user_id)}
+                        className="rounded-md border border-white/25 bg-white/5 px-2 py-1 text-[9px] font-black uppercase text-gray-200"
+                      >
+                        Mute User
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleBlockUser(take.user_id)}
+                        className="rounded-md border border-red-300/35 bg-red-500/10 px-2 py-1 text-[9px] font-black uppercase text-red-200"
+                      >
+                        Block User
+                      </button>
+                    </div>
+                  </div>
+                  <span className="rounded-full border border-purple-300/30 bg-purple-500/10 px-2.5 py-1 text-[10px] font-black uppercase text-purple-200">
+                    {take.status}
+                  </span>
+                </div>
+
+                <h2 className="mt-5 text-4xl font-black italic leading-[0.95] text-white sm:text-5xl">{take.take_text}</h2>
+
+                <div className="mt-5 grid grid-cols-4 gap-2 rounded-2xl border border-white/10 bg-black/45 p-3 text-center">
+                  <ThreadStat label="Heat" value={`🔥 ${formatCompact(take.heat)}`} tone="lime" />
+                  <ThreadStat label="Riding" value={formatCompact(take.ride_count)} tone="lime" />
+                  <ThreadStat label="Fading" value={formatCompact(take.fade_count)} tone="purple" />
+                  <ThreadStat label="Replies" value={formatCompact(visibleReplyCount)} tone="white" />
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <ThreadReactionButton
+                    active={reaction === "ride"}
+                    disabled={reactionLoading}
+                    side="ride"
+                    onClick={() => chooseReaction("ride")}
+                  />
+                  <ThreadReactionButton
+                    active={reaction === "fade"}
+                    disabled={reactionLoading}
+                    side="fade"
+                    onClick={() => chooseReaction("fade")}
+                  />
+                </div>
+              </section>
+
+              <section className="rounded-[1.75rem] border border-purple-300/30 bg-purple-500/10 p-4 shadow-[0_0_34px_rgba(168,85,247,0.14)]">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-300">Talk back</p>
+                    <h2 className="sports-display mt-1 text-2xl italic leading-none text-white">Public replies</h2>
+                  </div>
+                  <span className="rounded-full border border-lime-300/25 bg-lime-400/10 px-3 py-1 text-[10px] font-black uppercase text-lime-300">
+                    {visibleReplyCount} replies
+                  </span>
+                </div>
+
+                <label className="sr-only" htmlFor="thread-reply">
+                  Reply to this take
+                </label>
+                <div className="relative">
+                  <textarea
+                    id="thread-reply"
+                    value={replyText}
+                    maxLength={280}
+                    onChange={(event) => {
+                      setReplyText(event.target.value);
+                      if (replyStatus !== "loading") {
+                        setReplyStatus("idle");
+                        setMessage("");
+                      }
+                    }}
+                    placeholder="Talk back... 🔥 😂 🧾"
+                    className="min-h-24 w-full resize-none rounded-2xl border border-purple-300/45 bg-black/55 px-4 py-4 pr-16 text-base font-semibold text-white outline-none transition placeholder:text-gray-600 focus:border-lime-300/60 focus:shadow-[0_0_24px_rgba(132,204,22,0.12)]"
+                  />
+                  <span className="absolute bottom-3 right-4 text-xs font-bold text-gray-500">{replyText.length}/280</span>
+                </div>
+                {replyingTo && (
+                  <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-purple-300/25 bg-purple-500/10 px-3 py-2">
+                    <p className="truncate text-xs font-bold text-purple-100">
+                      Replying to @{replyingTo.author?.username ?? "Talker"}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setReplyingTo(null)}
+                      className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-400 transition hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={postReply}
+                  disabled={!canPostReply}
+                  className="mt-3 min-h-12 w-full rounded-2xl border border-purple-300/60 bg-purple-500/15 px-6 text-sm font-black uppercase tracking-[0.12em] text-purple-100 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition hover:-translate-y-0.5 hover:bg-purple-500/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                >
+                  {replyStatus === "loading" ? "Posting..." : "Post Reply"}
+                </button>
+                <p className="mt-3 text-xs font-semibold text-gray-400">Replies are public. Attack takes, not lives.</p>
+              </section>
+
+              {message && (
+                <p
+                  className={`rounded-2xl border px-3 py-2 text-xs font-black uppercase tracking-[0.1em] ${
+                    replyStatus === "error"
+                      ? "border-red-400/35 bg-red-500/10 text-red-200"
+                      : "border-lime-300/30 bg-lime-400/10 text-lime-300"
+                  }`}
+                >
+                  {message}
+                </p>
+              )}
+
+              <section className="rounded-[1.75rem] border border-white/10 bg-black/30 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.34)] backdrop-blur">
+                <div className="mb-3 flex items-center justify-between gap-3 px-1">
+                  <h2 className="sports-display text-2xl italic leading-none text-white">
+                    <span className="mr-2 not-italic">▣</span>
+                    Replies
+                  </h2>
+                  <span className="text-xs font-black uppercase text-purple-300">{replies.length} live</span>
+                </div>
+
+                {replies.length ? (
+                  <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/35">
+                    {rootReplies.map((reply) => {
+                      const username = reply.author?.username ?? "Talker";
+                      const handle = username.startsWith("@") ? username : `@${username}`;
+                      const childReplies = childRepliesByParent[reply.id] ?? [];
+
+                      return (
+                        <article key={reply.id} className="border-b border-white/10 p-3 last:border-b-0">
+                          <div className="grid grid-cols-[auto_1fr] gap-3">
+                            <Link
+                              href={getReceiptHref(handle)}
+                              className="rounded-full transition hover:scale-105 active:scale-95"
+                              aria-label={`${handle} receipts`}
+                            >
+                              <UserAvatar avatarUrl={reply.author?.avatar_url} initials={getInitials(username)} size="sm" />
+                            </Link>
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Link
+                                  href={getReceiptHref(handle)}
+                                  className="truncate text-sm font-black text-white transition hover:text-lime-200"
+                                >
+                                  {handle}
+                                </Link>
+                                <span className="text-xs font-bold text-gray-500">{formatTakeAge(reply.created_at)}</span>
+                              </div>
+                              <p className="mt-1 text-sm font-semibold leading-relaxed text-gray-200">{reply.reply_text}</p>
+                              <div className="mt-2 flex flex-wrap items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setReplyingTo(reply);
+                                    setReplyStatus("idle");
+                                    setMessage("");
+                                  }}
+                                  className="text-[10px] font-black uppercase tracking-[0.12em] text-purple-300 transition hover:text-lime-200"
+                                >
+                                  Reply
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => openReport("reply", reply.id)}
+                                  className="text-[10px] font-black uppercase tracking-[0.12em] text-yellow-300 transition hover:text-yellow-100"
+                                >
+                                  Flag Reply
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMuteUser(reply.user_id)}
+                                  className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-300 transition hover:text-white"
+                                >
+                                  Mute User
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleBlockUser(reply.user_id)}
+                                  className="text-[10px] font-black uppercase tracking-[0.12em] text-red-300 transition hover:text-red-100"
+                                >
+                                  Block User
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {childReplies.length > 0 && (
+                            <div className="ml-10 mt-3 space-y-2 border-l border-purple-300/20 pl-3">
+                              {childReplies.map((childReply) => {
+                                const childUsername = childReply.author?.username ?? "Talker";
+                                const childHandle = childUsername.startsWith("@") ? childUsername : `@${childUsername}`;
+
+                                return (
+                                  <div key={childReply.id} className="grid grid-cols-[auto_1fr] gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                                    <Link
+                                      href={getReceiptHref(childHandle)}
+                                      className="rounded-full transition hover:scale-105 active:scale-95"
+                                      aria-label={`${childHandle} receipts`}
+                                    >
+                                      <UserAvatar
+                                        avatarUrl={childReply.author?.avatar_url}
+                                        initials={getInitials(childUsername)}
+                                        size="sm"
+                                      />
+                                    </Link>
+                                    <div className="min-w-0">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <Link
+                                          href={getReceiptHref(childHandle)}
+                                          className="truncate text-xs font-black text-white transition hover:text-lime-200"
+                                        >
+                                          {childHandle}
+                                        </Link>
+                                        <span className="text-[10px] font-bold text-gray-500">
+                                          {formatTakeAge(childReply.created_at)}
+                                        </span>
+                                      </div>
+                                      <p className="mt-1 text-xs font-semibold leading-relaxed text-gray-300">
+                                        {childReply.reply_text}
+                                      </p>
+                                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                                        <button
+                                          type="button"
+                                          onClick={() => openReport("reply", childReply.id)}
+                                          className="text-[10px] font-black uppercase tracking-[0.12em] text-yellow-300 transition hover:text-yellow-100"
+                                        >
+                                          Flag Reply
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleMuteUser(childReply.user_id)}
+                                          className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-300 transition hover:text-white"
+                                        >
+                                          Mute User
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleBlockUser(childReply.user_id)}
+                                          className="text-[10px] font-black uppercase tracking-[0.12em] text-red-300 transition hover:text-red-100"
+                                        >
+                                          Block User
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-white/10 bg-black/35 p-5 text-center">
+                    <p className="text-sm font-black uppercase tracking-[0.12em] text-gray-400">Nobody has talked back yet.</p>
+                    <p className="mt-1 text-xs font-semibold text-gray-500">Be the first to defend or pile on.</p>
+                  </div>
+                )}
+              </section>
+            </>
+          ) : (
+            <section className="rounded-[1.75rem] border border-red-400/25 bg-red-500/10 p-6 text-center">
+              <h2 className="sports-display text-3xl italic text-white">Take not found.</h2>
+              <p className="mt-2 text-sm font-semibold text-gray-300">This lock may not exist yet.</p>
+            </section>
+          )}
         </div>
-      <ReportModal
-        open={reportOpen}
-        onClose={() => {}}
-        targetType="take"
-        targetId={takeId}
-      />
+
+        <ReportModal
+          open={reportOpen}
+          onClose={() => setReportOpen(false)}
+          targetType={reportTarget.type}
+          targetId={reportTarget.id}
+        />
       </main>
       <RouteBottomNav activeView="arena" />
     </>
