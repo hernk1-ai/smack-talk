@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { touchMyPresence } from "@/lib/supabase/presence";
 import type { ProfileCard, TakeReply } from "@/lib/supabase/types";
 
 export type TakeReplyWithAuthor = TakeReply & {
@@ -16,7 +17,7 @@ export async function getRepliesForTake(takeId: string) {
     .from("take_replies")
     .select("*")
     .eq("take_id", takeId)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false });
 
   if (error || !replies?.length) {
     return { replies: [] as TakeReplyWithAuthor[], error };
@@ -83,6 +84,8 @@ export async function createReply({
     })
     .select("*")
     .single();
+
+  await touchMyPresence();
 
   return { reply: data, error };
 }

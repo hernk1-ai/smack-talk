@@ -217,6 +217,7 @@ export function ReceiptsScreen({
   const [realReceipts, setRealReceipts] = useState<Receipt[]>([]);
   const [receiptError, setReceiptError] = useState("");
   const [shareCopied, setShareCopied] = useState(false);
+  const [sharedReceiptId, setSharedReceiptId] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -261,7 +262,7 @@ export function ReceiptsScreen({
   const featuredReceipt = realReceipts[0] ?? null;
 
   async function copyShareUrl() {
-    const shareUrl = window.location.href;
+    const shareUrl = window.location.origin + getReceiptHref(owner.handle, false);
 
     try {
       if (navigator.share) {
@@ -291,6 +292,29 @@ export function ReceiptsScreen({
       } catch {
         setReceiptError("Could not copy this receipt link.");
       }
+    }
+  }
+
+  async function shareReceiptLink(receiptId: string) {
+    const shareUrl = window.location.origin + "/receipt/" + encodeURIComponent(receiptId);
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Smack Talk Receipt",
+          text: "Public takes. Permanent receipts.",
+          url: shareUrl,
+        });
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        copyTextFallback(shareUrl);
+      }
+
+      setSharedReceiptId(receiptId);
+      window.setTimeout(() => setSharedReceiptId((current) => (current === receiptId ? null : current)), 1800);
+    } catch {
+      setReceiptError("Could not share this receipt link.");
     }
   }
 
@@ -324,6 +348,8 @@ export function ReceiptsScreen({
               receipt={receipt}
               currentUser={index === 0 ? currentUser : undefined}
               onOpen={openReceiptDetail}
+              onShare={shareReceiptLink}
+              isShared={sharedReceiptId === receipt.id}
             />
           ))}
         </div>
@@ -337,6 +363,8 @@ export function ReceiptsScreen({
               receipt={receipt}
               currentUser={index === 0 ? currentUser : undefined}
               onOpen={openReceiptDetail}
+              onShare={shareReceiptLink}
+              isShared={sharedReceiptId === receipt.id}
             />
           ))}
         </div>
@@ -615,7 +643,7 @@ function ReceiptIdentityCard({
               onClick={onShare}
               className="mt-4 min-h-12 rounded-2xl border border-purple-300/60 bg-purple-500/15 px-5 text-sm font-black uppercase tracking-[0.1em] text-purple-100 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition hover:-translate-y-0.5 hover:bg-purple-500/25 hover:shadow-[0_0_34px_rgba(168,85,247,0.24)] active:scale-95"
             >
-              {copied ? "Copied" : "Share"}
+              {copied ? "LINK COPIED" : "SHARE"}
             </button>
           </div>
         </article>
@@ -689,10 +717,14 @@ function RecentReceiptCard({
   receipt,
   currentUser,
   onOpen,
+  onShare,
+  isShared,
 }: {
   receipt: RecentReceipt;
   currentUser?: ReceiptOwnerMeta;
   onOpen: (receiptId: string) => void;
+  onShare: (receiptId: string) => void;
+  isShared: boolean;
 }) {
   const isWin = receipt.status === "win";
   const handle = currentUser?.handle ?? receipt.handle;
@@ -763,10 +795,21 @@ function RecentReceiptCard({
         <span className={`text-right ${isWin ? "text-lime-300" : "text-red-300"}`}>{receipt.verdict}</span>
       </div>
 
-      <div className="mt-3 flex justify-between text-xs font-black text-gray-400">
+      <div className="mt-3 flex items-center justify-between text-xs font-black text-gray-400">
         <span>🔥 {receipt.heat}</span>
         <span>◉ {receipt.views}</span>
       </div>
+
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onShare(receipt.id);
+        }}
+        className="mt-3 min-h-10 w-full rounded-xl border border-purple-300/40 bg-purple-500/10 px-3 text-[11px] font-black uppercase tracking-[0.1em] text-purple-100 transition hover:bg-purple-500/20"
+      >
+        {isShared ? "LINK COPIED" : "SHARE"}
+      </button>
     </article>
   );
 }
@@ -784,10 +827,14 @@ function ViralReceiptCard({
   receipt,
   currentUser,
   onOpen,
+  onShare,
+  isShared,
 }: {
   receipt: ViralReceipt;
   currentUser?: ReceiptOwnerMeta;
   onOpen: (receiptId: string) => void;
+  onShare: (receiptId: string) => void;
+  isShared: boolean;
 }) {
   const isWin = receipt.status === "win";
   const handle = currentUser?.handle ?? receipt.handle;
@@ -858,6 +905,17 @@ function ViralReceiptCard({
           <span>🔥 {receipt.heat}</span>
           <span>▰ {receipt.comments}</span>
         </div>
+
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onShare(receipt.id);
+          }}
+          className="mt-3 min-h-10 w-full rounded-xl border border-purple-300/40 bg-purple-500/10 px-3 text-[11px] font-black uppercase tracking-[0.1em] text-purple-100 transition hover:bg-purple-500/20"
+        >
+          {isShared ? "LINK COPIED" : "SHARE"}
+        </button>
       </div>
     </article>
   );
@@ -976,7 +1034,7 @@ function mapSeededReceiptToViral(receipt: SeededReceipt, owner: ReceiptOwnerMeta
   const hitRate = total ? `${Math.round((receipt.ride_count / total) * 100)}%` : "0%";
 
   return {
-    id: `${receipt.id}_viral`,
+    id: receipt.id,
     rank: index + 1,
     hitRate,
     handle: owner.handle,

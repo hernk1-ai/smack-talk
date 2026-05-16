@@ -17,6 +17,7 @@ export type Database = {
           misses_count: number;
           receipts_count: number;
           onboarding_completed: boolean;
+          last_active_at: string;
           created_at: string;
           updated_at: string;
         };
@@ -33,6 +34,7 @@ export type Database = {
           misses_count?: number;
           receipts_count?: number;
           onboarding_completed?: boolean;
+          last_active_at?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -49,6 +51,7 @@ export type Database = {
           misses_count?: number;
           receipts_count?: number;
           onboarding_completed?: boolean;
+          last_active_at?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -197,6 +200,8 @@ export type Database = {
           user_id: string;
           game_id: string;
           question_text: string;
+          pick_type: "momentum" | "scoring" | "tempo" | "clutch" | "outcome";
+          prompt_key: string;
           selected_side: string;
           result: "pending" | "hit" | "miss";
           rep_delta: number;
@@ -208,6 +213,8 @@ export type Database = {
           user_id: string;
           game_id: string;
           question_text: string;
+          pick_type: "momentum" | "scoring" | "tempo" | "clutch" | "outcome";
+          prompt_key: string;
           selected_side: string;
           result?: "pending" | "hit" | "miss";
           rep_delta?: number;
@@ -219,6 +226,8 @@ export type Database = {
           user_id?: string;
           game_id?: string;
           question_text?: string;
+          pick_type?: "momentum" | "scoring" | "tempo" | "clutch" | "outcome";
+          prompt_key?: string;
           selected_side?: string;
           result?: "pending" | "hit" | "miss";
           rep_delta?: number;

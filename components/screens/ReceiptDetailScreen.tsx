@@ -132,7 +132,13 @@ export function ReceiptDetailScreen({ receiptId, profile }: { receiptId: string;
     const url = window.location.href;
 
     try {
-      if (navigator.clipboard?.writeText) {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Smack Talk Receipt",
+          text: "Public takes. Permanent receipts.",
+          url,
+        });
+      } else if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url);
       } else {
         copyTextFallback(url);
@@ -197,7 +203,7 @@ export function ReceiptDetailScreen({ receiptId, profile }: { receiptId: string;
                 onClick={shareReceipt}
                 className="min-h-12 rounded-2xl border border-purple-300/45 bg-purple-500/15 px-4 text-xs font-black uppercase tracking-[0.1em] text-purple-100 transition hover:-translate-y-0.5 active:scale-95"
               >
-                {copied ? "Copied" : "Share"}
+                {copied ? "LINK COPIED" : "SHARE"}
               </button>
             </div>
           </header>

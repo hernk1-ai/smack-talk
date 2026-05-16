@@ -29,6 +29,7 @@ type TopTalker = {
 
 type QuickPickQuestion = {
   key: string;
+  pickType: "momentum" | "scoring" | "tempo" | "clutch" | "outcome";
   questionText: string;
   options: Array<{
     label: string;
@@ -125,8 +126,6 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
   const quickPickQuestions = getQuickPickQuestions({
     awayTeam,
     homeTeam,
-    awayScore: game?.away_score ?? 0,
-    homeScore: game?.home_score ?? 0,
   });
 
   useEffect(() => {
@@ -164,6 +163,8 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
       gameId,
       questionText: question.questionText,
       selectedSide,
+      pickType: question.pickType,
+      promptKey: question.key,
     });
 
     setSavingQuickPickKey(null);
@@ -325,7 +326,7 @@ function ArenaScoreboard({
           <p className="mt-3 text-xs font-black uppercase text-purple-300">{period}</p>
           <p className="scoreboard-number mt-1 text-4xl text-white">{clock}</p>
           <p className="mt-2 flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-gray-300">
-            <span className="h-2 w-2 rounded-full bg-lime-400" /> {status === "scheduled" ? `Tipoff ${startsAt}` : `${formatCompact(watching)} Watching`}
+            <span className="h-2 w-2 rounded-full bg-lime-400" /> {status === "scheduled" ? `Tipoff ${startsAt}` : `${formatCompact(watching)} Talkers Live`}
           </p>
           <p className="text-[10px] font-black uppercase text-gray-500">{status === "scheduled" ? "Pregame" : status === "final" ? "Final" : "Live"}</p>
           <span className="mx-auto mt-3 grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/60 text-[10px] font-black text-gray-300">
@@ -360,12 +361,12 @@ function ArenaScoreboard({
         <div>
           <p className="text-[10px] font-black uppercase text-gray-400">Crowd Split</p>
           <p className="mt-1 text-2xl font-black text-lime-300">{ridePct}% / {fadePct}%</p>
-          <p className="text-[10px] font-black uppercase text-red-300">{status === "scheduled" ? "Pregame split" : status === "final" ? "Final split" : "Live split"}</p>
+          <p className="text-[10px] font-black uppercase text-red-300">{status === "scheduled" ? "Arena warming up" : status === "final" ? "Crowd settled" : "Arena heating up"}</p>
         </div>
         <div className="border-y border-white/10 py-3 text-center sm:border-x sm:border-y-0 sm:px-4 sm:py-0">
           <p className="text-[10px] font-black uppercase text-gray-400">Momentum</p>
           <Sparkline />
-          <p className="mt-1 text-xs font-black uppercase text-lime-300">{status === "scheduled" ? "Crowd waiting" : `${awayTeam} vs ${homeTeam}`}</p>
+          <p className="mt-1 text-xs font-black uppercase text-lime-300">{status === "scheduled" ? "Crowd waiting" : "Crowd leaning live"}</p>
         </div>
         <div className="text-left sm:text-right">
           <p className="text-[10px] font-black uppercase text-gray-400">Game State</p>
@@ -482,42 +483,59 @@ function QuickPickButton({
 function getQuickPickQuestions({
   awayTeam,
   homeTeam,
-  awayScore,
-  homeScore,
 }: {
   awayTeam: string;
   homeTeam: string;
-  awayScore: number;
-  homeScore: number;
 }) {
-  const trailingTeam = awayScore === homeScore ? awayTeam : awayScore < homeScore ? awayTeam : homeTeam;
-
-  return [
+  const questions: QuickPickQuestion[] = [
     {
       key: "next-bucket",
+      pickType: "scoring",
       questionText: "Next bucket?",
       options: [
-        { label: awayTeam, value: awayTeam, tone: "green" as const },
-        { label: homeTeam, value: homeTeam, tone: "purple" as const },
+        { label: awayTeam, value: awayTeam, tone: "green" },
+        { label: homeTeam, value: homeTeam, tone: "purple" },
       ],
     },
     {
       key: "ot-incoming",
+      pickType: "outcome",
       questionText: "OT incoming?",
       options: [
-        { label: "Yes", value: "yes", tone: "purple" as const },
-        { label: "No", value: "no", tone: "green" as const },
+        { label: "Yes", value: "yes", tone: "purple" },
+        { label: "No", value: "no", tone: "green" },
       ],
     },
     {
       key: "comeback-alive",
-      questionText: `${trailingTeam} comeback alive?`,
+      pickType: "clutch",
+      questionText: "Comeback alive?",
       options: [
-        { label: "Alive", value: "alive", tone: "green" as const },
-        { label: "Cooked", value: "cooked", tone: "purple" as const },
+        { label: "Alive", value: "alive", tone: "green" },
+        { label: "Cooked", value: "cooked", tone: "purple" },
+      ],
+    },
+    {
+      key: "momentum-swing",
+      pickType: "momentum",
+      questionText: "Momentum swing?",
+      options: [
+        { label: awayTeam, value: awayTeam, tone: "green" },
+        { label: homeTeam, value: homeTeam, tone: "purple" },
+      ],
+    },
+    {
+      key: "blowout-incoming",
+      pickType: "tempo",
+      questionText: "Blowout incoming?",
+      options: [
+        { label: "Yes", value: "yes", tone: "purple" },
+        { label: "No", value: "no", tone: "green" },
       ],
     },
   ];
+
+  return questions;
 }
 
 function toQuickPickKey(questionText: string) {

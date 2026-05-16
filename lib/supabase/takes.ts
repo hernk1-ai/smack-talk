@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { ACTIVE_GAME_ID } from "@/lib/supabase/games";
+import { touchMyPresence } from "@/lib/supabase/presence";
 import type { Take } from "@/lib/supabase/types";
 
 type CreateLockedTakeInput = {
@@ -42,6 +43,8 @@ export async function createLockedTake({ gameId, takeText }: CreateLockedTakeInp
     })
     .select("*")
     .single();
+
+  await touchMyPresence();
 
   return { take: data, error };
 }

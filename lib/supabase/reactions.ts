@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { touchMyPresence } from "@/lib/supabase/presence";
 import type { Take, TakeReaction } from "@/lib/supabase/types";
 
 type ReactionSide = TakeReaction["reaction"];
@@ -138,6 +139,8 @@ export async function reactToTake({ takeId, reaction }: ReactToTakeInput) {
   }
 
   const { data: take, error: takeError } = await supabase.from("takes").select("*").eq("id", takeId).maybeSingle();
+
+  await touchMyPresence();
 
   return { reaction: savedReaction, take, error: takeError };
 }

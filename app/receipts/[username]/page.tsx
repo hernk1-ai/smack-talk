@@ -1,8 +1,32 @@
+import type { Metadata } from "next";
+
 import { SmackTalkApp } from "@/components/SmackTalkApp";
 import type { ReceiptOwner } from "@/components/screens/ReceiptsScreen";
 import { getSeededProfileByUsername } from "@/data/seededCrowd";
 import { ensureProfile } from "@/lib/supabase/profiles";
 import { createClient } from "@/lib/supabase/server";
+
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://smacktalk.app";
+
+export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
+  const { username } = await params;
+  const key = decodeURIComponent(username).replace(/^@/, "");
+  const handle = `@${key}`;
+  const title = `${handle}'s Smack Talk Receipts`;
+  const description = "Public takes. Permanent receipts. The Arena remembers.";
+  const url = `${BASE_URL}/receipts/${encodeURIComponent(key.toLowerCase())}`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url,
+      type: "profile",
+    },
+  };
+}
 
 export default async function PublicReceiptsPage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
@@ -58,9 +82,11 @@ export default async function PublicReceiptsPage({ params }: { params: Promise<{
 }
 
 function toDisplayUsername(value: string) {
-  return value
-    .split(/[-_\s]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join("") || "Talker";
+  return (
+    value
+      .split(/[-_\s]+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join("") || "Talker"
+  );
 }

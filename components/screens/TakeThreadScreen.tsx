@@ -31,6 +31,7 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
   const [reactionLoading, setReactionLoading] = useState(false);
   const [replyStatus, setReplyStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [shareCopied, setShareCopied] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -219,6 +220,29 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
     return accumulator;
   }, {});
 
+  async function shareTakeThread() {
+    const shareUrl = window.location.origin + "/take/" + encodeURIComponent(takeId);
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Smack Talk Take",
+          text: "Public take thread",
+          url: shareUrl,
+        });
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        copyTextFallback(shareUrl);
+      }
+
+      setShareCopied(true);
+      window.setTimeout(() => setShareCopied(false), 1800);
+    } catch {
+      setMessage("Could not share this take link.");
+    }
+  }
+
   function goBack() {
     if (window.history.length > 1) {
       router.back();
@@ -253,9 +277,13 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
                 </h1>
               </div>
             </div>
-            <span className="rounded-full border border-lime-300/30 bg-lime-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-lime-300">
-              Public
-            </span>
+            <button
+              type="button"
+              onClick={shareTakeThread}
+              className="min-h-11 rounded-2xl border border-purple-300/45 bg-purple-500/15 px-3 text-[10px] font-black uppercase tracking-[0.1em] text-purple-100 transition hover:bg-purple-500/25"
+            >
+              {shareCopied ? "LINK COPIED" : "SHARE"}
+            </button>
           </div>
         </header>
 
@@ -514,6 +542,22 @@ function ThreadStat({ label, value, tone }: { label: string; value: string; tone
       <p className={`mt-1 text-sm font-black ${toneClass}`}>{value}</p>
     </div>
   );
+}
+
+function copyTextFallback(value: string) {
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand("copy");
+  document.body.removeChild(textarea);
+
+  if (!copied) {
+    throw new Error("Copy command failed.");
+  }
 }
 
 function ThreadReactionButton({

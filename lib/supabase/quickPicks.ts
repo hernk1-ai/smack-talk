@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/client";
+import { touchMyPresence } from "@/lib/supabase/presence";
 import type { QuickPick } from "@/lib/supabase/types";
 
+export type QuickPickType = "momentum" | "scoring" | "tempo" | "clutch" | "outcome";
 export type QuickPickSide = string;
 
 export async function getMyQuickPicks(gameId: string) {
@@ -37,10 +39,14 @@ export async function createQuickPick({
   gameId,
   questionText,
   selectedSide,
+  pickType,
+  promptKey,
 }: {
   gameId: string;
   questionText: string;
   selectedSide: QuickPickSide;
+  pickType: QuickPickType;
+  promptKey: string;
 }) {
   const supabase = createClient();
 
@@ -68,11 +74,14 @@ export async function createQuickPick({
       game_id: gameId,
       question_text: questionText,
       selected_side: selectedSide,
+      pick_type: pickType,
+      prompt_key: promptKey,
     })
     .select("*")
     .single();
 
   if (!error) {
+    await touchMyPresence();
     return { quickPick: data, error: null };
   }
 
