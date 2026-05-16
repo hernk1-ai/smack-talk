@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { BottomNav, type AppView } from "@/components/BottomNav";
 import { LiveArena } from "@/components/LiveArena";
 import { FeedScreen } from "@/components/screens/FeedScreen";
@@ -23,13 +23,23 @@ export function SmackTalkApp({
   initialGameId?: string;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [appView, setAppView] = useState<AppView>(initialView);
   const [activeGameRoomId, setActiveGameRoomId] = useState(initialGameId);
 
-  const goToArena = () => setAppView("arena");
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname, appView]);
+
+  const goToArena = () => {
+    router.push("/app");
+    setAppView("arena");
+  };
+
   const joinLive = (gameId = ACTIVE_GAME_ID) => {
     setActiveGameRoomId(gameId);
     setAppView("live-arena");
+    router.push(`/game/${gameId}`);
   };
   const selectBottomNav = (view: "arena" | "receipts" | "top-talkers" | "settings") => {
     if (view === "arena") {

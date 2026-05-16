@@ -106,12 +106,14 @@ export function ResetEmailSentPage({ email = previewEmail }: { email?: string })
           </p>
         </div>
 
-        <Link
-          href="/password-reset-email-preview"
-          className="mt-4 grid min-h-12 w-full place-items-center rounded-xl border border-purple-300/40 bg-purple-500/10 px-5 text-sm font-black uppercase italic tracking-[0.14em] text-purple-200 transition hover:-translate-y-0.5 hover:bg-purple-500/20 active:scale-[0.99]"
-        >
-          Preview Reset Email
-        </Link>
+        {process.env.NODE_ENV === "development" ? (
+          <Link
+            href="/password-reset-email-preview"
+            className="mt-4 grid min-h-12 w-full place-items-center rounded-xl border border-purple-300/40 bg-purple-500/10 px-5 text-sm font-black uppercase italic tracking-[0.14em] text-purple-200 transition hover:-translate-y-0.5 hover:bg-purple-500/20 active:scale-[0.99]"
+          >
+            Preview Reset Email
+          </Link>
+        ) : null}
 
         <Link
           href="/login"
@@ -128,6 +130,8 @@ export function ResetPasswordPage() {
   const router = useRouter();
   const [password, setPassword] = useState("superstrong");
   const [confirmPassword, setConfirmPassword] = useState("superstrong");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -181,6 +185,8 @@ export function ResetPasswordPage() {
               setPassword(value);
               setMessage("");
             }}
+            onToggleVisibility={() => setShowPassword(!showPassword)}
+            showPassword={showPassword}
             value={password}
           />
           <StrengthBar />
@@ -190,6 +196,8 @@ export function ResetPasswordPage() {
               setConfirmPassword(value);
               setMessage("");
             }}
+            onToggleVisibility={() => setShowConfirmPassword(!showConfirmPassword)}
+            showPassword={showConfirmPassword}
             valid={password === confirmPassword && confirmPassword.length > 0}
             value={confirmPassword}
           />
@@ -305,11 +313,15 @@ function EnvelopeCheck() {
 function PasswordField({
   label,
   onChange,
+  onToggleVisibility,
+  showPassword,
   valid,
   value,
 }: {
   label: string;
   onChange: (value: string) => void;
+  onToggleVisibility: () => void;
+  showPassword: boolean;
   valid?: boolean;
   value: string;
 }) {
@@ -321,12 +333,17 @@ function PasswordField({
           className="min-h-10 w-full bg-transparent text-base font-bold text-white outline-none placeholder:text-gray-500"
           onChange={(event) => onChange(event.target.value)}
           placeholder="••••••••••"
-          type="password"
+          type={showPassword ? "text" : "password"}
           value={value}
         />
-        <span className="text-gray-400" aria-hidden="true">
-          ◉
-        </span>
+        <button
+          type="button"
+          onClick={onToggleVisibility}
+          className="text-xs font-black uppercase tracking-[0.14em] text-gray-300 transition hover:text-lime-300"
+          aria-label={showPassword ? "Hide password" : "Show password"}
+        >
+          {showPassword ? "Hide" : "Show"}
+        </button>
         {valid && <span className="text-lime-300">✓</span>}
       </div>
     </label>

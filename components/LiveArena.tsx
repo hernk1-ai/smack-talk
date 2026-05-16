@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { SmackTalkLogo } from "@/components/SmackTalkLogo";
 import { formatRepSwing, QUICK_PICK_LOSS, QUICK_PICK_WIN } from "@/lib/engagement";
 import { ACTIVE_GAME_ID, getGameById } from "@/lib/supabase/games";
@@ -18,6 +19,14 @@ type ChatTake = {
   text: string;
   heat: number;
   tag?: Side;
+};
+
+type LiveCall = {
+  handle: string;
+  text: string;
+  rides: string;
+  fades: string;
+  status: string;
 };
 
 type TopTalker = {
@@ -44,7 +53,7 @@ const chatTakes: ChatTake[] = [
     handle: "@TalkHeavy23",
     avatar: "TH",
     timestamp: "1m ago",
-    text: "Curry can’t buy a bucket right now 😂",
+    text: "Bro they can't guard anybody.",
     heat: 128,
   },
   {
@@ -52,7 +61,7 @@ const chatTakes: ChatTake[] = [
     handle: "@MidRange",
     avatar: "MR",
     timestamp: "1m ago",
-    text: "Momentum is shifting. Crowd feels it.",
+    text: "Lmao everybody switched sides.",
     heat: 96,
   },
   {
@@ -60,7 +69,7 @@ const chatTakes: ChatTake[] = [
     handle: "@FadeKing",
     avatar: "FK",
     timestamp: "just now",
-    text: "Crowd pressure rising before tipoff.",
+    text: "That was a terrible shot.",
     heat: 212,
     tag: "fade",
   },
@@ -69,7 +78,7 @@ const chatTakes: ChatTake[] = [
     handle: "@HoopDreams",
     avatar: "HD",
     timestamp: "just now",
-    text: "I’m riding with the crowd. LAL dont fold!",
+    text: "He's cooking them right now.",
     heat: 74,
     tag: "ride",
   },
@@ -78,29 +87,29 @@ const chatTakes: ChatTake[] = [
     handle: "@NoMercy",
     avatar: "NM",
     timestamp: "just now",
-    text: "Draymond about to change everything.",
+    text: "No way they hold this lead.",
     heat: 52,
   },
 ];
 
-const liveCalls = [
+const liveCalls: LiveCall[] = [
   {
     handle: "@BucketsOnly",
-    text: "This side closing strong. Opps cooked.",
+    text: "This crowd got quiet fast.",
     rides: "2.1K",
     fades: "842",
     status: "Locked",
   },
   {
     handle: "@FadeKing",
-    text: "Too much Crowd pressure. Still one push left.",
+    text: "They're settling for bad looks now.",
     rides: "488",
     fades: "1.4K",
     status: "Fade",
   },
   {
     handle: "@HoopDreams",
-    text: "Defense is winning the last three minutes.",
+    text: "Bench just flipped this game.",
     rides: "912",
     fades: "215",
     status: "Ride",
@@ -119,14 +128,15 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
   const [activeTab, setActiveTab] = useState<ArenaTab>("chat");
   const [game, setGame] = useState<Game | null>(null);
   const [quickPickSelections, setQuickPickSelections] = useState<Record<string, string>>({});
+  const [quickPickResults, setQuickPickResults] = useState<Record<string, "pending" | "hit" | "miss">>({});
   const [quickPickMessage, setQuickPickMessage] = useState("");
+  const [quickPickCrowdLine, setQuickPickCrowdLine] = useState("");
   const [savingQuickPickKey, setSavingQuickPickKey] = useState<string | null>(null);
+  const [callChoices, setCallChoices] = useState<Record<string, Side>>({});
+  const [quickPickQueue, setQuickPickQueue] = useState<QuickPickQuestion[]>([]);
+  const [quickPickRecentKeys, setQuickPickRecentKeys] = useState<string[]>([]);
   const awayTeam = game?.away_team ?? "AWAY";
   const homeTeam = game?.home_team ?? "HOME";
-  const quickPickQuestions = getQuickPickQuestions({
-    awayTeam,
-    homeTeam,
-  });
 
   useEffect(() => {
     let isMounted = true;
@@ -138,10 +148,26 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
         return;
       }
 
+      const nextSelections = Object.fromEntries((quickPicks ?? []).map((quickPick) => [toQuickPickKey(quickPick.question_text), quickPick.selected_side]));
+
       setGame(loadedGame);
-      setQuickPickSelections(
-        Object.fromEntries((quickPicks ?? []).map((quickPick) => [toQuickPickKey(quickPick.question_text), quickPick.selected_side])),
+      setQuickPickSelections(nextSelections);
+      setQuickPickResults(
+        Object.fromEntries((quickPicks ?? []).map((quickPick) => [toQuickPickKey(quickPick.question_text), quickPick.result ?? "pending"])),
       );
+
+      const initialQueue = getQuickPickQuestions({
+        game: loadedGame,
+        awayTeam: loadedGame?.away_team ?? "AWAY",
+        homeTeam: loadedGame?.home_team ?? "HOME",
+        recentKeys: [],
+      })
+        .filter((question) => !nextSelections[question.key])
+        .slice(0, 3);
+
+      setQuickPickQueue(initialQueue);
+      setQuickPickRecentKeys(initialQueue.map((question) => question.key));
+      setQuickPickCrowdLine(getQuickPickCrowdLine(loadedGame, initialQueue[0]));
     }
 
     loadGameAndQuickPicks();
@@ -151,13 +177,57 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
     };
   }, [gameId]);
 
+  useEffect(() => {
+    if (!quickPickQueue.length || savingQuickPickKey) {
+      return;
+    }
+
+    const delayMs = game?.status === "live" ? 14000 : game?.status === "scheduled" ? 22000 : 26000;
+    const timer = window.setTimeout(() => {
+      rotateQuickPick("timer");
+    }, delayMs);
+
+    return () => window.clearTimeout(timer);
+  }, [game?.status, quickPickQueue, quickPickSelections, savingQuickPickKey]);
+
+  function rotateQuickPick(reason: "timer" | "interaction") {
+    if (!quickPickQueue.length) {
+      return;
+    }
+
+    const currentKeys = quickPickQueue.map((question) => question.key);
+    const nextRecentKeys = [...quickPickRecentKeys, ...currentKeys].slice(-12);
+    const pool = getQuickPickQuestions({
+      game,
+      awayTeam,
+      homeTeam,
+      recentKeys: nextRecentKeys,
+    });
+
+    const incoming = pool.find((question) => !currentKeys.includes(question.key) && !quickPickSelections[question.key]);
+
+    if (!incoming) {
+      return;
+    }
+
+    setQuickPickQueue((current) => [...current.slice(1), incoming]);
+    setQuickPickRecentKeys(nextRecentKeys);
+
+    if (reason === "timer") {
+      setQuickPickCrowdLine(getQuickPickCrowdLine(game, incoming));
+    }
+  }
+
   async function lockQuickPick(question: QuickPickQuestion, selectedSide: string) {
     if (quickPickSelections[question.key] || savingQuickPickKey) {
       return;
     }
 
     setSavingQuickPickKey(question.key);
-    setQuickPickMessage("");
+    setQuickPickResults((current) => ({
+      ...current,
+      [question.key]: "pending",
+    }));
 
     const { quickPick, error } = await createQuickPick({
       gameId,
@@ -171,6 +241,10 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
 
     if (error || !quickPick) {
       setQuickPickMessage(error?.message || "Could not save that quick pick.");
+      setQuickPickResults((current) => ({
+        ...current,
+        [question.key]: "miss",
+      }));
       return;
     }
 
@@ -178,19 +252,39 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
       ...current,
       [question.key]: quickPick.selected_side,
     }));
-    setQuickPickMessage(`Quick Pick locked: ${question.questionText} · ${quickPick.selected_side} · ${formatRepSwing(QUICK_PICK_WIN, QUICK_PICK_LOSS)}`);
-  }
 
+    setQuickPickMessage("Quick Pick locked: " + question.questionText + " · " + quickPick.selected_side + " · " + formatRepSwing(QUICK_PICK_WIN, QUICK_PICK_LOSS));
+    setQuickPickCrowdLine(getQuickPickCrowdLine(game, question));
+
+    const settledResult = Math.random() > 0.52 ? "hit" : "miss";
+    window.setTimeout(() => {
+      setQuickPickResults((current) => ({
+        ...current,
+        [question.key]: settledResult,
+      }));
+      setQuickPickMessage(
+        settledResult === "hit"
+          ? "Quick Pick hit. " + formatRepSwing(QUICK_PICK_WIN, QUICK_PICK_LOSS)
+          : "Quick Pick missed. " + formatRepSwing(QUICK_PICK_WIN, QUICK_PICK_LOSS),
+      );
+    }, 1700);
+
+    window.setTimeout(() => {
+      rotateQuickPick("interaction");
+    }, 900);
+  }
   return (
     <main className="min-h-dvh overflow-x-hidden bg-transparent pb-4 pt-[calc(1rem+env(safe-area-inset-top))] text-white sm:pb-5 sm:pt-5">
       <div className="arena-shell screen-safe-bottom space-y-5">
-        <ArenaHeader onBack={onBack} />
+        <ArenaHeader onBack={onBack} game={game} />
         <ArenaScoreboard
           game={game}
-          quickPickQuestions={quickPickQuestions}
+          quickPickQuestions={quickPickQueue}
           quickPickSelections={quickPickSelections}
+          quickPickResults={quickPickResults}
           savingQuickPickKey={savingQuickPickKey}
           quickPickMessage={quickPickMessage}
+          quickPickCrowdLine={quickPickCrowdLine}
           onQuickPick={lockQuickPick}
         />
         <ArenaTabs activeTab={activeTab} onSelect={setActiveTab} />
@@ -200,8 +294,10 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
             {activeTab === "chat" && <ChatPanel />}
             {activeTab === "calls" && (
               <CallsPanel
-                onChoose={() => {
-                  setQuickPickMessage("Ride/Fade stays public. Quick Picks sit on the board above when you want something faster.");
+                choices={callChoices}
+                onChoose={(callId, side) => {
+                  setCallChoices((current) => ({ ...current, [callId]: side }));
+                  setQuickPickMessage(side === "ride" ? "You rode that call." : "You faded that call.");
                 }}
               />
             )}
@@ -220,7 +316,7 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
   );
 }
 
-function ArenaHeader({ onBack }: { onBack: () => void }) {
+function ArenaHeader({ onBack, game }: { onBack: () => void; game: Game | null }) {
   return (
     <header className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-[1.5rem] border border-white/10 bg-black/30 p-2 shadow-[0_18px_48px_rgba(0,0,0,0.3)] backdrop-blur sm:gap-3 sm:p-3">
       <button
@@ -243,7 +339,7 @@ function ArenaHeader({ onBack }: { onBack: () => void }) {
           </h1>
           <p className="mt-1 hidden items-center gap-2 text-xs font-black uppercase tracking-[0.1em] text-gray-300 sm:flex">
             <span className="h-2.5 w-2.5 rounded-full bg-lime-400 shadow-[0_0_16px_rgba(132,204,22,0.75)]" />
-            12.8K <span className="text-gray-500">Online</span>
+            {formatCompact(game?.watching_count ?? 0)} <span className="text-gray-500">{game?.status === "live" ? "Talkers Live" : game?.status === "final" ? "Crowd settled" : "Pregame lobby"}</span>
           </p>
         </div>
       </div>
@@ -288,26 +384,33 @@ function ArenaScoreboard({
   game,
   quickPickQuestions,
   quickPickSelections,
+  quickPickResults,
   savingQuickPickKey,
   quickPickMessage,
+  quickPickCrowdLine,
   onQuickPick,
 }: {
   game: Game | null;
   quickPickQuestions: QuickPickQuestion[];
   quickPickSelections: Record<string, string>;
+  quickPickResults: Record<string, "pending" | "hit" | "miss">;
   savingQuickPickKey: string | null;
   quickPickMessage: string;
+  quickPickCrowdLine: string;
   onQuickPick: (question: QuickPickQuestion, selectedSide: string) => void;
 }) {
   const awayTeam = game?.away_team ?? "AWAY";
   const homeTeam = game?.home_team ?? "HOME";
   const awayScore = String(game?.away_score ?? 0);
   const homeScore = String(game?.home_score ?? 0);
-  const period = game?.period ?? (game?.status === "scheduled" ? "Pregame" : game?.status === "final" ? "Final" : "Live");
-  const clock = game?.clock ?? (game?.status === "scheduled" ? "Scheduled" : game?.status === "final" ? "Final" : "Live");
-  const watching = game?.watching_count ?? 0;
   const status = game?.status ?? "scheduled";
-  const startsAt = game?.starts_at ? new Date(game.starts_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "TBD";
+  const statusLabel = status === "live" ? "LIVE" : status === "final" ? "FINAL" : "SCHEDULED";
+  const period = game?.period ?? (status === "live" ? "LIVE" : status === "final" ? "Final" : "Pregame");
+  const clock = status === "live" ? game?.clock ?? "--:--" : null;
+  const watching = game?.watching_count ?? 0;
+  const startsAt = game?.starts_at
+    ? new Date(game.starts_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+    : "TBD";
   const rideCount = game?.ride_count ?? 0;
   const fadeCount = game?.fade_count ?? 0;
   const totalPicks = rideCount + fadeCount;
@@ -321,14 +424,14 @@ function ArenaScoreboard({
 
         <div className="pb-1">
           <span className="rounded-md border border-red-400/60 bg-red-500/10 px-2.5 py-1 text-xs font-black uppercase text-red-300">
-            ▷ {status}
+            {statusLabel}
           </span>
           <p className="mt-3 text-xs font-black uppercase text-purple-300">{period}</p>
-          <p className="scoreboard-number mt-1 text-4xl text-white">{clock}</p>
+          {clock ? <p className="scoreboard-number mt-1 text-4xl text-white">{clock}</p> : null}
           <p className="mt-2 flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-gray-300">
-            <span className="h-2 w-2 rounded-full bg-lime-400" /> {status === "scheduled" ? `Tipoff ${startsAt}` : `${formatCompact(watching)} Talkers Live`}
+            <span className="h-2 w-2 rounded-full bg-lime-400" /> {status === "scheduled" ? `Tipoff ${startsAt}` : status === "live" ? `${formatCompact(watching)} Talkers Live` : "Final whistle"}
           </p>
-          <p className="text-[10px] font-black uppercase text-gray-500">{status === "scheduled" ? "Pregame" : status === "final" ? "Final" : "Live"}</p>
+          <p className="text-[10px] font-black uppercase text-gray-500">{status === "scheduled" ? "Pregame" : status === "final" ? "Final" : period}</p>
           <span className="mx-auto mt-3 grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/60 text-[10px] font-black text-gray-300">
             VS
           </span>
@@ -352,8 +455,10 @@ function ArenaScoreboard({
       <QuickPickPanel
         questions={quickPickQuestions}
         selections={quickPickSelections}
+        results={quickPickResults}
         savingQuestionKey={savingQuickPickKey}
         message={quickPickMessage}
+        crowdLine={quickPickCrowdLine}
         onPick={onQuickPick}
       />
 
@@ -365,8 +470,10 @@ function ArenaScoreboard({
         </div>
         <div className="border-y border-white/10 py-3 text-center sm:border-x sm:border-y-0 sm:px-4 sm:py-0">
           <p className="text-[10px] font-black uppercase text-gray-400">Momentum</p>
-          <Sparkline />
-          <p className="mt-1 text-xs font-black uppercase text-lime-300">{status === "scheduled" ? "Crowd waiting" : "Crowd leaning live"}</p>
+          {status === "live" ? <Sparkline /> : null}
+          <p className="mt-1 text-xs font-black uppercase text-lime-300">
+            {status === "live" ? "Crowd leaning " + (ridePct >= fadePct ? awayTeam : homeTeam) : status === "scheduled" ? "Pregame read loading" : "Final books closed"}
+          </p>
         </div>
         <div className="text-left sm:text-right">
           <p className="text-[10px] font-black uppercase text-gray-400">Game State</p>
@@ -387,62 +494,77 @@ function formatCompact(value: number) {
 function QuickPickPanel({
   questions,
   selections,
+  results,
   savingQuestionKey,
   message,
+  crowdLine,
   onPick,
 }: {
   questions: QuickPickQuestion[];
   selections: Record<string, string>;
+  results: Record<string, "pending" | "hit" | "miss">;
   savingQuestionKey: string | null;
   message: string;
+  crowdLine: string;
   onPick: (question: QuickPickQuestion, selectedSide: string) => void;
 }) {
   return (
-    <section className="mt-5 rounded-2xl border border-white/10 bg-black/55 p-3.5 shadow-[0_0_30px_rgba(132,204,22,0.08)]">
+    <section className="mt-4 rounded-xl border border-white/10 bg-black/45 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-gray-400">Quick Picks</p>
-          <p className="mt-1 text-xs font-bold text-gray-300">Low stakes · {formatRepSwing(QUICK_PICK_WIN, QUICK_PICK_LOSS)} REP</p>
+          <p className="mt-1 text-[11px] font-bold text-gray-300">{formatRepSwing(QUICK_PICK_WIN, QUICK_PICK_LOSS)} REP · fast loop</p>
         </div>
-        <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-gray-300">
-          Fast lane
+        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-gray-300">
+          Live Queue
         </span>
       </div>
 
-      <div className="mt-3 grid gap-3">
+      <div className="mt-2.5 grid gap-2">
         {questions.map((question) => {
           const lockedSelection = selections[question.key];
+          const result = results[question.key] ?? null;
           const isSaving = savingQuestionKey === question.key;
 
           return (
-            <div key={question.key} className="rounded-xl border border-white/10 bg-black/40 p-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-xs font-black uppercase tracking-[0.12em] text-white">{question.questionText}</p>
-                {lockedSelection && (
-                  <span className="rounded-full border border-lime-300/45 bg-lime-300/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">
-                    Locked
+            <div key={question.key} className="rounded-lg border border-white/10 bg-black/35 p-2.5">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[11px] font-black uppercase tracking-[0.1em] text-white">{question.questionText}</p>
+                {lockedSelection ? (
+                  <span className="rounded-md border border-white/15 bg-white/[0.05] px-2 py-0.5 text-[9px] font-black uppercase text-gray-200">
+                    {result === "pending" ? "Pending" : result === "hit" ? "Hit" : result === "miss" ? "Miss" : "Locked"}
                   </span>
-                )}
+                ) : null}
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {question.options.map((option) => (
-                  <QuickPickButton
-                    key={option.value}
-                    label={option.label}
-                    tone={option.tone}
-                    isLocked={lockedSelection === option.value}
-                    disabled={Boolean(lockedSelection) || isSaving}
-                    onClick={() => onPick(question, option.value)}
-                  />
-                ))}
-              </div>
+
+              {lockedSelection ? (
+                <p className="mt-2 text-[10px] font-black uppercase tracking-[0.1em] text-lime-300">
+                  You picked {lockedSelection}
+                </p>
+              ) : (
+                <div className="mt-2 grid grid-cols-2 gap-1.5">
+                  {question.options.map((option) => (
+                    <QuickPickButton
+                      key={option.value}
+                      label={option.label}
+                      tone={option.tone}
+                      isLocked={false}
+                      disabled={isSaving}
+                      onClick={() => onPick(question, option.value)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}
       </div>
 
-      <p className="mt-3 text-center text-[11px] font-bold text-gray-400">
-        {message || "Quick Picks stay fast. Ride/Fade stays public. Locked Takes stay permanent."}
+      <p className="mt-2 text-center text-[10px] font-bold uppercase tracking-[0.08em] text-gray-400">
+        {crowdLine || "Crowd flips fast. Keep firing."}
+      </p>
+      <p className="mt-1 text-center text-[10px] font-bold text-gray-500">
+        {message || "Quick Picks rotate automatically."}
       </p>
     </section>
   );
@@ -481,61 +603,137 @@ function QuickPickButton({
 }
 
 function getQuickPickQuestions({
+  game,
   awayTeam,
   homeTeam,
+  recentKeys,
 }: {
+  game: Game | null;
   awayTeam: string;
   homeTeam: string;
+  recentKeys: string[];
 }) {
-  const questions: QuickPickQuestion[] = [
-    {
-      key: "next-bucket",
-      pickType: "scoring",
-      questionText: "Next bucket?",
-      options: [
-        { label: awayTeam, value: awayTeam, tone: "green" },
-        { label: homeTeam, value: homeTeam, tone: "purple" },
-      ],
-    },
-    {
-      key: "ot-incoming",
-      pickType: "outcome",
-      questionText: "OT incoming?",
-      options: [
-        { label: "Yes", value: "yes", tone: "purple" },
-        { label: "No", value: "no", tone: "green" },
-      ],
-    },
-    {
-      key: "comeback-alive",
-      pickType: "clutch",
-      questionText: "Comeback alive?",
-      options: [
-        { label: "Alive", value: "alive", tone: "green" },
-        { label: "Cooked", value: "cooked", tone: "purple" },
-      ],
-    },
-    {
-      key: "momentum-swing",
-      pickType: "momentum",
-      questionText: "Momentum swing?",
-      options: [
-        { label: awayTeam, value: awayTeam, tone: "green" },
-        { label: homeTeam, value: homeTeam, tone: "purple" },
-      ],
-    },
-    {
-      key: "blowout-incoming",
-      pickType: "tempo",
-      questionText: "Blowout incoming?",
-      options: [
-        { label: "Yes", value: "yes", tone: "purple" },
-        { label: "No", value: "no", tone: "green" },
-      ],
-    },
+  const status = game?.status ?? "scheduled";
+  const period = (game?.period ?? "").toUpperCase();
+  const clock = game?.clock ?? "";
+  const awayScore = game?.away_score ?? 0;
+  const homeScore = game?.home_score ?? 0;
+  const spread = Math.abs(awayScore - homeScore);
+  const lateGame = status === "live" && (period.includes("Q4") || period.includes("OT") || clock.startsWith("1:") || clock.startsWith("0:"));
+  const closeGame = spread <= 6;
+  const blowout = spread >= 14;
+  const leader = awayScore >= homeScore ? awayTeam : homeTeam;
+
+  const pool: QuickPickQuestion[] = [];
+
+  if (status === "scheduled") {
+    pool.push(
+      buildPick("pregame-first-score", "scoring", "First bucket team?", awayTeam, homeTeam),
+      buildPick("pregame-upset", "outcome", "Upset incoming?", "Yes", "No"),
+      buildPick("pregame-trap", "tempo", "Trap game tonight?", "Trap", "Safe"),
+      buildPick("pregame-crowd", "momentum", "Crowd switching sides before tip?", "Switching", "Holding"),
+      buildPick("pregame-starter", "clutch", "Hot start from " + awayTeam + "?", "Yes", "No"),
+    );
+  }
+
+  if (status === "live") {
+    pool.push(
+      buildPick("live-next-score", "scoring", "Next score by?", awayTeam, homeTeam),
+      buildPick("live-turnover", "tempo", "Next turnover?", awayTeam, homeTeam),
+      buildPick("live-run", "momentum", "10-0 run incoming?", "Yes", "No"),
+      buildPick("live-clutch", "clutch", "Clutch shot incoming?", "Yes", "No"),
+      buildPick("live-crowd", "momentum", "Crowd switching sides?", "Switch", "Stay"),
+    );
+
+    if (closeGame) {
+      pool.push(
+        buildPick("live-ot", "outcome", "OT incoming?", "Yes", "No"),
+        buildPick("live-close", "clutch", "Who closes this?", awayTeam, homeTeam),
+        buildPick("live-last-shot", "clutch", "Last shot incoming?", "Yes", "No"),
+      );
+    }
+
+    if (blowout) {
+      pool.push(
+        buildPick("live-comeback", "outcome", "Comeback alive?", "Alive", "Cooked"),
+        buildPick("live-bench", "tempo", "Empty the bench?", "Yes", "No"),
+        buildPick("live-checked-out", "momentum", "Crowd checked out?", "Checked out", "Still loud"),
+      );
+    }
+
+    if (!closeGame && !blowout) {
+      pool.push(
+        buildPick("live-flip", "momentum", "Game flipped already?", "Flipped", "Still steady"),
+        buildPick("live-winner", "outcome", "Game winner incoming?", "Yes", "No"),
+      );
+    }
+
+    if (lateGame) {
+      pool.push(
+        buildPick("live-late-ot", "outcome", "OT incoming late?", "Yes", "No"),
+        buildPick("live-late-shot", "clutch", "Big shot from " + leader + "?", "Yes", "No"),
+      );
+    }
+  }
+
+  if (status === "final") {
+    pool.push(
+      buildPick("final-lock", "outcome", "" + leader + " closes this clean?", "Yes", "No"),
+      buildPick("final-next", "momentum", "Next game same energy?", "Run it back", "Reset"),
+      buildPick("final-crowd", "tempo", "Crowd still talking?", "Still loud", "Quiet now"),
+    );
+  }
+
+  const deduped = pool.filter((question, index) => pool.findIndex((candidate) => candidate.key === question.key) === index);
+  const withoutRecent = deduped.filter((question) => !recentKeys.includes(question.key));
+
+  if (withoutRecent.length >= 3) {
+    return withoutRecent;
+  }
+
+  return deduped;
+}
+
+function getQuickPickCrowdLine(game: Game | null, question?: QuickPickQuestion) {
+  const awayTeam = game?.away_team ?? "Away";
+  const homeTeam = game?.home_team ?? "Home";
+  const lines = [
+    "Everybody riding " + awayTeam + " now",
+    "Bro this game flipped fast",
+    "No way they choke this",
+    "This crowd changes every possession",
+    "" + homeTeam + " fans getting loud again",
   ];
 
-  return questions;
+  if (!question) {
+    return lines[0];
+  }
+
+  const index = Math.abs(hashText(question.key + question.questionText)) % lines.length;
+  return lines[index];
+}
+
+function buildPick(key: string, pickType: QuickPickQuestion["pickType"], questionText: string, left: string, right: string): QuickPickQuestion {
+  return {
+    key,
+    pickType,
+    questionText,
+    options: [
+      { label: left, value: left, tone: "green" },
+      { label: right, value: right, tone: "purple" },
+    ],
+  };
+}
+
+function hashText(input: string) {
+  let hash = 0;
+
+  for (let index = 0; index < input.length; index += 1) {
+    hash = (hash << 5) - hash + input.charCodeAt(index);
+    hash |= 0;
+  }
+
+  return hash;
 }
 
 function toQuickPickKey(questionText: string) {
@@ -627,7 +825,7 @@ function PinnedCall() {
       </div>
       <div className="mt-3 grid grid-cols-[1fr_auto] items-center gap-3">
         <h2 className="sports-display text-2xl italic leading-tight text-white sm:text-3xl">
-          This side closing strong. Opps cooked.
+          This crowd got quiet fast.
         </h2>
         <span className="text-3xl text-gray-300">›</span>
       </div>
@@ -643,12 +841,14 @@ function PinnedCall() {
 function ChatRow({ take }: { take: ChatTake }) {
   return (
     <article className="grid grid-cols-[auto_1fr_auto] gap-3 p-4">
-      <span className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-gradient-to-br from-lime-300 via-purple-500 to-black text-xs font-black text-white">
-        {take.avatar}
-      </span>
+      <Link href={getReceiptHref(take.handle)} className="rounded-full transition hover:scale-105 active:scale-95" aria-label={` receipts`}>
+        <span className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-gradient-to-br from-lime-300 via-purple-500 to-black text-xs font-black text-white">
+          {take.avatar}
+        </span>
+      </Link>
       <div className="min-w-0">
         <p className="truncate text-sm font-black text-white">
-          {take.handle} <span className="text-purple-300">◆</span>{" "}
+          <Link href={getReceiptHref(take.handle)} className="transition hover:text-lime-200">{take.handle}</Link> <span className="text-purple-300">◆</span>{" "}
           <span className="font-semibold text-gray-500">{take.timestamp}</span>
         </p>
         <p className="mt-1 text-sm font-semibold leading-6 text-gray-200">{take.text}</p>
@@ -678,13 +878,15 @@ function ChatRow({ take }: { take: ChatTake }) {
   );
 }
 
-function CallsPanel({ onChoose }: { onChoose: (side: Side) => void }) {
+function CallsPanel({ choices, onChoose }: { choices: Record<string, Side>; onChoose: (callId: string, side: Side) => void }) {
   return (
     <section className="space-y-3 rounded-[1.5rem] border border-white/10 bg-black/30 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
       {liveCalls.map((call) => (
         <article key={call.handle} className="rounded-2xl border border-white/10 bg-black/40 p-4">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-black text-white">{call.handle}</p>
+            <Link href={getReceiptHref(call.handle)} className="text-sm font-black text-white transition hover:text-lime-200">
+              {call.handle}
+            </Link>
             <span className="rounded-md border border-purple-300/35 bg-purple-500/10 px-2 py-1 text-[10px] font-black uppercase text-purple-200">
               {call.status}
             </span>
@@ -694,9 +896,17 @@ function CallsPanel({ onChoose }: { onChoose: (side: Side) => void }) {
             <span className="text-lime-300">👍 {call.rides}</span>
             <span className="text-purple-300">👎 {call.fades}</span>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <ArenaChoiceButton label="Ride" tone="ride" onClick={() => onChoose("ride")} />
-            <ArenaChoiceButton label="Fade" tone="fade" onClick={() => onChoose("fade")} />
+          <div className="mt-4">
+            {choices[call.handle] ? (
+              <p className="rounded-xl border border-lime-300/35 bg-lime-400/10 px-3 py-2 text-center text-[11px] font-black uppercase tracking-[0.12em] text-lime-300">
+                Choice locked: {choices[call.handle]}
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <ArenaChoiceButton label="Ride" tone="ride" onClick={() => onChoose(call.handle, "ride")} />
+                <ArenaChoiceButton label="Fade" tone="fade" onClick={() => onChoose(call.handle, "fade")} />
+              </div>
+            )}
           </div>
         </article>
       ))}
@@ -710,6 +920,7 @@ function ControlRoomPanel({ game }: { game: Game | null }) {
   const totalPicks = rideCount + fadeCount;
   const ridePct = totalPicks > 0 ? Math.round((rideCount / totalPicks) * 100) : 50;
   const fadePct = 100 - ridePct;
+  const status = game?.status ?? "scheduled";
 
   return (
     <section className="rounded-[1.5rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
@@ -730,14 +941,14 @@ function ControlRoomPanel({ game }: { game: Game | null }) {
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3 border-y border-white/10 py-4">
-        <StatBlock label="Ride Surge" value="+18%" detail="Last 2 min" tone="ride" />
-        <StatBlock label="Fade Surge" value="+9%" detail="Last 2 min" tone="fade" />
+        <StatBlock label={status === "live" ? "Ride Surge" : "Ride Side"} value={String(ridePct) + "%"} detail={status === "live" ? "Crowd now" : "Current split"} tone="ride" />
+        <StatBlock label={status === "live" ? "Fade Surge" : "Fade Side"} value={String(fadePct) + "%"} detail={status === "live" ? "Crowd now" : "Current split"} tone="fade" />
       </div>
 
       <div className="mt-4 space-y-3">
         <SignalRow icon="◉" label="Crowd Confidence" value="85%" note="Very high" tone="ride" />
         <SignalRow icon="🔥" label="Overcommitment" value={`${Math.max(game?.ride_count ?? 0, game?.fade_count ?? 0)} picks`} note="Crowd side" tone="ride" />
-        <SignalRow icon="ϟ" label="Momentum Shift" value={`${game?.away_team ?? "AWAY"} ↔ ${game?.home_team ?? "HOME"}`} note="Game-state" tone="ride" />
+        <SignalRow icon="ϟ" label={status === "live" ? "Momentum Shift" : "Room Lean"} value={[game?.away_team ?? "AWAY", game?.home_team ?? "HOME"].join(" ↔ ")} note={status === "live" ? "Game-state" : "Pregame read"} tone="ride" />
         <SignalRow icon="☿" label="Upset Threat" value="68%" note="High" tone="fade" />
       </div>
     </section>
@@ -754,10 +965,14 @@ function TopTalkersPanel() {
             <span className="grid h-6 w-6 place-items-center rounded-full bg-white/10 text-xs font-black text-gray-300">
               {talker.rank}
             </span>
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-lime-300 via-purple-500 to-black text-[10px] font-black text-white">
-              {talker.avatar}
-            </span>
-            <p className="truncate text-sm font-black text-white">{talker.handle}</p>
+            <Link href={getReceiptHref(talker.handle)} className="rounded-full transition hover:scale-105 active:scale-95" aria-label={` receipts`}>
+              <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-lime-300 via-purple-500 to-black text-[10px] font-black text-white">
+                {talker.avatar}
+              </span>
+            </Link>
+            <Link href={getReceiptHref(talker.handle)} className="truncate text-sm font-black text-white transition hover:text-lime-200">
+              {talker.handle}
+            </Link>
             <p className="text-xs font-black text-lime-300">🔥 {talker.heat}</p>
           </div>
         ))}
@@ -850,6 +1065,10 @@ function ArenaChoiceButton({ label, tone, onClick }: { label: string; tone: Side
       {label}
     </button>
   );
+}
+
+function getReceiptHref(handle: string) {
+  return "/receipts/" + handle.replace("@", "").toLowerCase();
 }
 
 function Sparkline() {
