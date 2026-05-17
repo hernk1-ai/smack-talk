@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { LocktLogo } from "@/components/LocktLogo";
+import { ShareActions } from "@/components/ShareActions";
 import { UserAvatar } from "@/components/UserAvatar";
+import { buildSiteUrl } from "@/lib/site-url";
 import type { Profile } from "@/lib/supabase/types";
 
 type SocialItem = {
@@ -208,9 +210,27 @@ function ProfileIdentityCard({ profile }: { profile?: Profile | null }) {
 }
 
 function SocialSection() {
+  const [shareOpen, setShareOpen] = useState(false);
+
   return (
     <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_52px_rgba(0,0,0,0.38)]">
-      <SectionHeader eyebrow="Social Hub" title="Your People" action="Share Profile" />
+      <SectionHeader
+        eyebrow="Social Hub"
+        title="Your People"
+        action={shareOpen ? "Hide Share" : "Share Profile"}
+        onAction={() => setShareOpen((current) => !current)}
+      />
+      {shareOpen ? (
+        <div className="mt-3 rounded-xl border border-white/10 bg-black/45 p-3">
+          <ShareActions
+            type="profile"
+            title="Share Profile"
+            text="Follow my World Cup calls on Lockt."
+            caption="Follow my World Cup calls on Lockt."
+            url={buildSiteUrl("/profile")}
+          />
+        </div>
+      ) : null}
       <div className="mt-4 grid grid-cols-2 gap-3 min-[430px]:grid-cols-3 md:grid-cols-4">
         {socialItems.map((item) => (
           <SocialCard key={item.label} item={item} />
@@ -275,10 +295,12 @@ function SectionHeader({
   eyebrow,
   title,
   action,
+  onAction,
 }: {
   eyebrow: string;
   title: string;
   action: string;
+  onAction?: () => void;
 }) {
   return (
     <div className="flex items-end justify-between gap-3">
@@ -286,7 +308,11 @@ function SectionHeader({
         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime-300">{eyebrow}</p>
         <h2 className="sports-display mt-1 text-2xl italic leading-none text-white sm:text-3xl">{title}</h2>
       </div>
-      <button type="button" className="rounded-full px-2 py-1 text-xs font-black uppercase text-purple-300 transition hover:bg-purple-500/10 hover:text-purple-100 active:scale-95">
+      <button
+        type="button"
+        onClick={onAction}
+        className="rounded-full px-2 py-1 text-xs font-black uppercase text-purple-300 transition hover:bg-purple-500/10 hover:text-purple-100 active:scale-95"
+      >
         {action}
       </button>
     </div>

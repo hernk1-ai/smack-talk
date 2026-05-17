@@ -4,6 +4,7 @@ import { type KeyboardEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LocktLogo } from "@/components/LocktLogo";
+import { ShareActions } from "@/components/ShareActions";
 import { UserAvatar } from "@/components/UserAvatar";
 import { getSeededReceiptsByUsername, type SeededReceipt } from "@/data/seededCrowd";
 import {
@@ -21,7 +22,6 @@ import { getCurrentUserTakes } from "@/lib/supabase/takes";
 import type { Profile, Receipt } from "@/lib/supabase/types";
 import { ReportModal } from "@/components/moderation/ReportModal";
 import { buildSiteUrl } from "@/lib/site-url";
-import { shareWithFallback, type ShareOutcome } from "@/lib/share";
 import { isPreTournamentMode } from "@/lib/productConfig";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 
@@ -227,15 +227,21 @@ export function ReceiptsScreen({
       id: string;
       home_team: string | null;
       away_team: string | null;
-      selected_winner: string;
-      home_score: number;
-      away_score: number;
+      selected_winner: string | null;
+      home_score: number | null;
+      away_score: number | null;
       stage: string | null;
       created_at: string;
+      winner_locked_at: string | null;
+      exact_score_locked_at: string | null;
+      winner_result: "pending" | "hit" | "miss";
+      exact_score_result: "pending" | "hit" | "miss";
+      winner_rep_delta: number;
+      exact_score_rep_delta: number;
+      status: "locked" | "settled";
     }>
   >([]);
   const [receiptError, setReceiptError] = useState("");
-  const [sharedReceiptState, setSharedReceiptState] = useState<{ id: string; outcome: Exclude<ShareOutcome, "cancelled"> } | null>(null);
   const [reportProfileOpen, setReportProfileOpen] = useState(false);
   const preTournamentMode = isPreTournamentMode();
 
@@ -278,6 +284,13 @@ export function ReceiptsScreen({
             away_score: pick.away_score,
             stage: pick.stage,
             created_at: pick.created_at,
+            winner_locked_at: pick.winner_locked_at,
+            exact_score_locked_at: pick.exact_score_locked_at,
+            winner_result: pick.winner_result,
+            exact_score_result: pick.exact_score_result,
+            winner_rep_delta: pick.winner_rep_delta,
+            exact_score_rep_delta: pick.exact_score_rep_delta,
+            status: pick.status,
           })),
         );
       }
@@ -314,27 +327,6 @@ export function ReceiptsScreen({
   }, [owner, preTournamentMode, realReceipts.length]);
   const featuredReceipt = realReceipts[0] ?? null;
 
-  async function shareReceiptLink(receiptId: string) {
-    const shareUrl = buildSiteUrl("/receipt/" + encodeURIComponent(receiptId));
-
-    try {
-      const outcome = await shareWithFallback({
-        title: "LOCKT Receipt",
-        text: "Proof's on the board.",
-        url: shareUrl,
-      });
-      if (outcome === "cancelled") {
-        return;
-      }
-      setSharedReceiptState({ id: receiptId, outcome });
-      window.setTimeout(() => {
-        setSharedReceiptState((current) => (current?.id === receiptId ? null : current));
-      }, 1800);
-    } catch {
-      setReceiptError("Could not share this receipt link.");
-    }
-  }
-
   function openReceiptDetail(receiptId: string) {
     router.push(`/receipt/${encodeURIComponent(receiptId)}`);
   }
@@ -367,12 +359,26 @@ export function ReceiptsScreen({
                         {pick.home_team ?? "Home"} vs {pick.away_team ?? "Away"}
                       </p>
                       <p className="mt-1 text-xs font-semibold text-gray-300">
-                        Pick: {pick.selected_winner} · Score {pick.home_score}-{pick.away_score}
+                        Winner: {pick.selected_winner ?? "Not locked"} · Score{" "}
+                        {pick.home_score ?? "—"}-{pick.away_score ?? "—"}
                       </p>
                       <p className="mt-1 text-xs font-semibold uppercase tracking-[0.1em] text-lime-300">Locked before kickoff</p>
-                      <p className="mt-1 text-xs font-semibold text-gray-400">Receipt pending</p>
+                      <p className="mt-1 text-xs font-semibold text-gray-400">
+                        {pick.status === "settled" ? "Settled" : "Receipt pending"}
+                      </p>
                       <p className="mt-1 text-[11px] font-semibold text-gray-500">
                         Match Pick · {pick.stage ?? "World Cup"} · {formatReceiptAge(pick.created_at)}
+                      </p>
+                      <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] font-black uppercase">
+                        <span className="rounded-md border border-lime-300/25 bg-lime-400/10 px-2 py-1 text-lime-200">
+                          Winner {pick.winner_result} ({formatSignedRep(pick.winner_rep_delta)}) / +50 -25
+                        </span>
+                        <span className="rounded-md border border-purple-300/25 bg-purple-500/10 px-2 py-1 text-purple-200">
+                          Exact {pick.exact_score_result} ({formatSignedRep(pick.exact_score_rep_delta)}) / +100 -50
+                        </span>
+                      </div>
+                      <p className="mt-2 text-[11px] font-semibold text-gray-400">
+                        Total REP this match: {formatSignedRep(pick.winner_rep_delta + pick.exact_score_rep_delta)}
                       </p>
                     </article>
                   ))}
@@ -422,8 +428,6 @@ export function ReceiptsScreen({
                   receipt={receipt}
                   currentUser={index === 0 ? currentUser : undefined}
                   onOpen={openReceiptDetail}
-                  onShare={shareReceiptLink}
-                  shareState={sharedReceiptState?.id === receipt.id ? sharedReceiptState.outcome : null}
                 />
               ))}
             </div>
@@ -437,8 +441,6 @@ export function ReceiptsScreen({
                   receipt={receipt}
                   currentUser={index === 0 ? currentUser : undefined}
                   onOpen={openReceiptDetail}
-                  onShare={shareReceiptLink}
-                  shareState={sharedReceiptState?.id === receipt.id ? sharedReceiptState.outcome : null}
                 />
               ))}
             </div>
@@ -708,15 +710,12 @@ function RecentReceiptCard({
   receipt,
   currentUser,
   onOpen,
-  onShare,
-  shareState,
 }: {
   receipt: RecentReceipt;
   currentUser?: ReceiptOwnerMeta;
   onOpen: (receiptId: string) => void;
-  onShare: (receiptId: string) => void;
-  shareState: Exclude<ShareOutcome, "cancelled"> | null;
 }) {
+  const [showShare, setShowShare] = useState(false);
   const isWin = receipt.status === "win";
   const handle = currentUser?.handle ?? receipt.handle;
   const handleOpenKeyDown = (event: KeyboardEvent<HTMLElement>) => {
@@ -795,12 +794,23 @@ function RecentReceiptCard({
         type="button"
         onClick={(event) => {
           event.stopPropagation();
-          onShare(receipt.id);
+          setShowShare((current) => !current);
         }}
         className="mt-3 min-h-10 w-full rounded-xl border border-purple-300/40 bg-purple-500/10 px-3 text-[11px] font-black uppercase tracking-[0.1em] text-purple-100 transition hover:bg-purple-500/20"
       >
-        {shareState === "shared" ? "SHARED" : shareState === "copied" ? "LINK COPIED" : "SHARE"}
+        Share Receipt
       </button>
+      {showShare ? (
+        <div className="mt-2 rounded-xl border border-white/10 bg-black/50 p-2">
+          <ShareActions
+            type="receipt"
+            title="Share Receipt"
+            text="Called it. Receipt checked on Lockt."
+            caption={`Called it. ${receipt.take} Receipt checked on Lockt.`}
+            url={buildSiteUrl(`/receipt/${encodeURIComponent(receipt.id)}`)}
+          />
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -818,15 +828,12 @@ function ViralReceiptCard({
   receipt,
   currentUser,
   onOpen,
-  onShare,
-  shareState,
 }: {
   receipt: ViralReceipt;
   currentUser?: ReceiptOwnerMeta;
   onOpen: (receiptId: string) => void;
-  onShare: (receiptId: string) => void;
-  shareState: Exclude<ShareOutcome, "cancelled"> | null;
 }) {
+  const [showShare, setShowShare] = useState(false);
   const isWin = receipt.status === "win";
   const handle = currentUser?.handle ?? receipt.handle;
   const handleOpenKeyDown = (event: KeyboardEvent<HTMLElement>) => {
@@ -901,12 +908,23 @@ function ViralReceiptCard({
           type="button"
           onClick={(event) => {
             event.stopPropagation();
-            onShare(receipt.id);
+            setShowShare((current) => !current);
           }}
           className="mt-3 min-h-10 w-full rounded-xl border border-purple-300/40 bg-purple-500/10 px-3 text-[11px] font-black uppercase tracking-[0.1em] text-purple-100 transition hover:bg-purple-500/20"
         >
-          {shareState === "shared" ? "SHARED" : shareState === "copied" ? "LINK COPIED" : "SHARE"}
+          Share Receipt
         </button>
+        {showShare ? (
+          <div className="mt-2 rounded-xl border border-white/10 bg-black/50 p-2">
+            <ShareActions
+              type="receipt"
+              title="Share Receipt"
+              text="Called it. Receipt checked on Lockt."
+              caption={`Called it. ${receipt.take} Receipt checked on Lockt.`}
+              url={buildSiteUrl(`/receipt/${encodeURIComponent(receipt.id)}`)}
+            />
+          </div>
+        ) : null}
       </div>
     </article>
   );

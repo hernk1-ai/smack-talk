@@ -4,6 +4,8 @@ import { useEffect, useState, type KeyboardEvent, type MouseEvent } from "react"
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LocktLogo } from "@/components/LocktLogo";
+import { ShareActions } from "@/components/ShareActions";
+import { SocialLinks } from "@/components/SocialLinks";
 import { UserAvatar } from "@/components/UserAvatar";
 import { ACTIVE_GAME_ID, getArenaGames, getGameById } from "@/lib/supabase/games";
 import {
@@ -27,6 +29,7 @@ import { getGameSport, sportTabs, type SportKey } from "@/data/sportsStructure";
 import { worldCupStorylines } from "@/data/worldCupStorylines";
 import { worldCupChaosAlerts, worldCupFeaturedMatch, worldCupLiveArenas, worldCupTrendingTakes } from "@/data/worldCupMvp";
 import { ACTIVE_SPORT, getVisibleSportTabs, isPreTournamentMode, SHOW_MULTI_SPORT } from "@/lib/productConfig";
+import { buildSiteUrl } from "@/lib/site-url";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 import type { Game, Profile, TakeReaction } from "@/lib/supabase/types";
 
@@ -646,6 +649,8 @@ function PreTournamentEarlyCalls({
   onReplyDraftChange: (takeId: string, value: string) => void;
   onSubmitReply: (takeId: string) => void;
 }) {
+  const [sharingTakeId, setSharingTakeId] = useState<string | null>(null);
+
   return (
     <FeedSection title="Early Call Feed" icon="ϟ" action="">
       {isFeedLoading ? (
@@ -719,7 +724,27 @@ function PreTournamentEarlyCalls({
                     {repliesOpen ? "Hide replies" : "View replies"}
                   </button>
                   <span className="text-xs font-bold text-gray-400">{take.reply_count} replies</span>
+                  <button
+                    type="button"
+                    onClick={() => setSharingTakeId((current) => (current === take.id ? null : take.id))}
+                    className="ml-auto text-xs font-black uppercase text-lime-300"
+                  >
+                    Share Call
+                  </button>
                 </div>
+                {sharingTakeId === take.id ? (
+                  <div className="mt-2 rounded-lg border border-white/10 bg-black/50 p-2">
+                    <p className="text-xs font-black uppercase text-white">Share Your Call</p>
+                    <ShareActions
+                      type="call"
+                      title="Share Your Call"
+                      text={`I've got this locked before kickoff. Check the receipt on Lockt.`}
+                      caption={`${handle} locked: "${take.take_text}" before kickoff. Check the receipt on Lockt.`}
+                      url={buildSiteUrl(`/take/${encodeURIComponent(take.id)}`)}
+                      className="mt-2"
+                    />
+                  </div>
+                ) : null}
                 <div className="mt-2 grid grid-cols-[1fr_auto] gap-2">
                   <input
                     value={draftReply}
@@ -774,6 +799,12 @@ function PreTournamentNews() {
           Team news and injury updates will appear here as kickoff approaches.
         </p>
       </div>
+      <SocialLinks
+        className="mt-3"
+        compact
+        heading="Follow Lockt"
+        subtext="World Cup calls, group breakdowns, receipt drops, and tournament storylines."
+      />
     </FeedSection>
   );
 }
