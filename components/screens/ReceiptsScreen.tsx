@@ -221,6 +221,7 @@ export function ReceiptsScreen({
   const currentUser = owner;
   const [realReceipts, setRealReceipts] = useState<Receipt[]>([]);
   const [pendingTakeText, setPendingTakeText] = useState("");
+  const [myLockedTakes, setMyLockedTakes] = useState<Array<{ id: string; take_text: string; created_at: string; game_id: string; ride_count: number; fade_count: number }>>([]);
   const [receiptError, setReceiptError] = useState("");
   const [profileShareState, setProfileShareState] = useState<"idle" | ShareOutcome>("idle");
   const [sharedReceiptState, setSharedReceiptState] = useState<{ id: string; outcome: Exclude<ShareOutcome, "cancelled"> } | null>(null);
@@ -246,6 +247,16 @@ export function ReceiptsScreen({
 
       if (owner.isCurrentUser) {
         const { takes } = await getCurrentUserTakes();
+        setMyLockedTakes(
+          takes.map((take) => ({
+            id: take.id,
+            take_text: take.take_text,
+            created_at: take.created_at,
+            game_id: take.game_id,
+            ride_count: take.ride_count,
+            fade_count: take.fade_count,
+          })),
+        );
         setPendingTakeText((takes[0]?.take_text ?? "").trim());
       }
     }
@@ -347,13 +358,37 @@ export function ReceiptsScreen({
       )}
 
       {preTournamentMode ? (
-        <ReceiptSection title="No receipts yet." icon="▤" action="Make a World Cup Call">
-          <div className="rounded-2xl border border-white/10 bg-black/45 p-4">
-            <p className="text-sm font-semibold text-gray-300">
-              Receipts unlock when World Cup matches begin. Until then, lock your calls before kickoff.
-            </p>
-          </div>
-        </ReceiptSection>
+        myLockedTakes.length ? (
+          <ReceiptSection title="Your Locked Takes" icon="▤" action="">
+            <div className="space-y-2">
+              {myLockedTakes.slice(0, 12).map((take) => {
+                const total = Math.max(take.ride_count + take.fade_count, 1);
+                const ridePercent = Math.round((take.ride_count / total) * 100);
+                const fadePercent = 100 - ridePercent;
+                return (
+                  <article key={take.id} className="rounded-2xl border border-white/10 bg-black/45 p-3">
+                    <p className="text-sm font-black text-white">{take.take_text}</p>
+                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.1em] text-lime-300">Locked before kickoff</p>
+                    <p className="mt-1 text-xs font-semibold text-gray-400">Receipt pending</p>
+                    <p className="mt-1 text-[11px] font-semibold text-gray-500">{formatReceiptAge(take.created_at)} · {take.game_id.replaceAll("-", " ")}</p>
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-black uppercase">
+                      <span className="rounded-md border border-lime-300/25 bg-lime-400/10 px-2 py-1 text-lime-200">Ride {ridePercent}%</span>
+                      <span className="rounded-md border border-purple-300/25 bg-purple-500/10 px-2 py-1 text-purple-200">Fade {fadePercent}%</span>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </ReceiptSection>
+        ) : (
+          <ReceiptSection title="No receipts yet." icon="▤" action="Make a World Cup Call">
+            <div className="rounded-2xl border border-white/10 bg-black/45 p-4">
+              <p className="text-sm font-semibold text-gray-300">
+                Receipts unlock when World Cup matches begin. Until then, lock your calls before kickoff.
+              </p>
+            </div>
+          </ReceiptSection>
+        )
       ) : (
         <>
           <ReceiptSection title="Recent Receipts" icon="▤" action="See all">
@@ -633,7 +668,7 @@ function ReceiptIdentityCard({
               </div>
 
               <h4 className="mt-3 text-3xl font-black italic leading-tight text-white sm:text-4xl">
-                {featuredReceipt?.take_text ?? (pendingTakeText || (preTournamentMode ? "No settled receipts yet." : "Paraguay can steal this."))}
+                {featuredReceipt?.take_text ?? (pendingTakeText || (preTournamentMode ? "No settled receipts yet." : "Brazil wins Group C."))}
               </h4>
               <p className="mt-2 text-xs font-black uppercase text-sky-300">
                 {featuredReceipt?.game_label ?? "World Cup Group Stage"}

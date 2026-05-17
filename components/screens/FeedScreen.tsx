@@ -17,6 +17,7 @@ import {
   type ArenaTake,
 } from "@/lib/supabase/arena";
 import { reactToTake } from "@/lib/supabase/reactions";
+import { createReply, getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/replies";
 import { createLockedTake } from "@/lib/supabase/takes";
 import { getCrowdPressure, getHeatStatus, getReputationLevel } from "@/lib/reputation";
 import { getPresenceMeta, getPresenceStatus } from "@/lib/presence";
@@ -228,6 +229,12 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   const [takeReactions, setTakeReactions] = useState<Record<string, TakeReaction["reaction"]>>({});
   const [reactionLoadingTakeId, setReactionLoadingTakeId] = useState<string | null>(null);
   const [reactionMessage, setReactionMessage] = useState("");
+  const [isFeedLoading, setIsFeedLoading] = useState(true);
+  const [feedError, setFeedError] = useState("");
+  const [expandedRepliesByTake, setExpandedRepliesByTake] = useState<Record<string, boolean>>({});
+  const [repliesByTake, setRepliesByTake] = useState<Record<string, TakeReplyWithAuthor[]>>({});
+  const [replyDraftByTake, setReplyDraftByTake] = useState<Record<string, string>>({});
+  const [replyLoadingTakeId, setReplyLoadingTakeId] = useState<string | null>(null);
   const [recentActivity, setRecentActivity] = useState<string[]>([]);
   const [activeSport, setActiveSport] = useState<SportKey>(ACTIVE_SPORT);
   const visibleSportTabs = getVisibleSportTabs(sportTabs);
@@ -262,12 +269,20 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
       const mergedFeed = mergeArenaFeedWithSeeded(feed, game?.id ?? ACTIVE_GAME_ID);
       setGameTakes(mergedFeed);
       setTakeReactions(reactionMap);
+      setFeedError("");
       setRecentActivity(
         mergedFeed.slice(0, 4).map((take) => `${formatTakeForUI(take).handle} locked a take`),
       );
+      setIsFeedLoading(false);
     }
 
-    loadArenaData();
+    loadArenaData().catch(() => {
+      if (!isMounted) {
+        return;
+      }
+      setIsFeedLoading(false);
+      setFeedError("Could not load early calls right now.");
+    });
 
     return () => {
       isMounted = false;
@@ -381,13 +396,66 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
     router.push(`/take/${takeId}`);
   }
 
+  async function toggleReplies(takeId: string) {
+    const nextOpen = !expandedRepliesByTake[takeId];
+    setExpandedRepliesByTake((current) => ({ ...current, [takeId]: nextOpen }));
+
+    if (!nextOpen || repliesByTake[takeId]) {
+      return;
+    }
+
+    const { replies } = await getRepliesForTake(takeId);
+    setRepliesByTake((current) => ({ ...current, [takeId]: replies }));
+  }
+
+  async function submitReply(takeId: string) {
+    const replyText = (replyDraftByTake[takeId] ?? "").trim();
+    if (!replyText || replyLoadingTakeId) {
+      return;
+    }
+
+    setReplyLoadingTakeId(takeId);
+    const { reply, error } = await createReply({ takeId, replyText });
+
+    if (error || !reply) {
+      setReactionMessage(getUserFacingErrorMessage(error, "Could not post reply. Try again."));
+      setReplyLoadingTakeId(null);
+      return;
+    }
+
+    const { replies } = await getRepliesForTake(takeId);
+    setRepliesByTake((current) => ({ ...current, [takeId]: replies }));
+    setReplyDraftByTake((current) => ({ ...current, [takeId]: "" }));
+    setGameTakes((currentTakes) =>
+      currentTakes.map((take) => (take.id === takeId ? { ...take, reply_count: take.reply_count + 1 } : take)),
+    );
+    setReplyLoadingTakeId(null);
+  }
+
   if (preTournamentMode) {
     return (
       <div className="space-y-5">
         <FeedHeader profile={profile} />
         <SportSelector activeSport={activeSport} onSelect={setActiveSport} visibleTabs={visibleSportTabs} />
         <PreTournamentCountdown />
-        <PreTournamentEarlyCalls takes={visibleTakes} onOpenTake={openTakeThread} onReact={reactToLockedTake} reactions={combinedReactions} loadingTakeId={reactionLoadingTakeId} />
+        <PreTournamentEarlyCalls
+          takes={visibleTakes}
+          onOpenTake={openTakeThread}
+          onReact={reactToLockedTake}
+          reactions={combinedReactions}
+          loadingTakeId={reactionLoadingTakeId}
+          isFeedLoading={isFeedLoading}
+          feedError={feedError}
+          expandedRepliesByTake={expandedRepliesByTake}
+          repliesByTake={repliesByTake}
+          replyDraftByTake={replyDraftByTake}
+          replyLoadingTakeId={replyLoadingTakeId}
+          onToggleReplies={toggleReplies}
+          onReplyDraftChange={(takeId, value) =>
+            setReplyDraftByTake((current) => ({ ...current, [takeId]: value }))
+          }
+          onSubmitReply={submitReply}
+        />
         <LockTakeComposer
           value={lockedTake}
           status={lockTakeStatus}
@@ -538,28 +606,64 @@ function PreTournamentEarlyCalls({
   takes,
   reactions,
   loadingTakeId,
+  isFeedLoading,
+  feedError,
+  expandedRepliesByTake,
+  repliesByTake,
+  replyDraftByTake,
+  replyLoadingTakeId,
   onOpenTake,
   onReact,
+  onToggleReplies,
+  onReplyDraftChange,
+  onSubmitReply,
 }: {
   takes: ArenaTake[];
   reactions: Record<string, TakeReaction["reaction"]>;
   loadingTakeId: string | null;
+  isFeedLoading: boolean;
+  feedError: string;
+  expandedRepliesByTake: Record<string, boolean>;
+  repliesByTake: Record<string, TakeReplyWithAuthor[]>;
+  replyDraftByTake: Record<string, string>;
+  replyLoadingTakeId: string | null;
   onOpenTake: (takeId: string) => void;
   onReact: (takeId: string, reaction: Side) => void;
+  onToggleReplies: (takeId: string) => void;
+  onReplyDraftChange: (takeId: string, value: string) => void;
+  onSubmitReply: (takeId: string) => void;
 }) {
   return (
-    <FeedSection title="Early Call Feed" icon="ϟ" action="Lock Before Kickoff">
+    <FeedSection title="Early Call Feed" icon="ϟ" action="">
+      {isFeedLoading ? (
+        <div className="rounded-2xl border border-white/10 bg-black/45 p-4">
+          <p className="text-sm font-semibold text-gray-300">Loading early calls...</p>
+        </div>
+      ) : null}
+      {feedError ? (
+        <div className="mb-2 rounded-2xl border border-red-400/35 bg-red-500/10 p-3 text-sm font-semibold text-red-200">
+          {feedError}
+        </div>
+      ) : null}
       {takes.length ? (
-        <div className="space-y-2">
-          {takes.slice(0, 6).map((take) => {
+        <div className="max-h-[30rem] space-y-2 overflow-y-auto pr-1">
+          {takes.map((take) => {
             const activeReaction = reactions[take.id];
             const isLoading = loadingTakeId === take.id;
             const { handle } = formatTakeForUI(take);
+            const totalReactions = Math.max(take.ride_count + take.fade_count, 1);
+            const ridePercent = Math.round((take.ride_count / totalReactions) * 100);
+            const fadePercent = 100 - ridePercent;
+            const repliesOpen = Boolean(expandedRepliesByTake[take.id]);
+            const replies = repliesByTake[take.id] ?? [];
+            const draftReply = replyDraftByTake[take.id] ?? "";
+            const isReplyLoading = replyLoadingTakeId === take.id;
             return (
               <article key={take.id} className="rounded-xl border border-white/10 bg-black/45 p-3">
                 <button type="button" onClick={() => onOpenTake(take.id)} className="w-full text-left">
                   <p className="text-xs font-black text-lime-300">{handle}</p>
                   <p className="mt-1 text-sm font-semibold text-white">{take.take_text}</p>
+                  <p className="mt-1 text-[11px] font-bold text-gray-500">{formatTakeAge(take.created_at)}</p>
                 </button>
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   <TakeButton
@@ -581,6 +685,54 @@ function PreTournamentEarlyCalls({
                     }}
                   />
                 </div>
+                <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] font-black uppercase">
+                  <p className="rounded-md border border-lime-300/25 bg-lime-400/10 px-2 py-1 text-lime-200">
+                    Ride {ridePercent}%
+                  </p>
+                  <p className="rounded-md border border-purple-300/25 bg-purple-500/10 px-2 py-1 text-purple-200">
+                    Fade {fadePercent}%
+                  </p>
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onToggleReplies(take.id)}
+                    className="text-xs font-black uppercase text-purple-300"
+                  >
+                    {repliesOpen ? "Hide replies" : "View replies"}
+                  </button>
+                  <span className="text-xs font-bold text-gray-400">{take.reply_count} replies</span>
+                </div>
+                <div className="mt-2 grid grid-cols-[1fr_auto] gap-2">
+                  <input
+                    value={draftReply}
+                    onChange={(event) => onReplyDraftChange(take.id, event.target.value)}
+                    placeholder="Reply"
+                    className="min-h-10 rounded-lg border border-white/10 bg-black/55 px-3 text-sm font-semibold text-white outline-none placeholder:text-gray-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onSubmitReply(take.id)}
+                    disabled={isReplyLoading || !draftReply.trim()}
+                    className="min-h-10 rounded-lg border border-white/15 bg-white/[0.05] px-3 text-xs font-black uppercase text-white disabled:opacity-50"
+                  >
+                    {isReplyLoading ? "..." : "Reply"}
+                  </button>
+                </div>
+                {repliesOpen ? (
+                  <div className="mt-2 space-y-1 rounded-lg border border-white/10 bg-black/50 p-2">
+                    {replies.length ? (
+                      replies.slice(0, 6).map((reply) => (
+                        <div key={reply.id} className="border-b border-white/10 pb-1 text-xs last:border-b-0 last:pb-0">
+                          <p className="font-black text-gray-200">@{reply.author?.username ?? "Talker"}</p>
+                          <p className="font-semibold text-gray-300">{reply.reply_text}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs font-semibold text-gray-400">No replies yet.</p>
+                    )}
+                  </div>
+                ) : null}
               </article>
             );
           })}
