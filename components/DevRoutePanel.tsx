@@ -82,7 +82,7 @@ const devRoutes = [
     file: "app/app/page.tsx",
   },
   {
-    href: "/game/lal-gsw-live",
+    href: "/game/wc-usa-par-live",
     label: "Game Room",
     file: "app/game/[gameId]/page.tsx",
   },
@@ -120,7 +120,7 @@ export function DevRoutePanel() {
       });
       const payload = (await response.json()) as { count?: number; error?: string };
 
-      setSyncStatus(response.ok ? `Synced ${payload.count ?? 0} NBA game${payload.count === 1 ? "" : "s"}.` : payload.error ?? "Sync failed.");
+      setSyncStatus(response.ok ? `Synced ${payload.count ?? 0} game${payload.count === 1 ? "" : "s"}.` : payload.error ?? "Sync failed.");
     } catch (error) {
       setSyncStatus(error instanceof Error ? error.message : "Sync failed.");
     } finally {
@@ -179,7 +179,7 @@ export function DevRoutePanel() {
               disabled={isSyncing}
               className="w-full rounded-full border border-lime-300/35 bg-lime-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.1em] text-lime-200 transition hover:bg-lime-400/20 disabled:cursor-wait disabled:opacity-60"
             >
-              {isSyncing ? "Syncing..." : "Sync NBA Games"}
+              {isSyncing ? "Syncing..." : "Sync Games"}
             </button>
             {syncStatus && <p className="mt-2 text-[10px] font-bold leading-4 text-gray-300">{syncStatus}</p>}
           </div>

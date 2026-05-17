@@ -266,7 +266,7 @@ function ProfileSummaryCard({
       <div className="mt-7 border-t border-white/10 pt-6">
         <p className="flex items-center justify-center gap-3 text-base font-semibold text-gray-200 sm:text-xl">
           <span className="text-lime-300">◇</span>
-          Ready to stand on business.
+          Ready to lock it?
         </p>
       </div>
     </section>

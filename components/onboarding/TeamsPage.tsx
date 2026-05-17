@@ -4,35 +4,20 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LocktLogo } from "@/components/LocktLogo";
+import { worldCupGroupOrder, worldCupGroups, type WorldCupGroupKey } from "@/data/worldCupGroups";
 import { createClient } from "@/lib/supabase/client";
-
-const leagues = ["World Cup", "Group A", "Group B", "Group C", "Group D", "Knockout"];
-
-const teams = [
-  { name: "USA", initials: "USA" },
-  { name: "Mexico", initials: "MEX" },
-  { name: "Canada", initials: "CAN" },
-  { name: "Argentina", initials: "ARG" },
-  { name: "Brazil", initials: "BRA" },
-  { name: "France", initials: "FRA" },
-  { name: "England", initials: "ENG" },
-  { name: "Spain", initials: "ESP" },
-  { name: "Germany", initials: "GER" },
-  { name: "Portugal", initials: "POR" },
-  { name: "Netherlands", initials: "NED" },
-  { name: "Paraguay", initials: "PAR" },
-  { name: "South Africa", initials: "RSA" },
-];
 
 const defaultSelected = ["USA", "Mexico", "Canada"];
 
 export function TeamsPage({ avatar, username }: { avatar?: string; username?: string }) {
   const router = useRouter();
   const [selectedTeams, setSelectedTeams] = useState(defaultSelected);
+  const [activeGroup, setActiveGroup] = useState<WorldCupGroupKey>("Group A");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const cleanUsername = sanitizeUsername(username) || "LocktFan";
   const cleanAvatar = sanitizeToken(avatar) || "lightning";
+  const teams: Array<{ name: string; initials: string }> = worldCupGroups[activeGroup];
 
   function toggleTeam(teamName: string) {
     setMessage("");
@@ -116,7 +101,7 @@ export function TeamsPage({ avatar, username }: { avatar?: string; username?: st
             Lock your World Cup <span className="text-lime-300">identity.</span>
           </p>
 
-          <LeagueTabs />
+          <LeagueTabs activeGroup={activeGroup} onSelect={setActiveGroup} />
 
           <section className="mt-7 rounded-[1.5rem] border border-white/12 bg-black/45 p-4 text-left shadow-[0_22px_72px_rgba(0,0,0,0.48)] sm:p-5">
             <div className="mb-5 flex items-center justify-between gap-4">
@@ -229,15 +214,22 @@ function sanitizeToken(value?: string) {
   return (value ?? "").trim().replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 32);
 }
 
-function LeagueTabs() {
+function LeagueTabs({
+  activeGroup,
+  onSelect,
+}: {
+  activeGroup: WorldCupGroupKey;
+  onSelect: (group: WorldCupGroupKey) => void;
+}) {
   return (
     <nav className="mt-7 grid grid-cols-3 overflow-hidden rounded-2xl border border-white/16 bg-black/45 sm:grid-cols-6">
-      {leagues.map((league) => {
-        const isActive = league === "World Cup";
+      {worldCupGroupOrder.map((league) => {
+        const isActive = league === activeGroup;
         return (
           <button
             key={league}
             type="button"
+            onClick={() => onSelect(league)}
             className={`min-h-16 border-white/10 px-3 py-3 text-sm font-black uppercase tracking-[0.14em] transition sm:border-l sm:first:border-l-0 ${
               isActive
                 ? "border-lime-300 bg-lime-300/10 text-lime-300 shadow-[inset_0_-3px_0_rgba(132,204,22,0.8)]"
@@ -255,12 +247,18 @@ function LeagueTabs() {
 
 function leagueIcon(league: string) {
   const icons: Record<string, string> = {
-    "World Cup": "⚽",
     "Group A": "A",
     "Group B": "B",
     "Group C": "C",
     "Group D": "D",
-    Knockout: "◈",
+    "Group E": "E",
+    "Group F": "F",
+    "Group G": "G",
+    "Group H": "H",
+    "Group I": "I",
+    "Group J": "J",
+    "Group K": "K",
+    "Group L": "L",
   };
 
   return icons[league] ?? "●";

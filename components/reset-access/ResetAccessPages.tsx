@@ -7,11 +7,9 @@ import { LocktLogo } from "@/components/LocktLogo";
 import { buildSiteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/client";
 
-const previewEmail = "hernk1@gmail.com";
-
 export function ForgotPasswordPage() {
   const router = useRouter();
-  const [email, setEmail] = useState(previewEmail);
+  const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -89,7 +87,7 @@ export function ForgotPasswordPage() {
   );
 }
 
-export function ResetEmailSentPage({ email = previewEmail }: { email?: string }) {
+export function ResetEmailSentPage({ email = "" }: { email?: string }) {
   return (
     <ResetShell>
       <ResetCard eyebrow="2. Reset Email Sent">
@@ -99,8 +97,8 @@ export function ResetEmailSentPage({ email = previewEmail }: { email?: string })
 
         <div className="mx-auto mt-8 max-w-md text-center">
           <p className="text-base font-semibold leading-7 text-gray-300">
-            We sent a reset link to
-            <span className="block font-black text-white">{email}</span>
+            We sent a reset link to your email.
+            {email ? <span className="block font-black text-white">{email}</span> : null}
           </p>
           <p className="mt-5 text-sm font-semibold leading-6 text-gray-400">
             If you don&apos;t see it, check your spam folder.
@@ -129,8 +127,8 @@ export function ResetEmailSentPage({ email = previewEmail }: { email?: string })
 
 export function ResetPasswordPage() {
   const router = useRouter();
-  const [password, setPassword] = useState("superstrong");
-  const [confirmPassword, setConfirmPassword] = useState("superstrong");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [message, setMessage] = useState("");
@@ -287,7 +285,7 @@ function MailMark() {
     <div className="mx-auto mt-10 grid h-28 w-40 place-items-center rounded-xl border border-white/12 bg-black/50 shadow-[0_0_34px_rgba(168,85,247,0.14)]">
       <div className="relative grid h-20 w-32 place-items-center rounded-lg bg-[linear-gradient(145deg,rgba(255,255,255,0.08),rgba(0,0,0,0.75))] [clip-path:polygon(0_0,100%_0,100%_100%,0_100%)]">
         <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_48%,rgba(132,204,22,0.7)_49%,rgba(168,85,247,0.72)_58%,transparent_59%)]" />
-        <span className="relative text-6xl text-lime-300 drop-shadow-[0_0_18px_rgba(132,204,22,0.45)]">ϟ</span>
+        <span className="relative text-6xl text-lime-300 drop-shadow-[0_0_18px_rgba(132,204,22,0.45)]">⚽</span>
       </div>
     </div>
   );
@@ -406,7 +404,7 @@ function PasswordResetEmailPreview() {
         </Link>
         <p className="mt-5 text-center text-xs font-semibold text-gray-500">This link will expire in 60 minutes.</p>
         <p className="mt-8 text-sm font-semibold text-gray-400">
-          Stay loud,
+          Thank you,
           <span className="block font-black text-lime-300">LOCKT Team</span>
         </p>
         <div className="mt-6 flex gap-5 text-xl text-gray-500">

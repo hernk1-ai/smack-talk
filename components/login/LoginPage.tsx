@@ -238,7 +238,7 @@ function LoginCard({
         className="grid grid-cols-[auto_1fr_auto] items-center gap-4 rounded-xl border border-white/10 bg-white/[0.04] p-4 transition hover:-translate-y-0.5 hover:border-purple-300/45 hover:bg-purple-500/10 active:scale-[0.99]"
       >
         <span className="grid h-12 w-12 place-items-center rounded-full border border-purple-300/35 bg-purple-500/15 text-3xl text-purple-300">
-          ϟ
+          ⚽
         </span>
         <span>
           <span className="block text-sm font-black uppercase tracking-[0.12em] text-lime-300">New Here?</span>

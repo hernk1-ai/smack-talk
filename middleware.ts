@@ -10,6 +10,8 @@ const onboardingRoutes = ["/username", "/onboarding/profile-pic", "/onboarding/t
 const authRoutes = ["/login", "/signup", "/forgot-password", "/verify-email"];
 
 export async function middleware(request: NextRequest) {
+  const isDevelopment = process.env.NODE_ENV === "development";
+
   if (!isSupabaseConfigured || !supabaseUrl || !supabaseAnonKey) {
     return NextResponse.next();
   }
@@ -41,6 +43,14 @@ export async function middleware(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some((path) => pathname === path || pathname.startsWith(`${path}/`));
   const isOnboardingRoute = onboardingRoutes.some((path) => pathname === path || pathname.startsWith(`${path}/`));
   const isAuthRoute = authRoutes.includes(pathname);
+
+  if (isDevelopment && isAuthRoute) {
+    return response;
+  }
+
+  if (isDevelopment && isOnboardingRoute) {
+    return response;
+  }
 
   if (!user && (isProtectedRoute || isOnboardingRoute)) {
     return redirectTo(request, "/login");

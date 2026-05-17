@@ -35,7 +35,7 @@ const statCards = [
   {
     icon: "⚠",
     label: "Arena Mood",
-    value: "HOSTILE",
+    value: "PUMPED",
     context: "Volatility high",
     tone: "purple",
     line: "M2 23 L14 13 L25 24 L38 12 L51 22 L66 9 L90 18",
@@ -109,18 +109,14 @@ export function CreateAccountPage() {
 
         <section className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-7 py-7 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,28rem)]">
           <div className="min-w-0 text-center lg:text-left">
-            <p className="text-[0.7rem] font-black uppercase italic tracking-[0.24em] text-lime-300">
-              Live pressure check
-            </p>
+            <p className="text-[0.7rem] font-black uppercase italic tracking-[0.24em] text-lime-300">World Cup lock-in</p>
             <h1 className="sports-display mt-4 text-[4.6rem] italic leading-[0.82] tracking-tight text-white drop-shadow-[0_10px_28px_rgba(255,255,255,0.14)] min-[390px]:text-[5.4rem] sm:text-[7rem] lg:text-[8rem]">
-              Think You Have
-              <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-500 bg-clip-text text-transparent">
-                What It Takes?
-              </span>
+              Lock your World Cup
+              <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-500 bg-clip-text text-transparent">calls before kickoff.</span>
             </h1>
             <div className="mx-auto mt-4 h-1.5 w-64 rounded-full bg-gradient-to-r from-lime-300 via-white/50 to-purple-500 shadow-[0_0_24px_rgba(168,85,247,0.34)] lg:mx-0" />
             <p className="mt-5 text-base font-black uppercase tracking-[0.13em] text-gray-300 sm:text-xl">
-              The internet never forgets a bad take.
+              Every call leaves a receipt.
             </p>
 
             <ChallengeCard />
@@ -181,9 +177,9 @@ function ChallengeCard() {
       </div>
 
       <h2 className="sports-display mt-5 text-[3.7rem] italic leading-[0.86] text-white sm:text-[5rem]">
-        “USA Are
+        “USA
         <span className="block bg-gradient-to-r from-lime-300 to-purple-400 bg-clip-text text-transparent">
-          Locked before kickoff.”
+          wins it in overtime!”
         </span>
       </h2>
 
@@ -198,7 +194,7 @@ function ChallengeCard() {
             <p className="mt-1 text-xs font-black uppercase tracking-[0.12em] text-gray-400">Riding</p>
           </div>
           <div className="grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-black text-lg text-lime-300 shadow-[0_0_18px_rgba(132,204,22,0.18)]">
-            ⚡
+            ⚽
           </div>
           <div className="min-w-0 text-right">
             <p className="scoreboard-number text-4xl leading-none text-purple-300">612</p>
@@ -256,7 +252,7 @@ function SignupCard({
       className="relative isolate w-full rounded-[1.75rem] border border-white/15 bg-black/65 p-5 text-left shadow-[0_28px_90px_rgba(0,0,0,0.62),0_0_44px_rgba(132,204,22,0.1)] backdrop-blur-xl sm:p-7"
     >
       <div className="pointer-events-none absolute inset-0 -z-10 rounded-[1.75rem] bg-[radial-gradient(circle_at_50%_0%,rgba(168,85,247,0.12),transparent_16rem)]" />
-      <h2 className="text-center text-sm font-black uppercase tracking-[0.22em] text-purple-300">Get Your Smack Game Ready</h2>
+      <h2 className="text-center text-sm font-black uppercase tracking-[0.22em] text-purple-300">Lock Takes. Show receipts.</h2>
 
       <label className="mt-7 block">
         <span className="text-xs font-black uppercase tracking-[0.22em] text-white">Email Address</span>
@@ -331,7 +327,7 @@ function SignupCard({
         type="submit"
         className="mt-6 min-h-14 w-full rounded-xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-base font-black uppercase italic tracking-[0.12em] text-black shadow-[0_0_34px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_46px_rgba(168,85,247,0.34)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-65"
       >
-        {isLoading ? "Creating Account..." : "Get Your Smack Game Ready"}
+        {isLoading ? "Creating Account..." : "Enter LOCKT"}
       </button>
 
       <p className="mt-5 text-center text-xs font-black uppercase tracking-[0.14em] text-gray-400">
