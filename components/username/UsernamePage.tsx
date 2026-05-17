@@ -68,7 +68,7 @@ export function UsernamePage() {
       return;
     }
 
-    router.push(`/onboarding/profile-pic?username=${encodeURIComponent(displayName || "FadeKing")}`);
+    router.push(`/onboarding/profile-pic?username=${encodeURIComponent(displayName || "LocktFan")}`);
   }
 
   return (

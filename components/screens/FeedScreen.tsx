@@ -491,7 +491,7 @@ function PreTournamentCountdown() {
   }, []);
 
   return (
-    <FeedSection title="Countdown to Kickoff" icon="◷" action="Browse">
+    <FeedSection title="Countdown to Kickoff" icon="◷" action="">
       <div className="rounded-2xl border border-lime-300/20 bg-black/45 p-4">
         <h3 className="sports-display text-3xl italic leading-none text-white sm:text-4xl">World Cup Arena Opens Soon</h3>
         <p className="mt-3 text-sm font-semibold text-gray-300">
@@ -502,9 +502,11 @@ function PreTournamentCountdown() {
         </p>
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <Link href="/schedule" className="grid min-h-11 place-items-center rounded-xl border border-purple-300/45 bg-purple-500/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-purple-200">
-            Browse
+            Schedule
           </Link>
-          <button type="button" className="min-h-11 rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-black uppercase tracking-[0.1em] text-white">Make Early Call</button>
+          <a href="#lock-your-pick" className="grid min-h-11 place-items-center rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-black uppercase tracking-[0.1em] text-white">
+            Make Early Call
+          </a>
         </div>
       </div>
     </FeedSection>
@@ -1028,7 +1030,7 @@ function LockTakeComposer({
   const isLockedDisabled = status === "loading" || value.trim().length === 0;
 
   return (
-    <section className="rounded-[1.75rem] border border-purple-300/30 bg-purple-500/10 p-4 shadow-[0_0_34px_rgba(168,85,247,0.14)]">
+    <section id="lock-your-pick" className="rounded-[1.75rem] border border-purple-300/30 bg-purple-500/10 p-4 shadow-[0_0_34px_rgba(168,85,247,0.14)]">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-300">World Cup Call</p>
@@ -1732,9 +1734,11 @@ function FeedSection({
           {icon ? <span className="mr-2 not-italic">{icon}</span> : null}
           {title}
         </h2>
-        <button type="button" className="text-xs font-black uppercase text-purple-300">
-          {action} ›
-        </button>
+        {action ? (
+          <button type="button" className="text-xs font-black uppercase text-purple-300">
+            {action} ›
+          </button>
+        ) : null}
       </div>
       {children}
     </section>

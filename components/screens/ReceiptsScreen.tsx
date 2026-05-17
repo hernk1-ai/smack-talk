@@ -16,6 +16,7 @@ import {
   type ReputationBadge,
 } from "@/lib/reputation";
 import { getCurrentUserReceipts, getReceiptsByUser } from "@/lib/supabase/receipts";
+import { getCurrentUserTakes } from "@/lib/supabase/takes";
 import type { Profile, Receipt } from "@/lib/supabase/types";
 import { ReportModal } from "@/components/moderation/ReportModal";
 import { buildSiteUrl } from "@/lib/site-url";
@@ -219,6 +220,7 @@ export function ReceiptsScreen({
   const owner = getReceiptOwner(profile, recordOwner);
   const currentUser = owner;
   const [realReceipts, setRealReceipts] = useState<Receipt[]>([]);
+  const [pendingTakeText, setPendingTakeText] = useState("");
   const [receiptError, setReceiptError] = useState("");
   const [profileShareState, setProfileShareState] = useState<"idle" | ShareOutcome>("idle");
   const [sharedReceiptState, setSharedReceiptState] = useState<{ id: string; outcome: Exclude<ShareOutcome, "cancelled"> } | null>(null);
@@ -241,6 +243,11 @@ export function ReceiptsScreen({
 
       setRealReceipts(receipts);
       setReceiptError(error ? getUserFacingErrorMessage(error, "Could not load receipts right now.") : "");
+
+      if (owner.isCurrentUser) {
+        const { takes } = await getCurrentUserTakes();
+        setPendingTakeText((takes[0]?.take_text ?? "").trim());
+      }
     }
 
     loadReceipts();
@@ -323,6 +330,7 @@ export function ReceiptsScreen({
       <ReceiptsHeader profile={profile} />
       <ReceiptIdentityCard
         preTournamentMode={preTournamentMode}
+        pendingTakeText={pendingTakeText}
         shareState={profileShareState}
         featuredReceipt={featuredReceipt}
         onShare={copyShareUrl}
@@ -465,6 +473,7 @@ function HeaderIcon({
 
 function ReceiptIdentityCard({
   preTournamentMode,
+  pendingTakeText,
   shareState,
   featuredReceipt,
   onShare,
@@ -474,6 +483,7 @@ function ReceiptIdentityCard({
   receipts,
 }: {
   preTournamentMode: boolean;
+  pendingTakeText: string;
   shareState: "idle" | ShareOutcome;
   featuredReceipt: Receipt | null;
   onShare: () => void;
@@ -623,7 +633,7 @@ function ReceiptIdentityCard({
               </div>
 
               <h4 className="mt-3 text-3xl font-black italic leading-tight text-white sm:text-4xl">
-                {featuredReceipt?.take_text ?? (preTournamentMode ? "No settled receipts yet." : "Paraguay can steal this.")}
+                {featuredReceipt?.take_text ?? (pendingTakeText || (preTournamentMode ? "No settled receipts yet." : "Paraguay can steal this."))}
               </h4>
               <p className="mt-2 text-xs font-black uppercase text-sky-300">
                 {featuredReceipt?.game_label ?? "World Cup Group Stage"}
@@ -645,7 +655,9 @@ function ReceiptIdentityCard({
                   <p className="mt-1 text-sm font-semibold text-gray-300">
                     {featuredReceipt
                       ? "Snapshot locked. Your record follows you."
-                      : "Receipts unlock when the World Cup starts. Lock your calls before kickoff."}
+                      : pendingTakeText
+                        ? "Call pending! Come back for the game!"
+                        : "Receipts unlock when the World Cup starts. Lock your calls before kickoff."}
                   </p>
                 </div>
                 <div className="min-[430px]:text-right">

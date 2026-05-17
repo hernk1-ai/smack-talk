@@ -114,6 +114,7 @@ async function resolveTakeGameId(
   const { data: fallbackGame } = await supabase
     .from("games")
     .select("id")
+    .or("league.ilike.%world cup%,sport.ilike.%soccer%")
     .in("status", ["live", "scheduled", "final"])
     .order("starts_at", { ascending: true, nullsFirst: false })
     .limit(1)
@@ -121,6 +122,18 @@ async function resolveTakeGameId(
 
   if (fallbackGame?.id) {
     return { gameId: fallbackGame.id, error: null as Error | null };
+  }
+
+  const { data: anyFallbackGame } = await supabase
+    .from("games")
+    .select("id")
+    .in("status", ["live", "scheduled", "final"])
+    .order("starts_at", { ascending: true, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (anyFallbackGame?.id) {
+    return { gameId: anyFallbackGame.id, error: null as Error | null };
   }
 
   return {
