@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { LocktLogo } from "@/components/LocktLogo";
+import { buildSiteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/client";
 
 const steps = [
@@ -20,12 +21,9 @@ export function VerifyEmailPage({ email }: { email?: string }) {
       <div className="relative z-10 mx-auto flex min-h-dvh w-[min(100%-24px,1180px)] flex-col">
         <header className="flex justify-center py-8 sm:py-10">
           <Link href="/" className="flex items-center gap-3 transition hover:-translate-y-0.5" aria-label="LOCKT home">
-            <SmackTalkLogo size={68} />
+            <LocktLogo size={68} />
             <div className="brand-lockup text-4xl leading-[0.82]">
-              <span className="block text-white">Smack</span>
-              <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">
-                Talk
-              </span>
+              <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
             </div>
           </Link>
         </header>
@@ -101,7 +99,7 @@ function VerifyCard({ canResend, email }: { canResend: boolean; email: string })
       type: "signup",
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/username`,
+        emailRedirectTo: buildSiteUrl("/auth/callback?next=/username"),
       },
     });
 
@@ -188,13 +186,13 @@ function EnvelopeHero() {
 function VerifyFooter() {
   return (
     <footer className="grid gap-4 border-t border-white/10 py-5 text-center text-xs font-semibold text-gray-400 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:text-left">
-      <SmackTalkLogo size={34} />
+      <LocktLogo size={34} />
       <p className="font-black uppercase tracking-[0.18em] text-lime-300">
         Built on takes. <span className="text-purple-400">Backed by receipts.</span>
       </p>
       <p>
         Need help?{" "}
-        <a className="font-black text-purple-300 transition hover:text-lime-300" href="mailto:support@smacktalkgg.com">
+        <a className="font-black text-purple-300 transition hover:text-lime-300" href="mailto:support@getlockt.com">
           Contact support
         </a>
       </p>

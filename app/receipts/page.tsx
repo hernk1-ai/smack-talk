@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 
-import { SmackTalkApp } from "@/components/SmackTalkApp";
+import { LocktApp } from "@/components/LocktApp";
+import { getSiteUrl } from "@/lib/site-url";
 import { ensureProfile } from "@/lib/supabase/profiles";
 import { createClient } from "@/lib/supabase/server";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://smacktalk.app";
+const BASE_URL = getSiteUrl();
 
 export const metadata: Metadata = {
   title: "LOCKT Receipts",
-  description: "Public takes. Permanent receipts. The Arena remembers.",
+  description: "LOCKT is a sports reputation platform where fans lock takes, ride or fade calls, and build receipts.",
   alternates: {
     canonical: `${BASE_URL}/receipts`,
   },
@@ -30,7 +31,7 @@ export default async function ReceiptsPage() {
   const supabase = await createClient();
 
   if (!supabase) {
-    return <SmackTalkApp initialView="receipts" />;
+    return <LocktApp initialView="receipts" />;
   }
 
   const {
@@ -38,10 +39,10 @@ export default async function ReceiptsPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return <SmackTalkApp initialView="receipts" />;
+    return <LocktApp initialView="receipts" />;
   }
 
   const { profile } = await ensureProfile(supabase, user);
 
-  return <SmackTalkApp profile={profile} initialView="receipts" />;
+  return <LocktApp profile={profile} initialView="receipts" />;
 }

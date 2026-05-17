@@ -1,4 +1,4 @@
-import { SmackTalkApp } from "@/components/SmackTalkApp";
+import { LocktApp } from "@/components/LocktApp";
 import { ensureProfile } from "@/lib/supabase/profiles";
 import { createClient } from "@/lib/supabase/server";
 
@@ -6,7 +6,7 @@ export default async function TopTalkersPage() {
   const supabase = await createClient();
 
   if (!supabase) {
-    return <SmackTalkApp initialView="top-talkers" />;
+    return <LocktApp initialView="top-talkers" />;
   }
 
   const {
@@ -14,10 +14,10 @@ export default async function TopTalkersPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return <SmackTalkApp initialView="top-talkers" />;
+    return <LocktApp initialView="top-talkers" />;
   }
 
   const { profile } = await ensureProfile(supabase, user);
 
-  return <SmackTalkApp profile={profile} initialView="top-talkers" />;
+  return <LocktApp profile={profile} initialView="top-talkers" />;
 }

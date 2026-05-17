@@ -11,7 +11,7 @@ import { TopTalkersScreen } from "@/components/screens/TopTalkersScreen";
 import { ACTIVE_GAME_ID } from "@/lib/supabase/games";
 import type { Profile } from "@/lib/supabase/types";
 
-export function SmackTalkApp({
+export function LocktApp({
   profile,
   initialView = "arena",
   receiptOwner,

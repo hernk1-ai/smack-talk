@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
 
-import { SmackTalkApp } from "@/components/SmackTalkApp";
+import { LocktApp } from "@/components/LocktApp";
 import type { ReceiptOwner } from "@/components/screens/ReceiptsScreen";
 import { getSeededProfileByUsername } from "@/data/seededCrowd";
+import { getSiteUrl } from "@/lib/site-url";
 import { ensureProfile } from "@/lib/supabase/profiles";
 import { createClient } from "@/lib/supabase/server";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://smacktalk.app";
+const BASE_URL = getSiteUrl();
 
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
   const { username } = await params;
   const key = decodeURIComponent(username).replace(/^@/, "");
   const handle = `@${key}`;
   const title = `${handle}'s LOCKT Receipts`;
-  const description = "Public takes. Permanent receipts. The Arena remembers.";
+  const description = "LOCKT is a sports reputation platform where fans lock takes, ride or fade calls, and build receipts.";
   const url = `${BASE_URL}/receipts/${encodeURIComponent(key.toLowerCase())}`;
 
   return {
@@ -87,7 +88,7 @@ export default async function PublicReceiptsPage({ params }: { params: Promise<{
     favoriteTeams: ["LAL", "NYK", "DEN"],
   };
 
-  return <SmackTalkApp profile={profile} receiptOwner={recordOwner} initialView="receipts" />;
+  return <LocktApp profile={profile} receiptOwner={recordOwner} initialView="receipts" />;
 }
 
 function toDisplayUsername(value: string) {

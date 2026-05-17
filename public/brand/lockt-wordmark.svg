@@ -1,0 +1,22 @@
+<svg width="1200" height="320" viewBox="0 0 1200 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lockt-gradient" x1="140" y1="64" x2="980" y2="262" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7BFF00"/>
+      <stop offset="0.5" stop-color="#88B487"/>
+      <stop offset="1" stop-color="#9A1DFF"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="320" fill="#020202"/>
+  <text
+    x="84"
+    y="238"
+    fill="url(#lockt-gradient)"
+    font-family="Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif"
+    font-size="236"
+    font-style="italic"
+    font-weight="900"
+    letter-spacing="-6"
+  >
+    LOCKT
+  </text>
+</svg>

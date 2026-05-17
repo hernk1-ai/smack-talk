@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { RouteBottomNav } from "@/components/BottomNav";
-import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { LocktLogo } from "@/components/LocktLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { getSeededProfileById, getSeededReceiptById } from "@/data/seededCrowd";
 import { getCrowdPressure, getHeatStatus, getReputationLevel } from "@/lib/reputation";
+import { buildSiteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/client";
 import { getReceiptById } from "@/lib/supabase/receipts";
 import { getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/replies";
@@ -133,7 +134,7 @@ export function ReceiptDetailScreen({ receiptId, profile }: { receiptId: string;
   }, [receiptId]);
 
   async function shareReceipt() {
-    const url = window.location.href;
+    const url = buildSiteUrl(`/receipt/${encodeURIComponent(receiptId)}`);
 
     try {
       const outcome = await shareWithFallback({
@@ -208,7 +209,7 @@ export function ReceiptDetailScreen({ receiptId, profile }: { receiptId: string;
                 ‹
               </button>
               <div className="flex min-w-0 items-center gap-3">
-                <SmackTalkLogo size={54} />
+                <LocktLogo size={54} />
                 <div className="min-w-0">
                   <h1 className="brand-lockup text-[1.8rem] leading-[0.82]">
                     <span className="block text-white">Receipt</span>

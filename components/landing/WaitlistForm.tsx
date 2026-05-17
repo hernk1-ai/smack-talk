@@ -100,7 +100,7 @@ export function WaitlistForm() {
             <span className="inline-flex items-center justify-center gap-2">
               Lock My Spot
               <Image
-                src="/smack-talk-logo.png"
+                src="/brand/lockt-icon.svg"
                 alt=""
                 width={20}
                 height={20}

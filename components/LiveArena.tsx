@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { LocktLogo } from "@/components/LocktLogo";
 import { formatRepSwing, QUICK_PICK_LOSS, QUICK_PICK_WIN } from "@/lib/engagement";
 import { ACTIVE_GAME_ID, getGameById } from "@/lib/supabase/games";
 import { createQuickPick, getMyQuickPicks } from "@/lib/supabase/quickPicks";
@@ -329,13 +329,10 @@ function ArenaHeader({ onBack, game }: { onBack: () => void; game: Game | null }
       </button>
 
       <div className="flex min-w-0 items-center gap-3">
-        <SmackTalkLogo size={54} />
+        <LocktLogo size={54} />
         <div className="min-w-0">
           <h1 className="brand-lockup text-[2rem] leading-[0.82] sm:text-4xl">
-            <span className="block text-white">Smack</span>
-            <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">
-              Talk
-            </span>
+            <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
           </h1>
           <p className="mt-1 hidden items-center gap-2 text-xs font-black uppercase tracking-[0.1em] text-gray-300 sm:flex">
             <span className="h-2.5 w-2.5 rounded-full bg-lime-400 shadow-[0_0_16px_rgba(132,204,22,0.75)]" />

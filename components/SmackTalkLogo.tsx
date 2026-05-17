@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-export function SmackTalkLogo({ size = 48 }: { size?: number }) {
+export function LocktLogo({ size = 48 }: { size?: number }) {
   return (
     <div
       className="logo-glow grid shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/5 p-1.5 shadow-[0_0_28px_rgba(139,92,246,0.16)] transition hover:scale-[1.03]"
@@ -8,7 +8,7 @@ export function SmackTalkLogo({ size = 48 }: { size?: number }) {
       aria-hidden="true"
     >
       <Image
-        src="/smack-talk-logo.png"
+        src="/brand/lockt-icon.svg"
         alt=""
         width={size - 10}
         height={size - 10}

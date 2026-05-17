@@ -4,7 +4,7 @@ import { ChangeEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { LocktLogo } from "@/components/LocktLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { avatarOptions, normalizeAvatarKey, serializeAvatarKey, type AvatarKey } from "@/lib/avatar";
 import { createClient } from "@/lib/supabase/client";
@@ -201,12 +201,9 @@ function ProfilePicHeader() {
   return (
     <header className="flex items-center justify-center">
       <Link href="/" className="flex items-center gap-3 transition hover:-translate-y-0.5" aria-label="LOCKT home">
-        <SmackTalkLogo size={62} />
+        <LocktLogo size={62} />
         <div className="brand-lockup text-4xl leading-[0.82]">
-          <span className="block text-white">Smack</span>
-          <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">
-            Talk
-          </span>
+          <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
         </div>
       </Link>
     </header>

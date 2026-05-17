@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 
 import { TakeThreadScreen } from "@/components/screens/TakeThreadScreen";
+import { getSiteUrl } from "@/lib/site-url";
 import { ensureProfile } from "@/lib/supabase/profiles";
 import { createClient } from "@/lib/supabase/server";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://smacktalk.app";
+const BASE_URL = getSiteUrl();
 
 export async function generateMetadata({ params }: { params: Promise<{ takeId: string }> }): Promise<Metadata> {
   const { takeId } = await params;
   const shortId = takeId.slice(0, 8);
   const title = `LOCKT Take ${shortId}`;
-  const description = "Public takes. Permanent receipts. The Arena remembers.";
+  const description = "LOCKT is a sports reputation platform where fans lock takes, ride or fade calls, and build receipts.";
   const url = `${BASE_URL}/take/${encodeURIComponent(takeId)}`;
 
   return {

@@ -6,13 +6,14 @@ import { useRouter } from "next/navigation";
 
 import { RouteBottomNav } from "@/components/BottomNav";
 import { ReportModal } from "@/components/moderation/ReportModal";
-import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { LocktLogo } from "@/components/LocktLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { getSeededProfileById, getSeededRepliesForTake } from "@/data/seededCrowd";
 import { formatTakeForUI, getTakeById, isSeededTakeId, profileToCard, type ArenaTake } from "@/lib/supabase/arena";
 import { blockUser, muteUser, type ReportTargetType } from "@/lib/supabase/moderation";
 import { getMyReactionForTake, reactToTake } from "@/lib/supabase/reactions";
 import { createReply, getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/replies";
+import { buildSiteUrl } from "@/lib/site-url";
 import type { Profile, TakeReaction } from "@/lib/supabase/types";
 import { shareWithFallback, type ShareOutcome } from "@/lib/share";
 
@@ -211,7 +212,7 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
   }
 
   async function shareTakeThread() {
-    const shareUrl = window.location.origin + "/take/" + encodeURIComponent(takeId);
+    const shareUrl = buildSiteUrl("/take/" + encodeURIComponent(takeId));
 
     try {
       const outcome = await shareWithFallback({
@@ -296,7 +297,7 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
                 ‹
               </button>
               <div className="flex min-w-0 items-center gap-3">
-                <SmackTalkLogo size={54} />
+                <LocktLogo size={54} />
                 <div className="min-w-0">
                   <h1 className="brand-lockup text-[1.8rem] leading-[0.82]">
                     <span className="block text-white">Take</span>

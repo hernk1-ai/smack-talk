@@ -3,7 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { LocktLogo } from "@/components/LocktLogo";
 import { createClient } from "@/lib/supabase/client";
 
 const reminders = [
@@ -173,12 +173,9 @@ function UsernameHeader() {
         ← Back
       </Link>
       <Link href="/" className="flex items-center gap-3 transition hover:-translate-y-0.5" aria-label="LOCKT home">
-        <SmackTalkLogo size={56} />
+        <LocktLogo size={56} />
         <div className="brand-lockup text-3xl leading-[0.82]">
-          <span className="block text-white">Smack</span>
-          <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">
-            Talk
-          </span>
+          <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
         </div>
       </Link>
       <div aria-hidden="true" />

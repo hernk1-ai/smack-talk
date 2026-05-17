@@ -56,28 +56,28 @@ function ExternalCue() {
 const socialLinks: SocialLink[] = [
   {
     label: "X",
-    href: "https://x.com/smacktalkgg",
+    href: "https://x.com/getlockt",
     hoverClass: "hover:border-white/35 hover:shadow-[0_0_24px_rgba(255,255,255,0.12)]",
     icon: <XIcon />,
     isExternal: true,
   },
   {
     label: "Instagram",
-    href: "https://instagram.com/smacktalkgg",
+    href: "https://instagram.com/getlockt",
     hoverClass: "hover:border-pink-300/45 hover:shadow-[0_0_24px_rgba(236,72,153,0.16)]",
     icon: <InstagramIcon />,
     isExternal: true,
   },
   {
     label: "TikTok",
-    href: "https://tiktok.com/@smacktalkgg",
+    href: "https://tiktok.com/@getlockt",
     hoverClass: "hover:border-cyan-300/45 hover:shadow-[0_0_24px_rgba(34,211,238,0.16)]",
     icon: <TikTokIcon />,
     isExternal: true,
   },
   {
     label: "Discord",
-    href: "https://discord.gg/smacktalkgg",
+    href: "https://discord.gg/getlockt",
     hoverClass: "hover:border-purple-300/50 hover:shadow-[0_0_24px_rgba(168,85,247,0.18)]",
     icon: <DiscordIcon />,
     isExternal: true,

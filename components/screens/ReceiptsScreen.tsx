@@ -3,7 +3,7 @@
 import { type KeyboardEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { LocktLogo } from "@/components/LocktLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { getSeededReceiptsByUsername, type SeededReceipt } from "@/data/seededCrowd";
 import { LOCK_WIN } from "@/lib/engagement";
@@ -19,6 +19,7 @@ import {
 import { getCurrentUserReceipts, getReceiptsByUser } from "@/lib/supabase/receipts";
 import type { Profile, Receipt } from "@/lib/supabase/types";
 import { ReportModal } from "@/components/moderation/ReportModal";
+import { buildSiteUrl } from "@/lib/site-url";
 import { shareWithFallback, type ShareOutcome } from "@/lib/share";
 
 type ReceiptStatus = "win" | "loss";
@@ -265,7 +266,7 @@ export function ReceiptsScreen({
   const featuredReceipt = realReceipts[0] ?? null;
 
   async function copyShareUrl() {
-    const shareUrl = window.location.origin + getReceiptHref(owner.handle, false);
+    const shareUrl = buildSiteUrl(getReceiptHref(owner.handle, false));
 
     try {
       const outcome = await shareWithFallback({
@@ -284,7 +285,7 @@ export function ReceiptsScreen({
   }
 
   async function shareReceiptLink(receiptId: string) {
-    const shareUrl = window.location.origin + "/receipt/" + encodeURIComponent(receiptId);
+    const shareUrl = buildSiteUrl("/receipt/" + encodeURIComponent(receiptId));
 
     try {
       const outcome = await shareWithFallback({
@@ -373,13 +374,10 @@ function ReceiptsHeader({ profile }: { profile?: Profile | null }) {
     <header className="rounded-[1.75rem] border border-white/10 bg-black/35 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur">
       <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <SmackTalkLogo size={58} />
+          <LocktLogo size={58} />
           <div className="min-w-0">
             <h1 className="brand-lockup text-[2rem] leading-[0.82] sm:text-4xl">
-              <span className="block text-white">Smack</span>
-              <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">
-                Talk
-              </span>
+              <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
             </h1>
           </div>
         </div>

@@ -74,7 +74,7 @@ export function RunTheArena({ onFadeCrowd }: { onFadeCrowd: () => void }) {
         type="button"
       >
         <p className="text-sm font-black uppercase text-purple-100">😈 Fade the Crowd. Prove it.</p>
-        <p className="mt-1 text-xs font-bold text-gray-400">Talk is easy. Receipts are real.</p>
+        <p className="mt-1 text-xs font-bold text-gray-400">Check the receipt.</p>
       </button>
     </aside>
   );

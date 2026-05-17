@@ -1,4 +1,4 @@
-import { SmackTalkApp } from "@/components/SmackTalkApp";
+import { LocktApp } from "@/components/LocktApp";
 import { createClient } from "@/lib/supabase/server";
 import { ensureProfile } from "@/lib/supabase/profiles";
 
@@ -6,7 +6,7 @@ export default async function AppPage() {
   const supabase = await createClient();
 
   if (!supabase) {
-    return <SmackTalkApp />;
+    return <LocktApp />;
   }
 
   const {
@@ -14,10 +14,10 @@ export default async function AppPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return <SmackTalkApp />;
+    return <LocktApp />;
   }
 
   const { profile } = await ensureProfile(supabase, user);
 
-  return <SmackTalkApp profile={profile} />;
+  return <LocktApp profile={profile} />;
 }

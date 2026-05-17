@@ -1,19 +1,16 @@
 import Link from "next/link";
 
-import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { LocktLogo } from "@/components/LocktLogo";
 
 export function Footer() {
   return (
     <footer className="border-t border-white/10 py-8">
       <div className="landing-shell flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <SmackTalkLogo size={42} />
+          <LocktLogo size={42} />
           <div>
             <p className="brand-lockup text-2xl leading-none">
-              <span>Smack</span>{" "}
-              <span className="bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">
-                Talk
-              </span>
+              <span className="bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
             </p>
             <p className="mt-1 text-xs font-black uppercase tracking-[0.18em] text-gray-500">
               LOCKT is a sports reputation platform. No betting. No odds. Just takes, receipts, and REP.

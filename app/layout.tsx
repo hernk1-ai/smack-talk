@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { DevRoutePanel } from "@/components/DevRoutePanel";
+import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,14 +15,36 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LOCKT — Lock Your Take. Check The Receipt.",
-  description:
-    "Lock your takes, ride or fade the Crowd, build REP, and show receipts on the sports reputation platform built for real fans.",
-  icons: {
-    icon: "/smack-talk-logo.png",
-    shortcut: "/smack-talk-logo.png",
-    apple: "/smack-talk-logo.png",
+  metadataBase: new URL(getSiteUrl()),
+  title: "LOCKT",
+  description: "LOCKT is a sports reputation platform where fans lock takes, ride or fade calls, and build receipts.",
+  alternates: {
+    canonical: "/",
   },
+  openGraph: {
+    title: "LOCKT",
+    description: "LOCKT is a sports reputation platform where fans lock takes, ride or fade calls, and build receipts.",
+    url: "/",
+    siteName: "LOCKT",
+    type: "website",
+    images: [{ url: "/brand/lockt-wordmark.svg" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "LOCKT",
+    description: "LOCKT is a sports reputation platform where fans lock takes, ride or fade calls, and build receipts.",
+    images: ["/brand/lockt-wordmark.svg"],
+  },
+  icons: {
+    icon: "/brand/lockt-icon.svg",
+    shortcut: "/brand/lockt-icon.svg",
+    apple: "/brand/lockt-icon.svg",
+  },
+  manifest: "/manifest.webmanifest",
+};
+
+export const viewport = {
+  themeColor: "#020202",
 };
 
 export default function RootLayout({

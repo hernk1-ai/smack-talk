@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { getSiteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
@@ -8,7 +9,8 @@ export async function GET(request: NextRequest) {
   const tokenHash = requestUrl.searchParams.get("token_hash");
   const nextParam = requestUrl.searchParams.get("next");
   const type = requestUrl.searchParams.get("type");
-  const next = nextParam || (type === "recovery" ? "/reset-password" : "/app");
+  const fallbackNext = type === "recovery" ? "/reset-password" : "/app";
+  const next = nextParam && nextParam.startsWith("/") ? nextParam : fallbackNext;
 
   if (code || (tokenHash && type)) {
     const supabase = await createClient();
@@ -20,5 +22,5 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(new URL(next, requestUrl.origin));
+  return NextResponse.redirect(new URL(next, getSiteUrl()));
 }

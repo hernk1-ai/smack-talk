@@ -3,7 +3,7 @@
 import { useEffect, useState, type KeyboardEvent, type MouseEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { LocktLogo } from "@/components/LocktLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { ACTIVE_GAME_ID, getArenaGames } from "@/lib/supabase/games";
 import {
@@ -635,13 +635,10 @@ function FeedHeader({ profile }: { profile?: Profile | null }) {
     <header className="rounded-[1.75rem] border border-white/10 bg-black/35 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur">
       <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <SmackTalkLogo size={58} />
+          <LocktLogo size={58} />
           <div className="min-w-0">
             <h1 className="brand-lockup text-[2rem] leading-[0.82] sm:text-4xl">
-              <span className="block text-white">Smack</span>
-              <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">
-                Talk
-              </span>
+              <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
             </h1>
           </div>
         </div>

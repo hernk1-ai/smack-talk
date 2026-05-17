@@ -2,7 +2,7 @@ const steps = [
   { icon: "⚡", title: "Lock a Take", text: "Say it before the result. No switching sides after." },
   { icon: "😈", title: "Ride or Fade", text: "Back the take or go against the Crowd." },
   { icon: "🧾", title: "Collect Receipts", text: "Every outcome builds your history." },
-  { icon: "🏆", title: "Build REP", text: "Your talk becomes your reputation." },
+  { icon: "🏆", title: "Build REP", text: "Your calls build your reputation." },
 ];
 
 export function HowItWorks() {
@@ -10,7 +10,7 @@ export function HowItWorks() {
     <section id="how-it-works" className="scroll-mt-24 border-b border-white/10 py-14 sm:py-20">
       <div className="landing-shell">
         <p className="text-[10px] font-black uppercase tracking-[0.22em] text-purple-300">How It Works</p>
-        <h2 className="sports-display mt-3 text-5xl leading-none sm:text-7xl">Sports Talk. Prove It.</h2>
+        <h2 className="sports-display mt-3 text-5xl leading-none sm:text-7xl">Lock your takes. Check the receipt.</h2>
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {steps.map((step, index) => (

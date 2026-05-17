@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { LocktLogo } from "@/components/LocktLogo";
 
 const navLinks = [
   { label: "About", href: "#about" },
@@ -18,13 +18,10 @@ export function Header() {
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[#02040a]/78 backdrop-blur-xl">
       <div className="landing-shell flex min-h-18 items-center justify-between gap-4 py-2 sm:min-h-20">
         <a href="#about" className="flex min-w-0 items-center gap-3" aria-label="LOCKT home">
-          <SmackTalkLogo size={50} />
+          <LocktLogo size={50} />
           <div className="leading-none">
             <p className="brand-lockup text-2xl sm:text-[2rem]">
-              <span>Smack</span>{" "}
-              <span className="bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">
-                Talk
-              </span>
+              <span className="bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
             </p>
             <p className="mt-1 text-[9px] font-black uppercase tracking-[0.2em] text-lime-300/75">The First Lock</p>
           </div>
@@ -44,7 +41,7 @@ export function Header() {
         >
           Join The First Lock
           <Image
-            src="/smack-talk-logo.png"
+            src="/brand/lockt-icon.svg"
             alt=""
             width={20}
             height={20}
@@ -83,7 +80,7 @@ export function Header() {
             >
               Join The First Lock
               <Image
-                src="/smack-talk-logo.png"
+                src="/brand/lockt-icon.svg"
                 alt=""
                 width={20}
                 height={20}

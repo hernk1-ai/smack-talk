@@ -3,7 +3,8 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { LocktLogo } from "@/components/LocktLogo";
+import { buildSiteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/client";
 
 const previewEmail = "hernk1@gmail.com";
@@ -33,7 +34,7 @@ export function ForgotPasswordPage() {
     setMessage("");
 
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+      redirectTo: buildSiteUrl("/auth/callback?next=/reset-password"),
     });
 
     setIsLoading(false);
@@ -251,12 +252,9 @@ function ResetCard({ children, eyebrow }: { children: React.ReactNode; eyebrow: 
 function ResetLogo() {
   return (
     <Link href="/" className="mx-auto flex w-fit items-center gap-3 transition hover:-translate-y-0.5" aria-label="LOCKT home">
-      <SmackTalkLogo size={52} />
+      <LocktLogo size={52} />
       <div className="brand-lockup text-3xl leading-[0.82]">
-        <span className="block text-white">Smack</span>
-        <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">
-          Talk
-        </span>
+        <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
       </div>
     </Link>
   );

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { type ChangeEvent, type ReactNode, useRef, useState } from "react";
 
 import { RouteBottomNav } from "@/components/BottomNav";
-import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { LocktLogo } from "@/components/LocktLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { avatarOptions, isImageAvatar, normalizeAvatarKey, serializeAvatarKey, type AvatarKey } from "@/lib/avatar";
 import { createClient } from "@/lib/supabase/client";
@@ -197,13 +197,10 @@ function SettingsHeader({ profile, avatarUrl }: { profile?: Profile | null; avat
     <header className="rounded-[1.75rem] border border-white/10 bg-black/35 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur">
       <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <SmackTalkLogo size={58} />
+          <LocktLogo size={58} />
           <div className="min-w-0">
             <p className="brand-lockup text-[2rem] leading-[0.82] sm:text-4xl">
-              <span className="block text-white">Smack</span>
-              <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">
-                Talk
-              </span>
+              <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
             </p>
           </div>
         </div>

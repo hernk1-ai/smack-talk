@@ -3,7 +3,7 @@
 import { FormEvent, ReactNode, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { LocktLogo } from "@/components/LocktLogo";
 import { createClient } from "@/lib/supabase/client";
 import { getCurrentProfile, getPostLoginRedirect } from "@/lib/supabase/profiles";
 
@@ -306,7 +306,7 @@ function LoginFooter() {
       </p>
       <p>
         Need help?{" "}
-        <a className="font-black text-purple-300 transition hover:text-lime-300" href="mailto:support@smacktalkgg.com">
+        <a className="font-black text-purple-300 transition hover:text-lime-300" href="mailto:support@getlockt.com">
           Contact support
         </a>
       </p>
@@ -320,12 +320,9 @@ function LogoLockup({ size }: { size: "small" | "large" }) {
 
   return (
     <Link href="/" className="flex items-center gap-3 transition hover:-translate-y-0.5" aria-label="LOCKT home">
-      <SmackTalkLogo size={markSize} />
+      <LocktLogo size={markSize} />
       <div className={`brand-lockup ${textSize} leading-[0.82]`}>
-        <span className="block text-white">Smack</span>
-        <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">
-          Talk
-        </span>
+        <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
       </div>
     </Link>
   );

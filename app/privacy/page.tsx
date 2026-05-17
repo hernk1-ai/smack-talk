@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { SmackTalkLogo } from "@/components/SmackTalkLogo";
+import { LocktLogo } from "@/components/LocktLogo";
 
 export const metadata: Metadata = {
   title: "LOCKT — Privacy Policy",
@@ -338,7 +338,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
       },
       {
         type: "p",
-        text: "support@smacktalkgg.com",
+        text: "support@getlockt.com",
       },
       {
         type: "p",
@@ -363,7 +363,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
       },
       {
         type: "p",
-        text: "support@smacktalkgg.com",
+        text: "support@getlockt.com",
       },
     ],
   },
@@ -406,7 +406,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
       },
       {
         type: "p",
-        text: "support@smacktalkgg.com",
+        text: "support@getlockt.com",
       },
     ],
   },
@@ -467,13 +467,10 @@ export default function PrivacyPage() {
       <div className="relative z-10 mx-auto flex w-[min(100%-32px,980px)] flex-col gap-10 py-6 sm:py-10">
         <header className="flex items-center justify-between gap-4 border-b border-white/10 pb-6">
           <Link href="/" className="flex items-center gap-3 transition hover:opacity-90">
-            <SmackTalkLogo size={48} />
+            <LocktLogo size={48} />
             <div>
               <p className="brand-lockup text-3xl leading-none">
-                <span>Smack</span>{" "}
-                <span className="bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">
-                  Talk
-                </span>
+                <span className="bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
               </p>
               <p className="mt-1 text-[0.65rem] font-black uppercase tracking-[0.24em] text-lime-300">
                 The Arena Remembers
@@ -523,8 +520,8 @@ export default function PrivacyPage() {
               Terms of Use
             </Link>
           </div>
-          <a className="transition hover:text-lime-300" href="mailto:support@smacktalkgg.com">
-            support@smacktalkgg.com
+          <a className="transition hover:text-lime-300" href="mailto:support@getlockt.com">
+            support@getlockt.com
           </a>
         </footer>
       </div>

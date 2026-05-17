@@ -52,7 +52,7 @@ export function UserAvatar({
         aria-label={label}
         role="img"
       >
-        <Image src="/smack-talk-logo.png" alt="" width={96} height={96} className="h-full w-full object-contain" />
+        <Image src="/brand/lockt-icon.svg" alt="" width={96} height={96} className="h-full w-full object-contain" />
       </span>
     );
   }

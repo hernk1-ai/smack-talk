@@ -1,0 +1,17 @@
+{
+  "name": "LOCKT",
+  "short_name": "LOCKT",
+  "description": "LOCKT is a sports reputation platform where fans lock takes, ride or fade calls, and build receipts.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020202",
+  "theme_color": "#020202",
+  "icons": [
+    {
+      "src": "/brand/lockt-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
