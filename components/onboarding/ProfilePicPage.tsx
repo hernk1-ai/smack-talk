@@ -8,6 +8,7 @@ import { LocktLogo } from "@/components/LocktLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { avatarOptions, normalizeAvatarKey, serializeAvatarKey, type AvatarKey } from "@/lib/avatar";
 import { createClient } from "@/lib/supabase/client";
+import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 
 export function ProfilePicPage({ username }: { username?: string }) {
   const router = useRouter();
@@ -128,7 +129,7 @@ export function ProfilePicPage({ username }: { username?: string }) {
     setIsSaving(false);
 
     if (error) {
-      setMessage(error.message);
+      setMessage(getUserFacingErrorMessage(error, "Unable to save your profile right now. Try again."));
       return;
     }
 

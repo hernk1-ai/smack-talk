@@ -21,6 +21,7 @@ import { ReportModal } from "@/components/moderation/ReportModal";
 import { buildSiteUrl } from "@/lib/site-url";
 import { shareWithFallback, type ShareOutcome } from "@/lib/share";
 import { isPreTournamentMode } from "@/lib/productConfig";
+import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type ReceiptStatus = "win" | "loss";
 type ReceiptSide = "riding" | "fading";
@@ -239,7 +240,7 @@ export function ReceiptsScreen({
       }
 
       setRealReceipts(receipts);
-      setReceiptError(error ? error.message : "");
+      setReceiptError(error ? getUserFacingErrorMessage(error, "Could not load receipts right now.") : "");
     }
 
     loadReceipts();
@@ -378,6 +379,15 @@ export function ReceiptsScreen({
           </ReceiptSection>
         </>
       )}
+      <section className="rounded-[1.75rem] border border-white/10 bg-black/30 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.34)] backdrop-blur">
+        <h2 className="sports-display text-2xl italic leading-none text-white sm:text-3xl">Top Talkers Coming Soon</h2>
+        <p className="mt-2 text-sm font-semibold text-gray-300">
+          See who is building the strongest LOCKT reputation when rankings go live.
+        </p>
+        <span className="mt-3 inline-block rounded-full border border-purple-300/35 bg-purple-500/10 px-3 py-1 text-xs font-black uppercase tracking-[0.1em] text-purple-200">
+          Coming Soon
+        </span>
+      </section>
     <ReportModal
       open={reportProfileOpen && Boolean(owner.userId)}
       onClose={() => setReportProfileOpen(false)}

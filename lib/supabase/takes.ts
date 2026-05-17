@@ -38,7 +38,12 @@ export async function createLockedTake({ gameId, takeText }: CreateLockedTakeInp
   }
 
   const now = Date.now();
-  const targetGameId = gameId ?? ACTIVE_GAME_ID;
+  const { gameId: targetGameId, error: gameError } = await resolveTakeGameId(supabase, gameId);
+
+  if (gameError || !targetGameId) {
+    return { take: null, error: gameError ?? new Error("Unable to lock your take right now. Try again.") };
+  }
+
   const windowCutoffIso = new Date(now - TAKE_DUPLICATE_WINDOW_MS).toISOString();
 
   const { data: recentTakes, error: recentError } = await supabase
@@ -81,9 +86,47 @@ export async function createLockedTake({ gameId, takeText }: CreateLockedTakeInp
     .select("*")
     .single();
 
+  if (error?.code === "23503") {
+    return { take: null, error: new Error("Unable to lock your take right now. Try again.") };
+  }
+
   await touchMyPresence();
 
   return { take: data, error };
+}
+
+async function resolveTakeGameId(
+  supabase: NonNullable<ReturnType<typeof createClient>>,
+  requestedGameId?: string,
+) {
+  const preferredGameId = requestedGameId ?? ACTIVE_GAME_ID;
+
+  const { data: preferredGame } = await supabase
+    .from("games")
+    .select("id")
+    .eq("id", preferredGameId)
+    .maybeSingle();
+
+  if (preferredGame?.id) {
+    return { gameId: preferredGame.id, error: null as Error | null };
+  }
+
+  const { data: fallbackGame } = await supabase
+    .from("games")
+    .select("id")
+    .in("status", ["live", "scheduled", "final"])
+    .order("starts_at", { ascending: true, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (fallbackGame?.id) {
+    return { gameId: fallbackGame.id, error: null as Error | null };
+  }
+
+  return {
+    gameId: null,
+    error: new Error("Unable to lock your take right now. Try again."),
+  };
 }
 
 export async function getTakes() {

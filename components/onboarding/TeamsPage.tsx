@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { LocktLogo } from "@/components/LocktLogo";
 import { worldCupGroupOrder, worldCupGroups, type WorldCupGroupKey } from "@/data/worldCupGroups";
 import { createClient } from "@/lib/supabase/client";
+import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 
 const defaultSelected = ["Mexico", "United States"];
 
@@ -77,7 +78,7 @@ export function TeamsPage({ avatar, username }: { avatar?: string; username?: st
     setIsLoading(false);
 
     if (error) {
-      setMessage(error.message);
+      setMessage(getUserFacingErrorMessage(error, "Unable to save your teams right now. Try again."));
       return;
     }
 

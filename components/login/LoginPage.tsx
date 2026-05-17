@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { LocktLogo } from "@/components/LocktLogo";
 import { createClient } from "@/lib/supabase/client";
 import { getCurrentProfile, getPostLoginRedirect } from "@/lib/supabase/profiles";
+import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 
 const featureCards = [
   {
@@ -69,7 +70,7 @@ export function LoginPage() {
 
     if (error) {
       setIsLoading(false);
-      setMessage(error.message);
+      setMessage(getUserFacingErrorMessage(error, "Unable to log in right now. Try again."));
       return;
     }
 

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { LocktLogo } from "@/components/LocktLogo";
 import { buildSiteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/client";
+import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 
 const statCards = [
   {
@@ -94,7 +95,7 @@ export function CreateAccountPage() {
     setIsLoading(false);
 
     if (error) {
-      setMessage(error.message);
+      setMessage(getUserFacingErrorMessage(error, "Unable to create your account right now. Try again."));
       return;
     }
 

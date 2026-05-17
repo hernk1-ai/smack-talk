@@ -22,10 +22,9 @@ import { getCrowdPressure, getHeatStatus, getReputationLevel } from "@/lib/reput
 import { getPresenceMeta, getPresenceStatus } from "@/lib/presence";
 import { seededChaosAlerts } from "@/data/seededCrowd";
 import { getGameSport, sportTabs, type SportKey } from "@/data/sportsStructure";
-import { worldCupGroupOrder, worldCupGroups } from "@/data/worldCupGroups";
 import { worldCupChaosAlerts, worldCupFeaturedMatch, worldCupLiveArenas, worldCupTrendingTakes } from "@/data/worldCupMvp";
 import { ACTIVE_SPORT, getVisibleSportTabs, isPreTournamentMode, SHOW_MULTI_SPORT } from "@/lib/productConfig";
-import { WorldCupSchedule } from "@/components/world-cup/WorldCupSchedule";
+import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 import type { Game, Profile, TakeReaction } from "@/lib/supabase/types";
 
 type Side = "ride" | "fade";
@@ -290,7 +289,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
 
     if (error) {
       setLockTakeStatus("error");
-      setLockTakeMessage(error.message);
+      setLockTakeMessage(getUserFacingErrorMessage(error, "Unable to lock your take right now. Try again."));
       return;
     }
 
@@ -347,7 +346,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
     const { reaction: savedReaction, take, error } = await reactToTake({ takeId, reaction });
 
     if (error) {
-      setReactionMessage(error.message);
+      setReactionMessage(getUserFacingErrorMessage(error, "Could not save your reaction. Try again."));
       setReactionLoadingTakeId(null);
       return;
     }
@@ -388,16 +387,22 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
         <FeedHeader profile={profile} />
         <SportSelector activeSport={activeSport} onSelect={setActiveSport} visibleTabs={visibleSportTabs} />
         <PreTournamentCountdown />
-        <ScheduledGames activeSport={activeSport} games={scheduledSportGames} onEnterArena={onEnterArena} />
-        <PreTournamentGroups />
-        <FeedSection title="World Cup Schedule" icon="◷" action="Browse">
-          <p className="mb-3 text-sm font-semibold text-gray-300">
-            Browse upcoming matches and start building your call board.
-          </p>
-          <WorldCupSchedule limit={8} showHeader={false} showViewFullLink />
-        </FeedSection>
-        <PreTournamentStorylines />
         <PreTournamentEarlyCalls takes={visibleTakes} onOpenTake={openTakeThread} onReact={reactToLockedTake} reactions={combinedReactions} loadingTakeId={reactionLoadingTakeId} />
+        <LockTakeComposer
+          value={lockedTake}
+          status={lockTakeStatus}
+          message={lockTakeMessage}
+          lockedCount={gameTakes.length}
+          onChange={(value) => {
+            setLockedTake(value);
+            if (lockTakeStatus !== "loading") {
+              setLockTakeStatus("idle");
+              setLockTakeMessage("");
+            }
+          }}
+          onLock={lockTake}
+        />
+        <PreTournamentStorylines />
         <PreTournamentNews />
       </div>
     );
@@ -471,36 +476,37 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   );
 }
 
+// Assumes kickoff-day countdown target at midnight Eastern Time on June 11, 2026.
+const WORLD_CUP_KICKOFF_TARGET = "2026-06-11T00:00:00-04:00";
+
 function PreTournamentCountdown() {
+  const [countdown, setCountdown] = useState(getCountdownLabel());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setCountdown(getCountdownLabel());
+    }, 60000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
   return (
-    <FeedSection title="Countdown to Kickoff" icon="◷" action="View Schedule">
+    <FeedSection title="Countdown to Kickoff" icon="◷" action="Browse">
       <div className="rounded-2xl border border-lime-300/20 bg-black/45 p-4">
         <h3 className="sports-display text-3xl italic leading-none text-white sm:text-4xl">World Cup Arena Opens Soon</h3>
         <p className="mt-3 text-sm font-semibold text-gray-300">
           Study the groups. Track the storylines. Lock your calls before kickoff.
         </p>
-        <div className="mt-4 grid gap-2 sm:grid-cols-3">
-          <button type="button" className="min-h-11 rounded-xl border border-purple-300/45 bg-purple-500/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-purple-200">View Schedule</button>
-          <button type="button" className="min-h-11 rounded-xl border border-lime-300/40 bg-lime-400/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-lime-200">Explore Groups</button>
+        <p className="mt-3 inline-block rounded-lg border border-lime-300/40 bg-lime-400/10 px-3 py-2 text-sm font-black uppercase tracking-[0.12em] text-lime-200">
+          {countdown}
+        </p>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <Link href="/schedule" className="grid min-h-11 place-items-center rounded-xl border border-purple-300/45 bg-purple-500/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-purple-200">
+            Browse
+          </Link>
           <button type="button" className="min-h-11 rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-black uppercase tracking-[0.1em] text-white">Make Early Call</button>
         </div>
       </div>
-    </FeedSection>
-  );
-}
-
-function PreTournamentGroups() {
-  return (
-    <FeedSection title="Group Stage Board" icon="▦" action="Study the Groups">
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-        {worldCupGroupOrder.map((group) => (
-          <article key={group} className="rounded-xl border border-white/10 bg-black/45 p-3">
-            <p className="text-xs font-black uppercase tracking-[0.12em] text-lime-300">{group}</p>
-            <p className="mt-2 text-sm font-semibold text-gray-300">{worldCupGroups[group].map((team) => team.name).join(" · ")}</p>
-          </article>
-        ))}
-      </div>
-      <p className="mt-3 text-xs font-semibold text-gray-400">Who wins this group? Who gets out? Who is the dark horse?</p>
     </FeedSection>
   );
 }
@@ -514,7 +520,7 @@ function PreTournamentStorylines() {
   ];
 
   return (
-    <FeedSection title="Storylines to Watch" icon="◎" action="Prep Board">
+    <FeedSection title="🔥 Storylines to Watch" icon="" action="Prep Board">
       <div className="grid gap-2 sm:grid-cols-2">
         {storylines.map((storyline) => (
           <article key={storyline} className="rounded-xl border border-white/10 bg-black/45 p-3 text-sm font-semibold text-gray-300">
@@ -591,7 +597,7 @@ function PreTournamentEarlyCalls({
 
 function PreTournamentNews() {
   return (
-    <FeedSection title="Team News / Injury Watch" icon="▣" action="Coming Soon">
+    <FeedSection title="⚽ Team News / Injury Watch" icon="" action="Coming Soon">
       <div className="rounded-2xl border border-white/10 bg-black/45 p-4">
         <p className="text-sm font-semibold text-gray-300">
           Team news and injury updates will appear here as kickoff approaches.
@@ -599,6 +605,17 @@ function PreTournamentNews() {
       </div>
     </FeedSection>
   );
+}
+
+function getCountdownLabel() {
+  const now = Date.now();
+  const target = new Date(WORLD_CUP_KICKOFF_TARGET).getTime();
+  const diff = Math.max(0, target - now);
+  const totalMinutes = Math.floor(diff / (1000 * 60));
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+  const minutes = totalMinutes % 60;
+  return `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m`;
 }
 
 function SportSelector({
@@ -1033,15 +1050,15 @@ function LockTakeComposer({
             maxLength={150}
             onChange={(event) => onChange(event.target.value)}
             placeholder="Lock your World Cup call... Who wins? Who scores first?"
-            className="min-h-24 w-full resize-none rounded-2xl border border-purple-300/45 bg-black/55 px-4 py-4 pr-16 text-base font-semibold text-white outline-none transition placeholder:text-gray-600 focus:border-lime-300/60 focus:shadow-[0_0_24px_rgba(132,204,22,0.12)] md:min-h-16"
+            className="min-h-24 w-full resize-none rounded-2xl border border-purple-300/45 bg-black/55 px-4 pb-10 pt-4 text-base font-semibold text-white outline-none transition placeholder:text-gray-600 focus:border-lime-300/60 focus:shadow-[0_0_24px_rgba(132,204,22,0.12)] md:min-h-20"
           />
-          <span className="absolute bottom-3 right-4 text-xs font-bold text-gray-500">{value.length}/150</span>
+          <span className="pointer-events-none absolute bottom-3 right-4 text-xs font-bold text-gray-500">{value.length}/150</span>
         </div>
         <button
           type="button"
           onClick={onLock}
           disabled={isLockedDisabled}
-          className="min-h-14 rounded-2xl border border-purple-300/60 bg-purple-500/15 px-6 text-sm font-black uppercase tracking-[0.12em] text-purple-100 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition hover:-translate-y-0.5 hover:bg-purple-500/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+          className="min-h-14 w-full rounded-2xl border border-purple-300/60 bg-purple-500/15 px-6 text-sm font-black uppercase tracking-[0.12em] text-purple-100 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition hover:-translate-y-0.5 hover:bg-purple-500/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 md:w-auto"
         >
           {status === "loading" ? "Locking..." : "Lock It Before Kickoff 🔒"}
         </button>
@@ -1712,7 +1729,7 @@ function FeedSection({
     <section className="rounded-[1.75rem] border border-white/10 bg-black/30 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.34)] backdrop-blur">
       <div className="mb-3 flex items-center justify-between gap-3 px-1">
         <h2 className="sports-display text-2xl italic leading-none text-white">
-          <span className="mr-2 not-italic">{icon}</span>
+          {icon ? <span className="mr-2 not-italic">{icon}</span> : null}
           {title}
         </h2>
         <button type="button" className="text-xs font-black uppercase text-purple-300">

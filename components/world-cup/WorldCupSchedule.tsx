@@ -63,7 +63,7 @@ export function WorldCupSchedule({ limit, showHeader = true, showViewFullLink = 
     <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.34)]">
       {showHeader ? (
         <div className="mb-4">
-          <h1 className="sports-display text-3xl italic leading-none text-white sm:text-4xl">World Cup 2026 Schedule</h1>
+          <h1 className="sports-display text-3xl italic leading-none text-white sm:text-4xl">WORLD CUP 2026 SCHEDULE</h1>
           <p className="mt-2 text-sm font-semibold text-gray-300">
             Browse the matches. Study the groups. Lock your calls before kickoff.
           </p>

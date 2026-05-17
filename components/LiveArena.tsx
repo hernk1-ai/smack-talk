@@ -8,7 +8,7 @@ import { ACTIVE_GAME_ID, getGameById } from "@/lib/supabase/games";
 import { createQuickPick, getMyQuickPicks } from "@/lib/supabase/quickPicks";
 import type { Game } from "@/lib/supabase/types";
 
-type ArenaTab = "chat" | "calls" | "control-room" | "top-talkers";
+type ArenaTab = "chat" | "calls" | "control-room";
 type Side = "ride" | "fade";
 
 type ChatTake = {
@@ -302,12 +302,10 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
               />
             )}
             {activeTab === "control-room" && <ControlRoomPanel game={game} />}
-            {activeTab === "top-talkers" && <TopTalkersPanel />}
           </section>
 
           <aside className="space-y-4">
             {activeTab !== "control-room" && <ControlRoomPanel game={game} />}
-            {activeTab !== "top-talkers" && <TopTalkersPanel />}
             <ArenaVibePanel />
           </aside>
         </div>
@@ -764,11 +762,10 @@ function ArenaTabs({ activeTab, onSelect }: { activeTab: ArenaTab; onSelect: (ta
     { id: "chat", label: "Chat" },
     { id: "calls", label: "Calls", count: "132" },
     { id: "control-room", label: "Control Room" },
-    { id: "top-talkers", label: "Top Talkers" },
   ];
 
   return (
-    <nav className="grid grid-cols-4 gap-1 rounded-[1.5rem] border border-white/10 bg-black/35 p-1.5 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur">
+    <nav className="grid grid-cols-3 gap-1 rounded-[1.5rem] border border-white/10 bg-black/35 p-1.5 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur">
       {tabs.map((tab) => (
         <button
           key={tab.id}
@@ -952,6 +949,8 @@ function ControlRoomPanel({ game }: { game: Game | null }) {
   );
 }
 
+// Retained for future re-enable when rankings return to Live Arena navigation.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function TopTalkersPanel() {
   return (
     <section className="rounded-[1.5rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">

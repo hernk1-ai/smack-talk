@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 
-export type AppView = "arena" | "live-arena" | "receipts" | "top-talkers" | "profile";
-type NavView = "arena" | "receipts" | "top-talkers" | "settings";
+export type AppView = "arena" | "live-arena" | "receipts" | "top-talkers" | "profile" | "schedule";
+type NavView = "arena" | "receipts" | "schedule" | "settings";
 
 const navItems: { id: NavView; label: string; icon: string }[] = [
   { id: "arena", label: "Arena", icon: "◉" },
+  { id: "schedule", label: "Schedule", icon: "◷" },
   { id: "receipts", label: "Receipts", icon: "▤" },
-  { id: "top-talkers", label: "Top Talkers", icon: "♕" },
   { id: "settings", label: "Settings", icon: "⚙" },
 ];
 
@@ -39,7 +39,7 @@ export function BottomNav({ activeView, onSelect }: { activeView: AppView; onSel
 const routeByView: Record<NavView, string> = {
   arena: "/app",
   receipts: "/receipts",
-  "top-talkers": "/top-talkers",
+  schedule: "/schedule",
   settings: "/settings",
 };
 

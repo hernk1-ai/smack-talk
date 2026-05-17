@@ -41,7 +41,7 @@ export function LocktApp({
     setAppView("live-arena");
     router.push(`/game/${gameId}`);
   };
-  const selectBottomNav = (view: "arena" | "receipts" | "top-talkers" | "settings") => {
+  const selectBottomNav = (view: "arena" | "receipts" | "schedule" | "settings") => {
     if (view === "arena") {
       router.push("/app");
       setAppView("arena");
@@ -54,9 +54,8 @@ export function LocktApp({
       return;
     }
 
-    if (view === "top-talkers") {
-      router.push("/top-talkers");
-      setAppView("top-talkers");
+    if (view === "schedule") {
+      router.push("/schedule");
       return;
     }
 
