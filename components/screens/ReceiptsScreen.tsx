@@ -16,6 +16,7 @@ import {
   type ReputationBadge,
 } from "@/lib/reputation";
 import { getCurrentUserReceipts, getReceiptsByUser } from "@/lib/supabase/receipts";
+import { getCurrentUserMatchPicks } from "@/lib/supabase/matchPicks";
 import { getCurrentUserTakes } from "@/lib/supabase/takes";
 import type { Profile, Receipt } from "@/lib/supabase/types";
 import { ReportModal } from "@/components/moderation/ReportModal";
@@ -221,6 +222,18 @@ export function ReceiptsScreen({
   const currentUser = owner;
   const [realReceipts, setRealReceipts] = useState<Receipt[]>([]);
   const [myLockedTakes, setMyLockedTakes] = useState<Array<{ id: string; take_text: string; created_at: string; game_id: string; ride_count: number; fade_count: number }>>([]);
+  const [myMatchPicks, setMyMatchPicks] = useState<
+    Array<{
+      id: string;
+      home_team: string | null;
+      away_team: string | null;
+      selected_winner: string;
+      home_score: number;
+      away_score: number;
+      stage: string | null;
+      created_at: string;
+    }>
+  >([]);
   const [receiptError, setReceiptError] = useState("");
   const [sharedReceiptState, setSharedReceiptState] = useState<{ id: string; outcome: Exclude<ShareOutcome, "cancelled"> } | null>(null);
   const [reportProfileOpen, setReportProfileOpen] = useState(false);
@@ -244,7 +257,7 @@ export function ReceiptsScreen({
       setReceiptError(error ? getUserFacingErrorMessage(error, "Could not load receipts right now.") : "");
 
       if (owner.isCurrentUser) {
-        const { takes } = await getCurrentUserTakes();
+        const [{ takes }, { picks }] = await Promise.all([getCurrentUserTakes(), getCurrentUserMatchPicks()]);
         setMyLockedTakes(
           takes.map((take) => ({
             id: take.id,
@@ -253,6 +266,18 @@ export function ReceiptsScreen({
             game_id: take.game_id,
             ride_count: take.ride_count,
             fade_count: take.fade_count,
+          })),
+        );
+        setMyMatchPicks(
+          picks.map((pick) => ({
+            id: pick.id,
+            home_team: pick.home_team,
+            away_team: pick.away_team,
+            selected_winner: pick.selected_winner,
+            home_score: pick.home_score,
+            away_score: pick.away_score,
+            stage: pick.stage,
+            created_at: pick.created_at,
           })),
         );
       }
@@ -331,28 +356,53 @@ export function ReceiptsScreen({
       )}
 
       {preTournamentMode ? (
-        myLockedTakes.length ? (
-          <ReceiptSection title="Your Locked Takes" icon="▤" action="">
-            <div className="space-y-2">
-              {myLockedTakes.slice(0, 12).map((take) => {
-                const total = Math.max(take.ride_count + take.fade_count, 1);
-                const ridePercent = Math.round((take.ride_count / total) * 100);
-                const fadePercent = 100 - ridePercent;
-                return (
-                  <article key={take.id} className="rounded-2xl border border-white/10 bg-black/45 p-3">
-                    <p className="text-sm font-black text-white">{take.take_text}</p>
-                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.1em] text-lime-300">Locked before kickoff</p>
-                    <p className="mt-1 text-xs font-semibold text-gray-400">Receipt pending</p>
-                    <p className="mt-1 text-[11px] font-semibold text-gray-500">{formatReceiptAge(take.created_at)} · {take.game_id.replaceAll("-", " ")}</p>
-                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-black uppercase">
-                      <span className="rounded-md border border-lime-300/25 bg-lime-400/10 px-2 py-1 text-lime-200">Ride {ridePercent}%</span>
-                      <span className="rounded-md border border-purple-300/25 bg-purple-500/10 px-2 py-1 text-purple-200">Fade {fadePercent}%</span>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </ReceiptSection>
+        myLockedTakes.length || myMatchPicks.length ? (
+          <>
+            {myMatchPicks.length ? (
+              <ReceiptSection title="Match Picks" icon="◷" action="">
+                <div className="space-y-2">
+                  {myMatchPicks.slice(0, 12).map((pick) => (
+                    <article key={pick.id} className="rounded-2xl border border-white/10 bg-black/45 p-3">
+                      <p className="text-sm font-black text-white">
+                        {pick.home_team ?? "Home"} vs {pick.away_team ?? "Away"}
+                      </p>
+                      <p className="mt-1 text-xs font-semibold text-gray-300">
+                        Pick: {pick.selected_winner} · Score {pick.home_score}-{pick.away_score}
+                      </p>
+                      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.1em] text-lime-300">Locked before kickoff</p>
+                      <p className="mt-1 text-xs font-semibold text-gray-400">Receipt pending</p>
+                      <p className="mt-1 text-[11px] font-semibold text-gray-500">
+                        Match Pick · {pick.stage ?? "World Cup"} · {formatReceiptAge(pick.created_at)}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              </ReceiptSection>
+            ) : null}
+            {myLockedTakes.length ? (
+              <ReceiptSection title="Locked Takes" icon="▤" action="">
+                <div className="space-y-2">
+                  {myLockedTakes.slice(0, 12).map((take) => {
+                    const total = Math.max(take.ride_count + take.fade_count, 1);
+                    const ridePercent = Math.round((take.ride_count / total) * 100);
+                    const fadePercent = 100 - ridePercent;
+                    return (
+                      <article key={take.id} className="rounded-2xl border border-white/10 bg-black/45 p-3">
+                        <p className="text-sm font-black text-white">{take.take_text}</p>
+                        <p className="mt-1 text-xs font-semibold uppercase tracking-[0.1em] text-lime-300">Locked before kickoff</p>
+                        <p className="mt-1 text-xs font-semibold text-gray-400">Receipt pending</p>
+                        <p className="mt-1 text-[11px] font-semibold text-gray-500">{formatReceiptAge(take.created_at)} · {take.game_id.replaceAll("-", " ")}</p>
+                        <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-black uppercase">
+                          <span className="rounded-md border border-lime-300/25 bg-lime-400/10 px-2 py-1 text-lime-200">Ride {ridePercent}%</span>
+                          <span className="rounded-md border border-purple-300/25 bg-purple-500/10 px-2 py-1 text-purple-200">Fade {fadePercent}%</span>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </ReceiptSection>
+            ) : null}
+          </>
         ) : (
           <ReceiptSection title="No receipts yet." icon="▤" action="Make a World Cup Call">
             <div className="rounded-2xl border border-white/10 bg-black/45 p-4">
@@ -633,7 +683,7 @@ function ReceiptSection({
 }: {
   title: string;
   icon: string;
-  action: string;
+  action?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -643,9 +693,11 @@ function ReceiptSection({
           <span className="mr-2 not-italic">{icon}</span>
           {title}
         </h2>
-        <button type="button" className="rounded-full px-2 py-1 text-xs font-black uppercase text-purple-300 transition hover:bg-purple-500/10 hover:text-purple-100 active:scale-95">
-          {action} ›
-        </button>
+        {action ? (
+          <button type="button" className="rounded-full px-2 py-1 text-xs font-black uppercase text-purple-300 transition hover:bg-purple-500/10 hover:text-purple-100 active:scale-95">
+            {action} ›
+          </button>
+        ) : null}
       </div>
       {children}
     </section>

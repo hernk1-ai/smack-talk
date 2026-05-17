@@ -197,6 +197,65 @@ export type Database = {
           },
         ];
       };
+      match_picks: {
+        Row: {
+          id: string;
+          user_id: string;
+          match_id: string;
+          match_number: number | null;
+          stage: string | null;
+          home_team: string | null;
+          away_team: string | null;
+          selected_winner: string;
+          home_score: number;
+          away_score: number;
+          kickoff_at: string;
+          status: "locked" | "settled";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          match_id: string;
+          match_number?: number | null;
+          stage?: string | null;
+          home_team?: string | null;
+          away_team?: string | null;
+          selected_winner: string;
+          home_score: number;
+          away_score: number;
+          kickoff_at: string;
+          status?: "locked" | "settled";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          match_id?: string;
+          match_number?: number | null;
+          stage?: string | null;
+          home_team?: string | null;
+          away_team?: string | null;
+          selected_winner?: string;
+          home_score?: number;
+          away_score?: number;
+          kickoff_at?: string;
+          status?: "locked" | "settled";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "match_picks_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       quick_picks: {
         Row: {
           id: string;
@@ -685,6 +744,7 @@ export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Game = Database["public"]["Tables"]["games"]["Row"];
 export type GamePick = Database["public"]["Tables"]["game_picks"]["Row"];
 export type QuickPick = Database["public"]["Tables"]["quick_picks"]["Row"];
+export type MatchPick = Database["public"]["Tables"]["match_picks"]["Row"];
 export type Take = Database["public"]["Tables"]["takes"]["Row"];
 export type TakeReaction = Database["public"]["Tables"]["take_reactions"]["Row"];
 export type TakeReply = Database["public"]["Tables"]["take_replies"]["Row"];

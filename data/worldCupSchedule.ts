@@ -13,6 +13,8 @@ export type WorldCupMatch = {
   status: "upcoming";
 };
 
+const EASTERN_TIME_OFFSET = "-04:00";
+
 // Schedule data should be verified against current official sources before launch.
 export const worldCupSchedule: WorldCupMatch[] = [
   { id: 1, date: "2026-06-11", kickoffET: "3:00 PM ET", group: "A", homeTeam: "Mexico", awayTeam: "South Africa", city: "Mexico City", venue: "Estadio Azteca", stage: "Group Stage", status: "upcoming" },
@@ -40,3 +42,60 @@ export const worldCupSchedule: WorldCupMatch[] = [
   { id: 23, date: "2026-07-08", kickoffET: "7:00 PM ET", group: "KO", homeTeam: "Quarterfinalist", awayTeam: "Quarterfinalist", city: "Miami", venue: "Hard Rock Stadium", stage: "Quarterfinal", status: "upcoming" },
   { id: 24, date: "2026-07-14", kickoffET: "8:00 PM ET", group: "KO", homeTeam: "Semifinal Winner", awayTeam: "Semifinal Winner", city: "New York", venue: "MetLife Stadium", stage: "Final", status: "upcoming" },
 ];
+
+export function getWorldCupMatchById(matchId: number | string) {
+  const normalizedId = typeof matchId === "string" ? Number.parseInt(matchId, 10) : matchId;
+  if (!Number.isFinite(normalizedId)) {
+    return null;
+  }
+
+  return worldCupSchedule.find((match) => match.id === normalizedId) ?? null;
+}
+
+export function getWorldCupMatchId(match: WorldCupMatch) {
+  return `wc-2026-${match.id}`;
+}
+
+export function getWorldCupKickoffIso(match: WorldCupMatch) {
+  const parsed = parseEtTime(match.kickoffET);
+  if (!parsed) {
+    return null;
+  }
+
+  const hours = String(parsed.hours24).padStart(2, "0");
+  const minutes = String(parsed.minutes).padStart(2, "0");
+  // Assumption: schedule ET times are EDT (UTC-04:00) for pre-tournament dates.
+  return `${match.date}T${hours}:${minutes}:00${EASTERN_TIME_OFFSET}`;
+}
+
+export function isWorldCupMatchLocked(match: WorldCupMatch, now = new Date()) {
+  const kickoffIso = getWorldCupKickoffIso(match);
+  if (!kickoffIso) {
+    return false;
+  }
+
+  return now.getTime() >= new Date(kickoffIso).getTime();
+}
+
+function parseEtTime(value: string) {
+  const trimmed = value.trim();
+  const match = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)\s*ET$/i);
+  if (!match) {
+    return null;
+  }
+
+  const hourRaw = Number.parseInt(match[1], 10);
+  const minutes = Number.parseInt(match[2], 10);
+  const suffix = match[3].toUpperCase();
+
+  if (!Number.isFinite(hourRaw) || !Number.isFinite(minutes) || hourRaw < 1 || hourRaw > 12 || minutes < 0 || minutes > 59) {
+    return null;
+  }
+
+  const hours24 = suffix === "PM" ? (hourRaw === 12 ? 12 : hourRaw + 12) : hourRaw === 12 ? 0 : hourRaw;
+
+  return {
+    hours24,
+    minutes,
+  };
+}
