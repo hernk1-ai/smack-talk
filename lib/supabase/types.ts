@@ -19,7 +19,7 @@ export type Database = {
           onboarding_completed: boolean;
           last_active_at: string;
           is_suspended: boolean;
-          created_at: string
+          created_at: string;
           updated_at: string;
         };
         Insert: {
@@ -254,11 +254,57 @@ export type Database = {
           },
         ];
       };
+      storylines: {
+        Row: {
+          id: string;
+          slug: string;
+          title: string;
+          teaser: string;
+          body: string;
+          category: string;
+          related_teams: string[];
+          related_group: string | null;
+          image_url: string | null;
+          video_url: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          slug: string;
+          title: string;
+          teaser: string;
+          body: string;
+          category: string;
+          related_teams?: string[];
+          related_group?: string | null;
+          image_url?: string | null;
+          video_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          slug?: string;
+          title?: string;
+          teaser?: string;
+          body?: string;
+          category?: string;
+          related_teams?: string[];
+          related_group?: string | null;
+          image_url?: string | null;
+          video_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       takes: {
         Row: {
           id: string;
           user_id: string;
           game_id: string;
+          storyline_id: string | null;
           take_text: string;
           status: "locked" | "settled";
           result: "pending" | "hit" | "miss";
@@ -276,6 +322,7 @@ export type Database = {
           id?: string;
           user_id: string;
           game_id: string;
+          storyline_id?: string | null;
           take_text: string;
           status?: "locked" | "settled";
           result?: "pending" | "hit" | "miss";
@@ -293,6 +340,7 @@ export type Database = {
           id?: string;
           user_id?: string;
           game_id?: string;
+          storyline_id?: string | null;
           take_text?: string;
           status?: "locked" | "settled";
           result?: "pending" | "hit" | "miss";
@@ -312,6 +360,13 @@ export type Database = {
             columns: ["game_id"];
             isOneToOne: false;
             referencedRelation: "games";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "takes_storyline_id_fkey";
+            columns: ["storyline_id"];
+            isOneToOne: false;
+            referencedRelation: "storylines";
             referencedColumns: ["id"];
           },
           {

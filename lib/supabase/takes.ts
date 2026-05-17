@@ -5,13 +5,14 @@ import type { Take } from "@/lib/supabase/types";
 
 type CreateLockedTakeInput = {
   gameId?: string;
+  storylineId?: string | null;
   takeText: string;
 };
 
 const TAKE_DUPLICATE_WINDOW_MS = 3 * 60 * 1000;
 const TAKE_ACTION_COOLDOWN_MS = 6 * 1000;
 
-export async function createLockedTake({ gameId, takeText }: CreateLockedTakeInput) {
+export async function createLockedTake({ gameId, storylineId, takeText }: CreateLockedTakeInput) {
   const supabase = createClient();
 
   if (!supabase) {
@@ -81,6 +82,7 @@ export async function createLockedTake({ gameId, takeText }: CreateLockedTakeInp
     .insert({
       user_id: user.id,
       game_id: targetGameId,
+      storyline_id: storylineId ?? null,
       take_text: cleanTakeText,
     })
     .select("*")

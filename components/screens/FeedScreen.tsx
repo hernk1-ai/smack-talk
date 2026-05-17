@@ -24,6 +24,7 @@ import { getCrowdPressure, getHeatStatus, getReputationLevel } from "@/lib/reput
 import { getPresenceMeta, getPresenceStatus } from "@/lib/presence";
 import { seededChaosAlerts } from "@/data/seededCrowd";
 import { getGameSport, sportTabs, type SportKey } from "@/data/sportsStructure";
+import { worldCupStorylines } from "@/data/worldCupStorylines";
 import { worldCupChaosAlerts, worldCupFeaturedMatch, worldCupLiveArenas, worldCupTrendingTakes } from "@/data/worldCupMvp";
 import { ACTIVE_SPORT, getVisibleSportTabs, isPreTournamentMode, SHOW_MULTI_SPORT } from "@/lib/productConfig";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
@@ -587,20 +588,27 @@ function PreTournamentCountdown() {
 }
 
 function PreTournamentStorylines() {
-  const storylines = [
-    "Can the hosts make a run?",
-    "Which favorite has the most pressure?",
-    "Which group has the biggest upset potential?",
-    "Who is the tournament dark horse?",
-  ];
+  const storylines = worldCupStorylines.slice(0, 5);
 
   return (
     <FeedSection title="🔥 Storylines to Watch" icon="" action="Prep Board">
       <div className="grid gap-2 sm:grid-cols-2">
         {storylines.map((storyline) => (
-          <article key={storyline} className="rounded-xl border border-white/10 bg-black/45 p-3 text-sm font-semibold text-gray-300">
-            {storyline}
-          </article>
+          <Link
+            key={storyline.id}
+            href={`/storylines/${storyline.slug}`}
+            className="rounded-xl border border-white/10 bg-black/45 p-3 transition hover:border-purple-300/35 hover:bg-white/[0.03]"
+          >
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">
+              {storyline.category}
+              {storyline.videoUrl ? " · Watch" : " · Read"}
+            </p>
+            <h3 className="mt-1 text-sm font-black text-white">{storyline.title}</h3>
+            <p className="mt-1 text-xs font-semibold text-gray-400">{storyline.teaser}</p>
+            <p className="mt-2 text-[10px] font-black uppercase tracking-[0.1em] text-purple-300">
+              {storyline.videoUrl ? "Watch" : "Read"} ›
+            </p>
+          </Link>
         ))}
       </div>
     </FeedSection>

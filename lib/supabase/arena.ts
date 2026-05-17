@@ -47,6 +47,7 @@ export function seededTakeToArenaTake(take: SeededTake): ArenaTake {
     id: take.id,
     user_id: take.userId,
     game_id: take.gameId,
+    storyline_id: null,
     take_text: take.takeText,
     status: take.status,
     result: take.result,
@@ -201,6 +202,46 @@ export async function getArenaFeedByGameIds(gameIds: string[]) {
 
   const visibleTakes = takes.filter((take) => !excludedUserIds.has(take.user_id));
 
+  if (!visibleTakes.length) {
+    return { takes: [] as ArenaTake[], error: null };
+  }
+
+  const userIds = [...new Set(visibleTakes.map((take) => take.user_id))];
+  const { data: profileCards } = await supabase.from("profile_cards").select("*").in("id", userIds);
+  const profileMap = new Map((profileCards ?? []).map((profileCard) => [profileCard.id, profileCard]));
+
+  return {
+    takes: visibleTakes.map((take) => ({
+      ...take,
+      author: profileMap.get(take.user_id) ?? null,
+    })),
+    error: null,
+  };
+}
+
+export async function getArenaFeedByStorylineId(storylineId: string) {
+  const supabase = createClient();
+
+  if (!supabase) {
+    return { takes: [] as ArenaTake[], error: new Error("Supabase is not configured.") };
+  }
+
+  const { mutedUserIds, blockedUserIds } = await getMyModerationFilters();
+  const excludedUserIds = new Set([...mutedUserIds, ...blockedUserIds]);
+
+  const { data: takes, error } = await supabase
+    .from("takes")
+    .select("*")
+    .eq("storyline_id", storylineId)
+    .eq("is_hidden", false)
+    .order("created_at", { ascending: false })
+    .limit(80);
+
+  if (error || !takes?.length) {
+    return { takes: [] as ArenaTake[], error };
+  }
+
+  const visibleTakes = takes.filter((take) => !excludedUserIds.has(take.user_id));
   if (!visibleTakes.length) {
     return { takes: [] as ArenaTake[], error: null };
   }

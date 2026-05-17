@@ -220,10 +220,8 @@ export function ReceiptsScreen({
   const owner = getReceiptOwner(profile, recordOwner);
   const currentUser = owner;
   const [realReceipts, setRealReceipts] = useState<Receipt[]>([]);
-  const [pendingTakeText, setPendingTakeText] = useState("");
   const [myLockedTakes, setMyLockedTakes] = useState<Array<{ id: string; take_text: string; created_at: string; game_id: string; ride_count: number; fade_count: number }>>([]);
   const [receiptError, setReceiptError] = useState("");
-  const [profileShareState, setProfileShareState] = useState<"idle" | ShareOutcome>("idle");
   const [sharedReceiptState, setSharedReceiptState] = useState<{ id: string; outcome: Exclude<ShareOutcome, "cancelled"> } | null>(null);
   const [reportProfileOpen, setReportProfileOpen] = useState(false);
   const preTournamentMode = isPreTournamentMode();
@@ -257,7 +255,6 @@ export function ReceiptsScreen({
             fade_count: take.fade_count,
           })),
         );
-        setPendingTakeText((takes[0]?.take_text ?? "").trim());
       }
     }
 
@@ -291,25 +288,6 @@ export function ReceiptsScreen({
     return seededReceipts.length ? seededReceipts.map((receipt, index) => mapSeededReceiptToViral(receipt, owner, index)) : viralReceipts;
   }, [owner, preTournamentMode, realReceipts.length]);
   const featuredReceipt = realReceipts[0] ?? null;
-
-  async function copyShareUrl() {
-    const shareUrl = buildSiteUrl(getReceiptHref(owner.handle, false));
-
-    try {
-      const outcome = await shareWithFallback({
-        title: `${owner.handle} Receipts`,
-        text: "Check the receipt.",
-        url: shareUrl,
-      });
-      if (outcome === "cancelled") {
-        return;
-      }
-      setProfileShareState(outcome);
-      window.setTimeout(() => setProfileShareState("idle"), 1800);
-    } catch {
-      setReceiptError("Could not share this receipt link.");
-    }
-  }
 
   async function shareReceiptLink(receiptId: string) {
     const shareUrl = buildSiteUrl("/receipt/" + encodeURIComponent(receiptId));
