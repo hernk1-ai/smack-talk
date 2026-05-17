@@ -7,6 +7,7 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { createClient } from "@/lib/supabase/client";
 import { seededProfiles } from "@/data/seededCrowd";
 import { getPresenceMeta, getPresenceStatus } from "@/lib/presence";
+import { isPreTournamentMode } from "@/lib/productConfig";
 import { getHeatStatus, getReputationBadges, getReputationLevel } from "@/lib/reputation";
 import type { Profile } from "@/lib/supabase/types";
 
@@ -100,13 +101,14 @@ const categoryCards: CategoryCard[] = [
 ];
 
 export function TopTalkersScreen({ profile }: { profile?: Profile | null }) {
+  const preTournamentMode = isPreTournamentMode();
   const [activeTab, setActiveTab] = useState<TalkersTab>("overall");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSport, setActiveSport] = useState<SportFilter>("World Cup");
   const [realProfiles, setRealProfiles] = useState<Profile[]>(profile ? [profile] : []);
   const rankedTalkers = useMemo(
-    () => getRankedTalkers(activeTab, activeSport, searchQuery, realProfiles, profile),
-    [activeSport, activeTab, profile, realProfiles, searchQuery],
+    () => getRankedTalkers(activeTab, activeSport, searchQuery, realProfiles, profile, preTournamentMode),
+    [activeSport, activeTab, preTournamentMode, profile, realProfiles, searchQuery],
   );
   const podiumRows = useMemo(() => rowsToPodium(rankedTalkers.slice(0, 3)), [rankedTalkers]);
 
@@ -161,7 +163,7 @@ export function TopTalkersScreen({ profile }: { profile?: Profile | null }) {
       <TalkerSearch value={searchQuery} onChange={setSearchQuery} />
       {activeTab === "overall" && !searchQuery.trim() ? <Podium talkers={podiumRows} /> : null}
       <TopTalkersBoard activeTab={activeTab} talkers={rankedTalkers} />
-      <CategoryGrid />
+      <CategoryGrid preTournamentMode={preTournamentMode} />
     </div>
   );
 }
@@ -408,12 +410,18 @@ function TopTalkersBoard({ activeTab, talkers }: { activeTab: TalkersTab; talker
           Top Talkers Board
         </h2>
         <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.1em] text-gray-400">
-          {activeTab === "search" ? "Search results" : "Updated live"}
+          {activeTab === "search" ? "Search results" : "Pre-tournament"}
           <span className="h-2 w-2 rounded-full bg-lime-400 shadow-[0_0_14px_rgba(132,204,22,0.8)]" />
         </p>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/35">
+        {!talkers.length ? (
+          <div className="px-4 py-6">
+            <p className="text-sm font-black uppercase tracking-[0.1em] text-lime-300">No rankings yet.</p>
+            <p className="mt-2 text-sm font-semibold text-gray-300">Public boards will populate as World Cup calls are locked.</p>
+          </div>
+        ) : null}
         <div className="hidden grid-cols-[minmax(0,1fr)_4.25rem_3.5rem_4.25rem_3.25rem] gap-2 border-b border-white/10 px-3 py-2.5 text-[10px] font-black uppercase tracking-[0.08em] text-gray-400 sm:grid">
           <span>Talker</span>
           <span>🔥 Heat</span>
@@ -492,10 +500,17 @@ function TableStat({ label, value, tone }: { label: string; value: string; tone:
   );
 }
 
-function CategoryGrid() {
+function CategoryGrid({ preTournamentMode }: { preTournamentMode: boolean }) {
+  const cards = preTournamentMode
+    ? [
+        { title: "Most Early Calls", subtitle: "Who is locking takes first.", icon: "◷", tone: "heat" as const, avatars: ["WC", "EA", "CL"] },
+        { title: "Most Debated Calls", subtitle: "Calls drawing the most responses.", icon: "◎", tone: "viral" as const, avatars: ["DB", "CF", "GR"] },
+        { title: "Boldest Calls", subtitle: "Hot takes before kickoff.", icon: "ϟ", tone: "clutch" as const, avatars: ["UP", "DH", "GW"] },
+      ]
+    : categoryCards;
   return (
     <section className="grid gap-3 sm:grid-cols-3">
-      {categoryCards.map((card) => (
+      {cards.map((card) => (
         <CategoryPanel key={card.title} card={card} />
       ))}
     </section>
@@ -544,9 +559,12 @@ function getRankedTalkers(
   searchQuery: string,
   realProfiles: Profile[],
   currentProfile?: Profile | null,
+  preTournamentMode?: boolean,
 ): TalkerRow[] {
   const realRows = profilesToTalkers(realProfiles, currentProfile);
-  const seededRows = seededProfilesToTalkers().filter(
+  const seededRows = preTournamentMode
+    ? []
+    : seededProfilesToTalkers().filter(
     (talker) => !realRows.some((realTalker) => realTalker.handle.toLowerCase() === talker.handle.toLowerCase()),
   );
   const combinedTalkers: TalkerRow[] = [

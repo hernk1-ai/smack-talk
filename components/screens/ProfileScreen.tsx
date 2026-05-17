@@ -21,34 +21,34 @@ type ActivityItem = {
   tone: "green" | "purple" | "blue";
 };
 
-const identityTags = ["Tournament Rep", "Group Stage Locked", "3x Receipt Hit"];
+const identityTags = ["Tournament Rep Coming Soon", "On Record", "Early Calls Locked"];
 
 const socialItems: SocialItem[] = [
-  { label: "World Cup Record", value: "4.2K", detail: "Calls on record", tone: "white" },
-  { label: "Calls Locked", value: "312", detail: "Before kickoff", tone: "white" },
-  { label: "Crew", value: "Soon", detail: "Coming soon", tone: "purple" },
-  { label: "Messages", value: "Soon", detail: "Coming soon", tone: "purple" },
+  { label: "Calls Locked", value: "0", detail: "Before kickoff", tone: "white" },
+  { label: "Early World Cup Calls", value: "0", detail: "Public calls", tone: "white" },
+  { label: "Pending Receipts", value: "0", detail: "Unlocks at kickoff", tone: "purple" },
+  { label: "Tournament Rep", value: "Soon", detail: "Coming soon", tone: "purple" },
 ];
 
 const recentActivity: ActivityItem[] = [
   {
-    type: "Latest lock",
-    title: "Paraguay can steal this.",
-    meta: "World Cup Group Stage · 2d ago",
-    icon: "ϟ",
+    type: "Prep note",
+    title: "Groups are set. Early calls are open.",
+    meta: "World Cup prep board",
+    icon: "◷",
     tone: "green",
   },
   {
-    type: "Latest receipt",
-    title: "USA gets the opener done.",
-    meta: "Talk backed up · 2h ago",
+    type: "Receipts",
+    title: "Receipts unlock when matches begin.",
+    meta: "Check the receipt after kickoff",
     icon: "▤",
     tone: "purple",
   },
   {
-    type: "Latest ride/fade",
-    title: "Faded the public before kickoff.",
-    meta: "Heat rising · 4h ago",
+    type: "Early call",
+    title: "Lock your group winners before kickoff.",
+    meta: "Called it starts now",
     icon: "◌",
     tone: "blue",
   },

@@ -1,0 +1,179 @@
+"use client";
+
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { worldCupSchedule, type WorldCupGroup, type WorldCupMatch } from "@/data/worldCupSchedule";
+
+const groupFilters: Array<{ value: "ALL" | WorldCupGroup; label: string }> = [
+  { value: "ALL", label: "All Groups" },
+  { value: "A", label: "Group A" },
+  { value: "B", label: "Group B" },
+  { value: "C", label: "Group C" },
+  { value: "D", label: "Group D" },
+  { value: "E", label: "Group E" },
+  { value: "F", label: "Group F" },
+  { value: "G", label: "Group G" },
+  { value: "H", label: "Group H" },
+  { value: "I", label: "Group I" },
+  { value: "J", label: "Group J" },
+  { value: "K", label: "Group K" },
+  { value: "L", label: "Group L" },
+  { value: "KO", label: "Knockout Stage" },
+];
+
+type WorldCupScheduleProps = {
+  limit?: number;
+  showHeader?: boolean;
+  showViewFullLink?: boolean;
+};
+
+export function WorldCupSchedule({ limit, showHeader = true, showViewFullLink = false }: WorldCupScheduleProps) {
+  const [selectedGroup, setSelectedGroup] = useState<"ALL" | WorldCupGroup>("ALL");
+  const [selectedCity, setSelectedCity] = useState("All Cities");
+  const [selectedTeam, setSelectedTeam] = useState("All Teams");
+
+  const cities = useMemo(() => ["All Cities", ...new Set(worldCupSchedule.map((match) => match.city))], []);
+  const teams = useMemo(
+    () => ["All Teams", ...new Set(worldCupSchedule.flatMap((match) => [match.homeTeam, match.awayTeam].filter(Boolean) as string[]))],
+    [],
+  );
+
+  const filteredMatches = useMemo(() => {
+    const matches = worldCupSchedule.filter((match) => {
+      if (selectedGroup !== "ALL" && match.group !== selectedGroup) return false;
+      if (selectedCity !== "All Cities" && match.city !== selectedCity) return false;
+      if (selectedTeam !== "All Teams" && match.homeTeam !== selectedTeam && match.awayTeam !== selectedTeam) return false;
+      return true;
+    });
+
+    return typeof limit === "number" ? matches.slice(0, limit) : matches;
+  }, [limit, selectedCity, selectedGroup, selectedTeam]);
+
+  const groupedByDate = useMemo(() => {
+    const byDate = new Map<string, WorldCupMatch[]>();
+    filteredMatches.forEach((match) => {
+      const list = byDate.get(match.date) ?? [];
+      list.push(match);
+      byDate.set(match.date, list);
+    });
+    return [...byDate.entries()];
+  }, [filteredMatches]);
+
+  return (
+    <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.34)]">
+      {showHeader ? (
+        <div className="mb-4">
+          <h1 className="sports-display text-3xl italic leading-none text-white sm:text-4xl">World Cup 2026 Schedule</h1>
+          <p className="mt-2 text-sm font-semibold text-gray-300">
+            Browse the matches. Study the groups. Lock your calls before kickoff.
+          </p>
+        </div>
+      ) : null}
+
+      <div className="sticky top-2 z-10 mb-4 grid gap-2 rounded-2xl border border-white/10 bg-black/70 p-2 backdrop-blur sm:grid-cols-3">
+        <FilterSelect label="Group" value={selectedGroup} onChange={setSelectedGroup} options={groupFilters} />
+        <FilterSelect label="City" value={selectedCity} onChange={setSelectedCity} options={cities.map((city) => ({ value: city, label: city }))} />
+        <FilterSelect label="Team" value={selectedTeam} onChange={setSelectedTeam} options={teams.map((team) => ({ value: team, label: team }))} />
+      </div>
+
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-xs font-black uppercase tracking-[0.12em] text-lime-300">{filteredMatches.length} Upcoming Matches</p>
+        {showViewFullLink ? (
+          <Link href="/schedule" className="text-xs font-black uppercase tracking-[0.1em] text-purple-300 hover:text-purple-100">
+            View Full Schedule
+          </Link>
+        ) : null}
+      </div>
+
+      <div className="space-y-3">
+        {groupedByDate.map(([date, matches]) => (
+          <article key={date} className="rounded-2xl border border-white/10 bg-black/45 p-3">
+            <p className="text-xs font-black uppercase tracking-[0.12em] text-gray-300">{formatDateLabel(date)}</p>
+            <div className="mt-2 space-y-2">
+              {matches.map((match) => (
+                <MatchRow key={match.id} match={match} />
+              ))}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FilterSelect<T extends string>({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: T;
+  onChange: (value: T) => void;
+  options: Array<{ value: T; label: string }>;
+}) {
+  return (
+    <label className="block">
+      <span className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-400">{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value as T)}
+        className="mt-1 min-h-10 w-full rounded-xl border border-white/10 bg-black/60 px-3 text-sm font-semibold text-white outline-none focus:border-lime-300/60"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value} className="bg-[#090b13]">
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function MatchRow({ match }: { match: WorldCupMatch }) {
+  const isKnockout = match.group === "KO";
+
+  return (
+    <div
+      className={`grid gap-2 rounded-xl border p-3 sm:grid-cols-[auto_1fr_auto] sm:items-center ${
+        isKnockout ? "border-purple-300/30 bg-purple-500/10" : "border-white/10 bg-black/50"
+      }`}
+    >
+      <p className="text-xs font-black uppercase tracking-[0.1em] text-lime-300">{match.kickoffET}</p>
+      <div className="min-w-0">
+        <p className="truncate text-sm font-black text-white">
+          {match.homeTeam} vs {match.awayTeam ?? "TBD"}
+        </p>
+        <p className="truncate text-xs font-semibold text-gray-400">
+          {match.city} · {match.venue}
+        </p>
+      </div>
+      <div className="flex items-center gap-2 sm:justify-end">
+        <span
+          className={`rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${
+            isKnockout ? "border border-purple-300/45 bg-purple-500/15 text-purple-200" : "border border-lime-300/40 bg-lime-400/10 text-lime-200"
+          }`}
+        >
+          {isKnockout ? match.stage : `Group ${match.group}`}
+        </span>
+        {!isKnockout ? (
+          <Link
+            href="/app"
+            className="rounded-md border border-white/15 bg-white/[0.04] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-white hover:border-lime-300/40 hover:text-lime-200"
+          >
+            Make Call
+          </Link>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function formatDateLabel(date: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(`${date}T12:00:00Z`));
+}

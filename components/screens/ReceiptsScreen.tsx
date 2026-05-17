@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { LocktLogo } from "@/components/LocktLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { getSeededReceiptsByUsername, type SeededReceipt } from "@/data/seededCrowd";
-import { LOCK_WIN } from "@/lib/engagement";
 import {
   getActivityAlerts,
   getCurrentWinStreak,
@@ -21,6 +20,7 @@ import type { Profile, Receipt } from "@/lib/supabase/types";
 import { ReportModal } from "@/components/moderation/ReportModal";
 import { buildSiteUrl } from "@/lib/site-url";
 import { shareWithFallback, type ShareOutcome } from "@/lib/share";
+import { isPreTournamentMode } from "@/lib/productConfig";
 
 type ReceiptStatus = "win" | "loss";
 type ReceiptSide = "riding" | "fading";
@@ -222,6 +222,7 @@ export function ReceiptsScreen({
   const [profileShareState, setProfileShareState] = useState<"idle" | ShareOutcome>("idle");
   const [sharedReceiptState, setSharedReceiptState] = useState<{ id: string; outcome: Exclude<ShareOutcome, "cancelled"> } | null>(null);
   const [reportProfileOpen, setReportProfileOpen] = useState(false);
+  const preTournamentMode = isPreTournamentMode();
 
   useEffect(() => {
     let isMounted = true;
@@ -254,15 +255,22 @@ export function ReceiptsScreen({
         return realReceipts.map((receipt) => mapReceiptToRecent(receipt, owner));
       }
 
+      if (preTournamentMode) {
+        return [];
+      }
+
       const seededReceipts = getSeededReceiptsByUsername(owner.handle);
       return seededReceipts.length ? seededReceipts.map((receipt) => mapSeededReceiptToRecent(receipt, owner)) : recentReceipts;
     },
-    [owner, realReceipts],
+    [owner, preTournamentMode, realReceipts],
   );
   const proofHighlightCards = useMemo(() => {
+    if (preTournamentMode) {
+      return [];
+    }
     const seededReceipts = realReceipts.length ? [] : getSeededReceiptsByUsername(owner.handle);
     return seededReceipts.length ? seededReceipts.map((receipt, index) => mapSeededReceiptToViral(receipt, owner, index)) : viralReceipts;
-  }, [owner, realReceipts.length]);
+  }, [owner, preTournamentMode, realReceipts.length]);
   const featuredReceipt = realReceipts[0] ?? null;
 
   async function copyShareUrl() {
@@ -313,6 +321,7 @@ export function ReceiptsScreen({
     <div className="space-y-5">
       <ReceiptsHeader profile={profile} />
       <ReceiptIdentityCard
+        preTournamentMode={preTournamentMode}
         shareState={profileShareState}
         featuredReceipt={featuredReceipt}
         onShare={copyShareUrl}
@@ -328,35 +337,47 @@ export function ReceiptsScreen({
         </p>
       )}
 
-      <ReceiptSection title="Recent Receipts" icon="▤" action="See all">
-        <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
-          {recentReceiptCards.map((receipt, index) => (
-            <RecentReceiptCard
-              key={receipt.id}
-              receipt={receipt}
-              currentUser={index === 0 ? currentUser : undefined}
-              onOpen={openReceiptDetail}
-              onShare={shareReceiptLink}
-              shareState={sharedReceiptState?.id === receipt.id ? sharedReceiptState.outcome : null}
-            />
-          ))}
-        </div>
-      </ReceiptSection>
+      {preTournamentMode ? (
+        <ReceiptSection title="No receipts yet." icon="▤" action="Make a World Cup Call">
+          <div className="rounded-2xl border border-white/10 bg-black/45 p-4">
+            <p className="text-sm font-semibold text-gray-300">
+              Receipts unlock when World Cup matches begin. Until then, lock your calls before kickoff.
+            </p>
+          </div>
+        </ReceiptSection>
+      ) : (
+        <>
+          <ReceiptSection title="Recent Receipts" icon="▤" action="See all">
+            <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
+              {recentReceiptCards.map((receipt, index) => (
+                <RecentReceiptCard
+                  key={receipt.id}
+                  receipt={receipt}
+                  currentUser={index === 0 ? currentUser : undefined}
+                  onOpen={openReceiptDetail}
+                  onShare={shareReceiptLink}
+                  shareState={sharedReceiptState?.id === receipt.id ? sharedReceiptState.outcome : null}
+                />
+              ))}
+            </div>
+          </ReceiptSection>
 
-      <ReceiptSection title="Proof Highlights" icon="◇" action="See all">
-        <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
-          {proofHighlightCards.map((receipt, index) => (
-            <ViralReceiptCard
-              key={receipt.id}
-              receipt={receipt}
-              currentUser={index === 0 ? currentUser : undefined}
-              onOpen={openReceiptDetail}
-              onShare={shareReceiptLink}
-              shareState={sharedReceiptState?.id === receipt.id ? sharedReceiptState.outcome : null}
-            />
-          ))}
-        </div>
-      </ReceiptSection>
+          <ReceiptSection title="Proof Highlights" icon="◇" action="See all">
+            <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
+              {proofHighlightCards.map((receipt, index) => (
+                <ViralReceiptCard
+                  key={receipt.id}
+                  receipt={receipt}
+                  currentUser={index === 0 ? currentUser : undefined}
+                  onOpen={openReceiptDetail}
+                  onShare={shareReceiptLink}
+                  shareState={sharedReceiptState?.id === receipt.id ? sharedReceiptState.outcome : null}
+                />
+              ))}
+            </div>
+          </ReceiptSection>
+        </>
+      )}
     <ReportModal
       open={reportProfileOpen && Boolean(owner.userId)}
       onClose={() => setReportProfileOpen(false)}
@@ -433,6 +454,7 @@ function HeaderIcon({
 }
 
 function ReceiptIdentityCard({
+  preTournamentMode,
   shareState,
   featuredReceipt,
   onShare,
@@ -441,6 +463,7 @@ function ReceiptIdentityCard({
   profile,
   receipts,
 }: {
+  preTournamentMode: boolean;
   shareState: "idle" | ShareOutcome;
   featuredReceipt: Receipt | null;
   onShare: () => void;
@@ -590,16 +613,16 @@ function ReceiptIdentityCard({
               </div>
 
               <h4 className="mt-3 text-3xl font-black italic leading-tight text-white sm:text-4xl">
-                {featuredReceipt?.take_text ?? "Paraguay can steal this."}
+                {featuredReceipt?.take_text ?? (preTournamentMode ? "No settled receipts yet." : "Paraguay can steal this.")}
               </h4>
               <p className="mt-2 text-xs font-black uppercase text-sky-300">
                 {featuredReceipt?.game_label ?? "World Cup Group Stage"}
               </p>
 
               <div className="mt-5 grid max-w-sm grid-cols-[1fr_auto_1fr] items-end gap-3 text-center">
-                <ScoreMini team={receiptScore?.leftTeam ?? "MEX"} score={receiptScore?.leftScore ?? "121"} />
+                <ScoreMini team={receiptScore?.leftTeam ?? "TBD"} score={receiptScore?.leftScore ?? "--"} />
                 <span className="pb-2 text-2xl text-purple-200">ϟ</span>
-                <ScoreMini team={receiptScore?.rightTeam ?? "RSA"} score={receiptScore?.rightScore ?? "116"} />
+                <ScoreMini team={receiptScore?.rightTeam ?? "TBD"} score={receiptScore?.rightScore ?? "--"} />
               </div>
             </div>
 
@@ -610,12 +633,14 @@ function ReceiptIdentityCard({
                     {isWin ? "Receipt held" : "Talk exposed"}
                   </p>
                   <p className="mt-1 text-sm font-semibold text-gray-300">
-                    {featuredReceipt ? "Snapshot locked. Your record follows you." : "Latest proof will live here after settlement."}
+                    {featuredReceipt
+                      ? "Snapshot locked. Your record follows you."
+                      : "Receipts unlock when the World Cup starts. Lock your calls before kickoff."}
                   </p>
                 </div>
                 <div className="min-[430px]:text-right">
                   <p className="scoreboard-number text-5xl leading-none text-white drop-shadow-[0_0_18px_rgba(132,204,22,0.22)]">
-                    {featuredReceipt ? formatSignedRep(featuredReceipt.reputation_delta) : `+${LOCK_WIN}`}
+                    {featuredReceipt ? formatSignedRep(featuredReceipt.reputation_delta) : "TBD"}
                   </p>
                   <p className={`text-xs font-black uppercase tracking-[0.12em] ${isWin ? "text-lime-300" : "text-red-300"}`}>
                     REP Delta
@@ -625,10 +650,10 @@ function ReceiptIdentityCard({
             </div>
 
             <div className="mt-4 grid grid-cols-4 gap-2 rounded-xl border border-white/10 bg-black/65 p-2 text-center text-xs font-black text-gray-400">
-              <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">🔥 {formatCompact(featuredReceipt?.heat ?? 3600)}</span>
-              <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">Ride {formatCompact(featuredReceipt?.ride_count ?? 1800)}</span>
-              <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">Fade {formatCompact(featuredReceipt?.fade_count ?? 842)}</span>
-              <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">Replies {formatCompact(featuredReceipt?.reply_count ?? 96)}</span>
+              <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">🔥 {formatCompact(featuredReceipt?.heat ?? 0)}</span>
+              <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">Ride {formatCompact(featuredReceipt?.ride_count ?? 0)}</span>
+              <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">Fade {formatCompact(featuredReceipt?.fade_count ?? 0)}</span>
+              <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">Replies {formatCompact(featuredReceipt?.reply_count ?? 0)}</span>
             </div>
 
             <button

@@ -22,8 +22,10 @@ import { getCrowdPressure, getHeatStatus, getReputationLevel } from "@/lib/reput
 import { getPresenceMeta, getPresenceStatus } from "@/lib/presence";
 import { seededChaosAlerts } from "@/data/seededCrowd";
 import { getGameSport, sportTabs, type SportKey } from "@/data/sportsStructure";
+import { worldCupGroupOrder, worldCupGroups } from "@/data/worldCupGroups";
 import { worldCupChaosAlerts, worldCupFeaturedMatch, worldCupLiveArenas, worldCupTrendingTakes } from "@/data/worldCupMvp";
-import { ACTIVE_SPORT, getVisibleSportTabs, SHOW_MULTI_SPORT } from "@/lib/productConfig";
+import { ACTIVE_SPORT, getVisibleSportTabs, isPreTournamentMode, SHOW_MULTI_SPORT } from "@/lib/productConfig";
+import { WorldCupSchedule } from "@/components/world-cup/WorldCupSchedule";
 import type { Game, Profile, TakeReaction } from "@/lib/supabase/types";
 
 type Side = "ride" | "fade";
@@ -241,6 +243,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   const activeSportGame = liveSportGames[0] ?? scheduledSportGames[0] ?? (activeSport === ACTIVE_SPORT ? activeGame : null);
   const combinedReactions = { ...takeChoices, ...takeReactions } as Record<string, TakeReaction["reaction"]>;
   const dynamicChaosAlerts = buildChaosAlerts(visibleTakes);
+  const preTournamentMode = isPreTournamentMode();
 
   useEffect(() => {
     let isMounted = true;
@@ -379,6 +382,27 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
     router.push(`/take/${takeId}`);
   }
 
+  if (preTournamentMode) {
+    return (
+      <div className="space-y-5">
+        <FeedHeader profile={profile} />
+        <SportSelector activeSport={activeSport} onSelect={setActiveSport} visibleTabs={visibleSportTabs} />
+        <PreTournamentCountdown />
+        <ScheduledGames activeSport={activeSport} games={scheduledSportGames} onEnterArena={onEnterArena} />
+        <PreTournamentGroups />
+        <FeedSection title="World Cup Schedule" icon="◷" action="Browse">
+          <p className="mb-3 text-sm font-semibold text-gray-300">
+            Browse upcoming matches and start building your call board.
+          </p>
+          <WorldCupSchedule limit={8} showHeader={false} showViewFullLink />
+        </FeedSection>
+        <PreTournamentStorylines />
+        <PreTournamentEarlyCalls takes={visibleTakes} onOpenTake={openTakeThread} onReact={reactToLockedTake} reactions={combinedReactions} loadingTakeId={reactionLoadingTakeId} />
+        <PreTournamentNews />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <FeedHeader profile={profile} />
@@ -444,6 +468,136 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
       />
       <ChaosAlerts alerts={dynamicChaosAlerts} />
     </div>
+  );
+}
+
+function PreTournamentCountdown() {
+  return (
+    <FeedSection title="Countdown to Kickoff" icon="◷" action="View Schedule">
+      <div className="rounded-2xl border border-lime-300/20 bg-black/45 p-4">
+        <h3 className="sports-display text-3xl italic leading-none text-white sm:text-4xl">World Cup Arena Opens Soon</h3>
+        <p className="mt-3 text-sm font-semibold text-gray-300">
+          Study the groups. Track the storylines. Lock your calls before kickoff.
+        </p>
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          <button type="button" className="min-h-11 rounded-xl border border-purple-300/45 bg-purple-500/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-purple-200">View Schedule</button>
+          <button type="button" className="min-h-11 rounded-xl border border-lime-300/40 bg-lime-400/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-lime-200">Explore Groups</button>
+          <button type="button" className="min-h-11 rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-black uppercase tracking-[0.1em] text-white">Make Early Call</button>
+        </div>
+      </div>
+    </FeedSection>
+  );
+}
+
+function PreTournamentGroups() {
+  return (
+    <FeedSection title="Group Stage Board" icon="▦" action="Study the Groups">
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        {worldCupGroupOrder.map((group) => (
+          <article key={group} className="rounded-xl border border-white/10 bg-black/45 p-3">
+            <p className="text-xs font-black uppercase tracking-[0.12em] text-lime-300">{group}</p>
+            <p className="mt-2 text-sm font-semibold text-gray-300">{worldCupGroups[group].map((team) => team.name).join(" · ")}</p>
+          </article>
+        ))}
+      </div>
+      <p className="mt-3 text-xs font-semibold text-gray-400">Who wins this group? Who gets out? Who is the dark horse?</p>
+    </FeedSection>
+  );
+}
+
+function PreTournamentStorylines() {
+  const storylines = [
+    "Can the hosts make a run?",
+    "Which favorite has the most pressure?",
+    "Which group has the biggest upset potential?",
+    "Who is the tournament dark horse?",
+  ];
+
+  return (
+    <FeedSection title="Storylines to Watch" icon="◎" action="Prep Board">
+      <div className="grid gap-2 sm:grid-cols-2">
+        {storylines.map((storyline) => (
+          <article key={storyline} className="rounded-xl border border-white/10 bg-black/45 p-3 text-sm font-semibold text-gray-300">
+            {storyline}
+          </article>
+        ))}
+      </div>
+    </FeedSection>
+  );
+}
+
+function PreTournamentEarlyCalls({
+  takes,
+  reactions,
+  loadingTakeId,
+  onOpenTake,
+  onReact,
+}: {
+  takes: ArenaTake[];
+  reactions: Record<string, TakeReaction["reaction"]>;
+  loadingTakeId: string | null;
+  onOpenTake: (takeId: string) => void;
+  onReact: (takeId: string, reaction: Side) => void;
+}) {
+  return (
+    <FeedSection title="Early Call Feed" icon="ϟ" action="Lock Before Kickoff">
+      {takes.length ? (
+        <div className="space-y-2">
+          {takes.slice(0, 6).map((take) => {
+            const activeReaction = reactions[take.id];
+            const isLoading = loadingTakeId === take.id;
+            const { handle } = formatTakeForUI(take);
+            return (
+              <article key={take.id} className="rounded-xl border border-white/10 bg-black/45 p-3">
+                <button type="button" onClick={() => onOpenTake(take.id)} className="w-full text-left">
+                  <p className="text-xs font-black text-lime-300">{handle}</p>
+                  <p className="mt-1 text-sm font-semibold text-white">{take.take_text}</p>
+                </button>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <TakeButton
+                    active={activeReaction === "ride"}
+                    disabled={isLoading}
+                    side="ride"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onReact(take.id, "ride");
+                    }}
+                  />
+                  <TakeButton
+                    active={activeReaction === "fade"}
+                    disabled={isLoading}
+                    side="fade"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onReact(take.id, "fade");
+                    }}
+                  />
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-white/10 bg-black/45 p-4">
+          <p className="text-sm font-black uppercase tracking-[0.12em] text-lime-300">No public calls yet.</p>
+          <p className="mt-2 text-sm font-semibold text-gray-300">
+            Be one of the first to lock a World Cup take.
+          </p>
+        </div>
+      )}
+    </FeedSection>
+  );
+}
+
+function PreTournamentNews() {
+  return (
+    <FeedSection title="Team News / Injury Watch" icon="▣" action="Coming Soon">
+      <div className="rounded-2xl border border-white/10 bg-black/45 p-4">
+        <p className="text-sm font-semibold text-gray-300">
+          Team news and injury updates will appear here as kickoff approaches.
+        </p>
+      </div>
+    </FeedSection>
   );
 }
 

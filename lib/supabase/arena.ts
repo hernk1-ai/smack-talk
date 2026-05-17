@@ -9,6 +9,7 @@ import {
   isSeededId,
   type SeededTake,
 } from "@/data/seededCrowd";
+import { SHOW_SEEDED_TAKES } from "@/lib/productConfig";
 import type { Game, Profile, ProfileCard, Take, TakeReaction } from "@/lib/supabase/types";
 
 export type ArenaTake = Take & {
@@ -77,6 +78,10 @@ export function getSeededArenaTakeById(takeId: string) {
 }
 
 export function mergeArenaFeedWithSeeded(realTakes: ArenaTake[], gameId = ACTIVE_GAME_ID, minimumCount = 6) {
+  if (!SHOW_SEEDED_TAKES) {
+    return realTakes;
+  }
+
   if (realTakes.length >= minimumCount) {
     return realTakes;
   }
@@ -91,7 +96,7 @@ export function mergeArenaFeedWithSeeded(realTakes: ArenaTake[], gameId = ACTIVE
 }
 
 export function isSeededTakeId(takeId: string) {
-  return isSeededId(takeId);
+  return SHOW_SEEDED_TAKES && isSeededId(takeId);
 }
 
 export function getFeaturedTakeFromList(takes: ArenaTake[]) {
@@ -169,7 +174,7 @@ export async function getArenaFeed(gameId = ACTIVE_GAME_ID) {
 }
 
 export async function getTakeById(takeId: string) {
-  if (isSeededTakeId(takeId)) {
+  if (SHOW_SEEDED_TAKES && isSeededTakeId(takeId)) {
     return { take: getSeededArenaTakeById(takeId), error: null };
   }
 
