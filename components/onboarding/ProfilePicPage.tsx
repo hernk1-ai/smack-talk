@@ -12,9 +12,10 @@ import { createClient } from "@/lib/supabase/client";
 export function ProfilePicPage({ username }: { username?: string }) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cleanUsername = sanitizeUsername(username) || "FadeKing";
+  const routeUsername = sanitizeUsername(username);
   const [selectedAvatarKey, setSelectedAvatarKey] = useState<AvatarKey>("logo");
   const [previewDataUrl, setPreviewDataUrl] = useState<string | null>(null);
+  const [profileUsername, setProfileUsername] = useState<string>("");
   const [message, setMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -35,9 +36,17 @@ export function ProfilePicPage({ username }: { username?: string }) {
         return;
       }
 
-      const { data } = await supabase.from("profiles").select("avatar_url").eq("id", user.id).maybeSingle();
+      const { data } = await supabase.from("profiles").select("avatar_url, username").eq("id", user.id).maybeSingle();
 
-      if (!isMounted || !data?.avatar_url) {
+      if (!isMounted || !data) {
+        return;
+      }
+
+      if (data.username) {
+        setProfileUsername(data.username);
+      }
+
+      if (!data.avatar_url) {
         return;
       }
 
@@ -72,10 +81,12 @@ export function ProfilePicPage({ username }: { username?: string }) {
     }
   }
 
-  async function saveAndContinue() {
+  async function saveProfile({ withAvatar }: { withAvatar: boolean }) {
     const supabase = createClient();
     const avatarUrl = previewDataUrl ?? serializeAvatarKey(selectedAvatarKey);
-    const avatarRouteKey = previewDataUrl ? "custom" : selectedAvatarKey;
+    const effectiveUsername = sanitizeUsername(profileUsername || routeUsername || username || "");
+    const cleanUsername = effectiveUsername || "LocktFan";
+    const avatarRouteKey = withAvatar && previewDataUrl ? "custom" : selectedAvatarKey;
     const teamsRoute = `/onboarding/teams?username=${encodeURIComponent(cleanUsername)}&avatar=${encodeURIComponent(
       avatarRouteKey,
     )}`;
@@ -99,15 +110,20 @@ export function ProfilePicPage({ username }: { username?: string }) {
       return;
     }
 
-    const { error } = await supabase.from("profiles").upsert(
-      {
-        id: user.id,
-        email: user.email ?? null,
-        username: cleanUsername,
-        avatar_url: avatarUrl,
-      },
-      { onConflict: "id" },
-    );
+    const payload: { id: string; email: string | null; username?: string; avatar_url?: string } = {
+      id: user.id,
+      email: user.email ?? null,
+    };
+
+    if (effectiveUsername) {
+      payload.username = effectiveUsername;
+    }
+
+    if (withAvatar) {
+      payload.avatar_url = avatarUrl;
+    }
+
+    const { error } = await supabase.from("profiles").upsert(payload, { onConflict: "id" });
 
     setIsSaving(false);
 
@@ -117,6 +133,14 @@ export function ProfilePicPage({ username }: { username?: string }) {
     }
 
     router.push(teamsRoute);
+  }
+
+  function handleContinue() {
+    saveProfile({ withAvatar: true });
+  }
+
+  function handleSkip() {
+    saveProfile({ withAvatar: false });
   }
 
   return (
@@ -139,7 +163,7 @@ export function ProfilePicPage({ username }: { username?: string }) {
           </p>
 
           <div className="mt-7 flex items-center justify-center gap-3 text-3xl font-black text-white sm:text-4xl">
-            <span>@{cleanUsername}</span>
+            <span>@{sanitizeUsername(profileUsername || routeUsername || username || "LocktFan")}</span>
           </div>
 
           <ProfilePreview avatarKey={selectedAvatarKey} previewDataUrl={previewDataUrl} />
@@ -171,7 +195,7 @@ export function ProfilePicPage({ username }: { username?: string }) {
 
             <button
               type="button"
-              onClick={saveAndContinue}
+              onClick={handleContinue}
               disabled={isSaving}
               className="min-h-16 w-full rounded-2xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-xl font-black uppercase italic tracking-[0.18em] text-black shadow-[0_0_42px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_54px_rgba(168,85,247,0.36)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-65 sm:min-h-20 sm:text-2xl"
             >
@@ -179,7 +203,7 @@ export function ProfilePicPage({ username }: { username?: string }) {
             </button>
             <button
               type="button"
-              onClick={saveAndContinue}
+              onClick={handleSkip}
               disabled={isSaving}
               className="mx-auto min-h-11 px-5 text-sm font-black uppercase tracking-[0.22em] text-gray-500 transition hover:text-purple-300 active:scale-95"
             >

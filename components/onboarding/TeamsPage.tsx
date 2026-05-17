@@ -7,7 +7,7 @@ import { LocktLogo } from "@/components/LocktLogo";
 import { worldCupGroupOrder, worldCupGroups, type WorldCupGroupKey } from "@/data/worldCupGroups";
 import { createClient } from "@/lib/supabase/client";
 
-const defaultSelected = ["USA", "Mexico", "Canada"];
+const defaultSelected = ["Mexico", "United States"];
 
 export function TeamsPage({ avatar, username }: { avatar?: string; username?: string }) {
   const router = useRouter();
@@ -26,7 +26,7 @@ export function TeamsPage({ avatar, username }: { avatar?: string; username?: st
         return current.filter((team) => team !== teamName);
       }
 
-      if (current.length >= 5) {
+      if (current.length >= 3) {
         return current;
       }
 
@@ -92,24 +92,45 @@ export function TeamsPage({ avatar, username }: { avatar?: string; username?: st
 
         <section className="mx-auto flex w-full flex-1 flex-col justify-center py-7 text-center sm:py-9">
           <h1 className="sports-display text-[4.2rem] italic leading-[0.82] tracking-tight text-white drop-shadow-[0_10px_28px_rgba(255,255,255,0.15)] min-[390px]:text-[5rem] sm:text-[7.8rem]">
-            Who Are You
+            Pick your
             <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-500 bg-clip-text text-transparent">
-              Backing?
+              teams
             </span>
           </h1>
           <p className="mt-5 text-base font-black uppercase tracking-[0.18em] text-gray-300 sm:text-xl">
-            Lock your World Cup <span className="text-lime-300">identity.</span>
+            Choose up to three teams you want in your feed.
+          </p>
+          <p className="mt-2 text-sm font-semibold text-gray-400">
+            This only personalizes your feed. You&apos;ll make match calls later.
           </p>
 
-          <LeagueTabs activeGroup={activeGroup} onSelect={setActiveGroup} />
+          <div className="mt-5 sm:hidden">
+            <label className="block rounded-2xl border border-white/16 bg-black/45 p-3 text-left">
+              <span className="text-[10px] font-black uppercase tracking-[0.14em] text-lime-300">Select Group</span>
+              <select
+                value={activeGroup}
+                onChange={(event) => setActiveGroup(event.target.value as WorldCupGroupKey)}
+                className="mt-2 min-h-12 w-full rounded-xl border border-white/15 bg-black/55 px-3 text-sm font-black uppercase tracking-[0.08em] text-white outline-none"
+              >
+                {worldCupGroupOrder.map((group) => (
+                  <option key={group} value={group} className="bg-[#090b13]">
+                    {group}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="hidden sm:block">
+            <LeagueTabs activeGroup={activeGroup} onSelect={setActiveGroup} />
+          </div>
 
           <section className="mt-7 rounded-[1.5rem] border border-white/12 bg-black/45 p-4 text-left shadow-[0_22px_72px_rgba(0,0,0,0.48)] sm:p-5">
             <div className="mb-5 flex items-center justify-between gap-4">
               <h2 className="sports-display text-3xl italic uppercase tracking-[0.08em] text-white sm:text-4xl">
-                Pick <span className="text-lime-300">1-5</span> countries.
+                {activeGroup}
               </h2>
               <div className="rounded-xl border border-lime-300/55 bg-lime-300/10 px-4 py-2 text-center shadow-[0_0_24px_rgba(132,204,22,0.14)]">
-                <p className="scoreboard-number text-3xl text-white">{selectedTeams.length} / 5</p>
+                <p className="scoreboard-number text-3xl text-white">{selectedTeams.length} / 3</p>
                 <p className="text-[10px] font-black uppercase tracking-[0.16em] text-gray-300">Selected</p>
               </div>
             </div>
@@ -163,7 +184,7 @@ export function TeamsPage({ avatar, username }: { avatar?: string; username?: st
             disabled={isLoading}
             className="mt-8 min-h-16 w-full rounded-2xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-xl font-black uppercase italic tracking-[0.18em] text-black shadow-[0_0_42px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_54px_rgba(168,85,247,0.36)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-65 sm:min-h-20 sm:text-2xl"
           >
-            {isLoading ? "Saving..." : "Lock Your Picks →"}
+            {isLoading ? "Saving..." : "Continue"}
           </button>
           {message && (
             <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-gray-200">

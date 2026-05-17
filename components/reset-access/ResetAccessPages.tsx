@@ -260,7 +260,7 @@ function ResetLogo() {
 
 function ResetHeadline({ first, second }: { first: string; second: string }) {
   return (
-    <h1 className="sports-display mx-auto mt-12 max-w-full px-2 text-center text-[4.25rem] italic leading-[0.82] text-white drop-shadow-[0_10px_26px_rgba(255,255,255,0.13)] min-[390px]:text-[4.85rem]">
+    <h1 className="sports-display mx-auto mt-12 max-w-full px-3 pb-1 text-center text-[4.25rem] italic leading-[0.88] text-white drop-shadow-[0_10px_26px_rgba(255,255,255,0.13)] min-[390px]:text-[4.85rem]">
       {first}
       <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-500 bg-clip-text text-transparent">
         {second}
@@ -324,9 +324,9 @@ function PasswordField({
   return (
     <label className="mt-6 block first:mt-0">
       <span className="text-xs font-black uppercase tracking-[0.22em] text-white">{label}</span>
-      <div className="mt-4 grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-xl border border-white/15 bg-white/[0.065] px-4 py-3 transition focus-within:border-lime-300/65 focus-within:bg-white/[0.09]">
+      <div className="mt-4 grid grid-cols-[1fr_auto_auto] items-center gap-3 overflow-visible rounded-xl border border-white/15 bg-white/[0.065] px-4 py-3 transition focus-within:border-lime-300/65 focus-within:bg-white/[0.09]">
         <input
-          className="min-h-10 w-full bg-transparent text-base font-bold text-white outline-none placeholder:text-gray-500"
+          className="min-h-10 w-full bg-transparent pr-1 text-base font-bold leading-6 text-white outline-none placeholder:text-gray-500"
           onChange={(event) => onChange(event.target.value)}
           placeholder="••••••••••"
           type={showPassword ? "text" : "password"}
