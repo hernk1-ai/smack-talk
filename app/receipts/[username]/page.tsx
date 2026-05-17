@@ -67,7 +67,7 @@ export default async function PublicReceiptsPage({ params }: { params: Promise<{
         username: viewedProfile.username || toDisplayUsername(key),
         avatarUrl: viewedProfile.avatar_url,
         reputation: viewedProfile.reputation_score ?? viewedProfile.reputation ?? 0,
-        favoriteTeams: viewedProfile.favorite_teams ?? ["LAL", "NYK", "DEN"],
+        favoriteTeams: viewedProfile.favorite_teams ?? ["USA", "MEX", "ARG"],
       };
     }
   }
@@ -85,7 +85,7 @@ export default async function PublicReceiptsPage({ params }: { params: Promise<{
     username: toDisplayUsername(key),
     avatarUrl: null,
     reputation: 4200,
-    favoriteTeams: ["LAL", "NYK", "DEN"],
+    favoriteTeams: ["USA", "MEX", "ARG"],
   };
 
   return <LocktApp profile={profile} receiptOwner={recordOwner} initialView="receipts" />;

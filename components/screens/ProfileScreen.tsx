@@ -21,11 +21,11 @@ type ActivityItem = {
   tone: "green" | "purple" | "blue";
 };
 
-const identityTags = ["Heat Seeker", "Crowd Rider", "3x Streak King"];
+const identityTags = ["Tournament Rep", "Group Stage Locked", "3x Receipt Hit"];
 
 const socialItems: SocialItem[] = [
-  { label: "Followers", value: "4.2K", detail: "Your people", tone: "white" },
-  { label: "Following", value: "312", detail: "Rivals watched", tone: "white" },
+  { label: "World Cup Record", value: "4.2K", detail: "Calls on record", tone: "white" },
+  { label: "Calls Locked", value: "312", detail: "Before kickoff", tone: "white" },
   { label: "Crew", value: "Soon", detail: "Coming soon", tone: "purple" },
   { label: "Messages", value: "Soon", detail: "Coming soon", tone: "purple" },
 ];
@@ -33,21 +33,21 @@ const socialItems: SocialItem[] = [
 const recentActivity: ActivityItem[] = [
   {
     type: "Latest lock",
-    title: "Knicks upset incoming.",
-    meta: "NYK Arena · 2d ago",
+    title: "Paraguay can steal this.",
+    meta: "World Cup Group Stage · 2d ago",
     icon: "ϟ",
     tone: "green",
   },
   {
     type: "Latest receipt",
-    title: "Curry is choking.",
+    title: "USA gets the opener done.",
     meta: "Talk backed up · 2h ago",
     icon: "▤",
     tone: "purple",
   },
   {
     type: "Latest ride/fade",
-    title: "Faded the Crowd on Denver.",
+    title: "Faded the public before kickoff.",
     meta: "Heat rising · 4h ago",
     icon: "◌",
     tone: "blue",
@@ -85,7 +85,7 @@ function ProfileHeader({ profile }: { profile?: Profile | null }) {
             <span className="h-2.5 w-2.5 rounded-full bg-lime-400 shadow-[0_0_16px_rgba(132,204,22,0.75)]" />
             12.8K <span className="text-gray-400">Online</span>
           </p>
-          <p className="mt-1 text-xs font-semibold text-gray-400 sm:text-sm">This is me and my people.</p>
+          <p className="mt-1 text-xs font-semibold text-gray-400 sm:text-sm">Your World Cup reputation profile.</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -134,7 +134,7 @@ function ProfileIdentityCard({ profile }: { profile?: Profile | null }) {
   const username = profile?.username || "TalkHeavy23";
   const initials = getInitials(username);
   const reputation = profile?.reputation_score ?? profile?.reputation ?? 0;
-  const statusLabel = reputation > 0 ? "ϟ Top Talker" : "ϟ Rookie Talker";
+  const statusLabel = reputation > 0 ? "ϟ Tournament Rep" : "ϟ World Cup Rookie";
   const displayTags = identityTags;
 
   return (
@@ -183,7 +183,7 @@ function ProfileIdentityCard({ profile }: { profile?: Profile | null }) {
           </span>
 
           <p className="mx-auto mt-3 max-w-lg text-sm font-semibold leading-6 text-gray-300 md:mx-0">
-            I talk it. I lock it. I own it.
+            Lock your call. Check the receipt. Called it.
           </p>
 
           <div className="mt-4 flex flex-wrap justify-center gap-2 md:justify-start">

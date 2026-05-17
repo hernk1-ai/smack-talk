@@ -6,38 +6,32 @@ import { useRouter } from "next/navigation";
 import { LocktLogo } from "@/components/LocktLogo";
 import { createClient } from "@/lib/supabase/client";
 
-const leagues = ["NFL", "NBA", "MLB", "NHL", "NCAA", "EPL"];
+const leagues = ["World Cup", "Group A", "Group B", "Group C", "Group D", "Knockout"];
 
 const teams = [
-  { name: "Chiefs", initials: "KC" },
-  { name: "49ers", initials: "SF" },
-  { name: "Ravens", initials: "BAL" },
-  { name: "Eagles", initials: "PHI" },
-  { name: "Bills", initials: "BUF" },
-  { name: "Cowboys", initials: "DAL" },
-  { name: "Packers", initials: "GB" },
-  { name: "Lions", initials: "DET" },
-  { name: "Bengals", initials: "CIN" },
-  { name: "Dolphins", initials: "MIA" },
-  { name: "Vikings", initials: "MIN" },
-  { name: "Bears", initials: "CHI" },
-  { name: "Steelers", initials: "PIT" },
-  { name: "Broncos", initials: "DEN" },
-  { name: "Raiders", initials: "LV" },
-  { name: "Chargers", initials: "LAC" },
-  { name: "Seahawks", initials: "SEA" },
-  { name: "Jets", initials: "NYJ" },
-  { name: "Buccaneers", initials: "TB" },
+  { name: "USA", initials: "USA" },
+  { name: "Mexico", initials: "MEX" },
+  { name: "Canada", initials: "CAN" },
+  { name: "Argentina", initials: "ARG" },
+  { name: "Brazil", initials: "BRA" },
+  { name: "France", initials: "FRA" },
+  { name: "England", initials: "ENG" },
+  { name: "Spain", initials: "ESP" },
+  { name: "Germany", initials: "GER" },
+  { name: "Portugal", initials: "POR" },
+  { name: "Netherlands", initials: "NED" },
+  { name: "Paraguay", initials: "PAR" },
+  { name: "South Africa", initials: "RSA" },
 ];
 
-const defaultSelected = ["Chiefs", "Eagles", "Lions"];
+const defaultSelected = ["USA", "Mexico", "Canada"];
 
 export function TeamsPage({ avatar, username }: { avatar?: string; username?: string }) {
   const router = useRouter();
   const [selectedTeams, setSelectedTeams] = useState(defaultSelected);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const cleanUsername = sanitizeUsername(username) || "FadeKing";
+  const cleanUsername = sanitizeUsername(username) || "LocktFan";
   const cleanAvatar = sanitizeToken(avatar) || "lightning";
 
   function toggleTeam(teamName: string) {
@@ -113,13 +107,13 @@ export function TeamsPage({ avatar, username }: { avatar?: string; username?: st
 
         <section className="mx-auto flex w-full flex-1 flex-col justify-center py-7 text-center sm:py-9">
           <h1 className="sports-display text-[4.2rem] italic leading-[0.82] tracking-tight text-white drop-shadow-[0_10px_28px_rgba(255,255,255,0.15)] min-[390px]:text-[5rem] sm:text-[7.8rem]">
-            Who Do You
+            Who Are You
             <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-500 bg-clip-text text-transparent">
-              Ride With?
+              Backing?
             </span>
           </h1>
           <p className="mt-5 text-base font-black uppercase tracking-[0.18em] text-gray-300 sm:text-xl">
-            The Arena gets <span className="text-lime-300">personal.</span>
+            Lock your World Cup <span className="text-lime-300">identity.</span>
           </p>
 
           <LeagueTabs />
@@ -127,7 +121,7 @@ export function TeamsPage({ avatar, username }: { avatar?: string; username?: st
           <section className="mt-7 rounded-[1.5rem] border border-white/12 bg-black/45 p-4 text-left shadow-[0_22px_72px_rgba(0,0,0,0.48)] sm:p-5">
             <div className="mb-5 flex items-center justify-between gap-4">
               <h2 className="sports-display text-3xl italic uppercase tracking-[0.08em] text-white sm:text-4xl">
-                Pick <span className="text-lime-300">1-5</span> Teams.
+                Pick <span className="text-lime-300">1-5</span> countries.
               </h2>
               <div className="rounded-xl border border-lime-300/55 bg-lime-300/10 px-4 py-2 text-center shadow-[0_0_24px_rgba(132,204,22,0.14)]">
                 <p className="scoreboard-number text-3xl text-white">{selectedTeams.length} / 5</p>
@@ -184,7 +178,7 @@ export function TeamsPage({ avatar, username }: { avatar?: string; username?: st
             disabled={isLoading}
             className="mt-8 min-h-16 w-full rounded-2xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-xl font-black uppercase italic tracking-[0.18em] text-black shadow-[0_0_42px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_54px_rgba(168,85,247,0.36)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-65 sm:min-h-20 sm:text-2xl"
           >
-            {isLoading ? "Saving..." : "Lock It In →"}
+            {isLoading ? "Saving..." : "Lock Your Picks →"}
           </button>
           {message && (
             <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-gray-200">
@@ -239,7 +233,7 @@ function LeagueTabs() {
   return (
     <nav className="mt-7 grid grid-cols-3 overflow-hidden rounded-2xl border border-white/16 bg-black/45 sm:grid-cols-6">
       {leagues.map((league) => {
-        const isActive = league === "NFL";
+        const isActive = league === "World Cup";
         return (
           <button
             key={league}
@@ -261,12 +255,12 @@ function LeagueTabs() {
 
 function leagueIcon(league: string) {
   const icons: Record<string, string> = {
-    NFL: "🏈",
-    NBA: "🏀",
-    MLB: "⚾",
-    NHL: "🏒",
-    NCAA: "●",
-    EPL: "⚽",
+    "World Cup": "⚽",
+    "Group A": "A",
+    "Group B": "B",
+    "Group C": "C",
+    "Group D": "D",
+    Knockout: "◈",
   };
 
   return icons[league] ?? "●";

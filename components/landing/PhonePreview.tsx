@@ -13,19 +13,19 @@ export function PhonePreview() {
 
           <div className="arena-scoreboard mt-5 rounded-3xl border border-white/10 px-3 py-4 shadow-inner sm:px-4">
             <div className="grid grid-cols-[minmax(0,1fr)_4rem_minmax(0,1fr)] items-center gap-x-2 text-[10px] font-black uppercase tracking-[0.16em] text-gray-300 sm:grid-cols-[minmax(0,1fr)_4.5rem_minmax(0,1fr)] sm:gap-x-3">
-              <span className="justify-self-center sm:justify-self-start">LAL</span>
-              <span className="justify-self-center text-purple-300">4th QTR</span>
-              <span className="justify-self-center sm:justify-self-end">GSW</span>
+              <span className="justify-self-center sm:justify-self-start">USA</span>
+              <span className="justify-self-center text-purple-300">78&apos;</span>
+              <span className="justify-self-center sm:justify-self-end">PAR</span>
             </div>
             <div className="mt-3 grid grid-cols-[minmax(0,1fr)_4rem_minmax(0,1fr)] items-end gap-x-2 sm:grid-cols-[minmax(0,1fr)_4.5rem_minmax(0,1fr)] sm:gap-x-3">
               <p className="scoreboard-number justify-self-center text-[2.85rem] text-white sm:justify-self-start sm:text-[3.35rem] lg:text-[4rem]">
-                108
+                2
               </p>
               <span className="scoreboard-number justify-self-center pb-1 text-[1.75rem] text-gray-200 sm:text-[2.1rem] lg:text-[2.5rem]">
-                2:47
+                LIVE
               </span>
               <p className="scoreboard-number justify-self-center text-[2.85rem] text-white sm:justify-self-end sm:text-[3.35rem] lg:text-[4rem]">
-                103
+                1
               </p>
             </div>
           </div>
@@ -45,13 +45,13 @@ export function PhonePreview() {
 
           <div className="mt-5 rounded-3xl border border-purple-400/35 bg-purple-500/10 p-4 shadow-[0_0_26px_rgba(168,85,247,0.08)]">
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-200">⚑ Trending Take</p>
-            <p className="mt-2 text-xl font-black italic text-white">“Curry is choking.”</p>
+            <p className="mt-2 text-xl font-black italic text-white">“USA closes this before full time.”</p>
             <div className="mt-4 flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
                 <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-lime-300 to-purple-400 text-xs font-black text-black">
                   T
                 </span>
-                <p className="truncate text-xs font-bold text-gray-200">@TalkHeavy23</p>
+                <p className="truncate text-xs font-bold text-gray-200">@WorldCupCalls</p>
               </div>
               <p className="shrink-0 text-sm font-black text-lime-300">🔥 2.1K</p>
             </div>
@@ -70,8 +70,8 @@ export function PhonePreview() {
               <span className="text-4xl">💀</span>
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.16em] text-red-300">Chaos Alert</p>
-                <p className="mt-2 text-sm font-bold leading-5 text-white">97% rode Lakers.</p>
-                <p className="mt-1 text-xs font-semibold text-gray-400">Crowd collapse incoming.</p>
+                <p className="mt-2 text-sm font-bold leading-5 text-white">Group stage board just flipped.</p>
+                <p className="mt-1 text-xs font-semibold text-gray-400">Ride/Fade split is moving fast.</p>
               </div>
             </div>
           </div>

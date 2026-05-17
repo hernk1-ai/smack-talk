@@ -12,7 +12,7 @@ import type { Profile } from "@/lib/supabase/types";
 
 type TalkersTab = "overall" | "wins" | "heat" | "viral" | "accuracy" | "streaks" | "rising" | "search";
 
-type SportFilter = "All Sports" | "NBA" | "NFL" | "MLB" | "NHL" | "Soccer" | "NCAA Football" | "NCAA Basketball" | "UFC" | "Tennis";
+type SportFilter = "World Cup";
 
 type PodiumTalker = {
   rank: 1 | 2 | 3;
@@ -62,16 +62,16 @@ const talkersTabs: { id: TalkersTab; label: string }[] = [
   { id: "search", label: "Search" },
 ];
 
-const sportFilters: SportFilter[] = ["All Sports", "NBA", "NFL", "MLB", "NHL", "Soccer", "NCAA Football", "NCAA Basketball", "UFC", "Tennis"];
+const sportFilters: SportFilter[] = ["World Cup"];
 
 const tabCopy: Record<TalkersTab, string> = {
-  overall: "Total reputation across heat, wins, accuracy, and viral receipts.",
-  wins: "Talkers stacking the most settled wins.",
-  heat: "The loudest takes moving through the arena.",
-  viral: "Receipts spreading fastest across the culture.",
-  accuracy: "Cleanest hit rate from locked takes.",
-  streaks: "Talkers who keep standing on winning calls.",
-  rising: "Names moving fast before the whole Crowd catches on.",
+  overall: "Tournament reputation across heat, wins, accuracy, and receipts.",
+  wins: "Talkers stacking the most World Cup hits.",
+  heat: "The loudest World Cup calls moving through the arena.",
+  viral: "Receipts spreading fastest across matchday.",
+  accuracy: "Cleanest hit rate from locked World Cup calls.",
+  streaks: "Talkers holding form through group and knockout rounds.",
+  rising: "Names moving fast before everyone catches on.",
   search: "Find a talker and inspect the receipts behind the reputation.",
 };
 
@@ -102,7 +102,7 @@ const categoryCards: CategoryCard[] = [
 export function TopTalkersScreen({ profile }: { profile?: Profile | null }) {
   const [activeTab, setActiveTab] = useState<TalkersTab>("overall");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeSport, setActiveSport] = useState<SportFilter>("All Sports");
+  const [activeSport, setActiveSport] = useState<SportFilter>("World Cup");
   const [realProfiles, setRealProfiles] = useState<Profile[]>(profile ? [profile] : []);
   const rankedTalkers = useMemo(
     () => getRankedTalkers(activeTab, activeSport, searchQuery, realProfiles, profile),
@@ -186,7 +186,7 @@ function TopTalkersHeader({ profile }: { profile?: Profile | null }) {
             <span className="h-2.5 w-2.5 rounded-full bg-lime-400 shadow-[0_0_16px_rgba(132,204,22,0.75)]" />
             12.8K <span className="text-gray-400">Online</span>
           </p>
-          <p className="mt-1 text-xs font-semibold text-gray-400 sm:text-sm">Real talk. Live takes. All heat.</p>
+          <p className="mt-1 text-xs font-semibold text-gray-400 sm:text-sm">World Cup calls. Tournament reputation.</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -243,15 +243,13 @@ function TopTalkersHero() {
           <h2 className="sports-display mt-1 text-[3.25rem] italic leading-[0.85] text-white drop-shadow-[0_6px_20px_rgba(255,255,255,0.12)] min-[390px]:text-[4rem] sm:text-7xl">
             Top Talkers
           </h2>
-          <p className="mt-2 text-sm font-black uppercase tracking-[0.08em] text-gray-200">
-            The voices. The takes. The culture.
-          </p>
+          <p className="mt-2 text-sm font-black uppercase tracking-[0.08em] text-gray-200">The voices. The calls. The receipts.</p>
           <div className="mt-3 h-1 w-44 rounded-full bg-gradient-to-r from-lime-300 to-purple-500" />
         </div>
 
         <div className="rounded-2xl border border-lime-300/20 bg-black/45 p-4 sm:w-44">
           <p className="sports-display text-2xl italic leading-none text-lime-300">Rank Up ↗</p>
-          <p className="mt-2 text-sm font-semibold leading-5 text-gray-300">Write takes. Get heat. Climb the board.</p>
+          <p className="mt-2 text-sm font-semibold leading-5 text-gray-300">Lock calls. Check receipts. Climb the board.</p>
           <button
             type="button"
             className="mt-4 min-h-11 w-full rounded-xl border border-white/10 bg-black/45 px-3 text-xs font-black uppercase text-white transition hover:border-purple-300/50 hover:bg-purple-500/15 active:scale-95"
@@ -298,7 +296,7 @@ function TalkersTabs({
 function SportFilterSelect({ value, onChange }: { value: SportFilter; onChange: (value: SportFilter) => void }) {
   return (
     <label className="block rounded-[1.25rem] border border-white/10 bg-black/35 p-3 shadow-[0_14px_38px_rgba(0,0,0,0.28)]">
-      <span className="text-[10px] font-black uppercase tracking-[0.18em] text-lime-300">Filter by Sport</span>
+      <span className="text-[10px] font-black uppercase tracking-[0.18em] text-lime-300">Tournament Scope</span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value as SportFilter)}
@@ -557,9 +555,7 @@ function getRankedTalkers(
   ];
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
-  const sportFilteredTalkers = activeSport === "All Sports"
-    ? combinedTalkers
-    : combinedTalkers.filter((talker) => getTalkerSport(talker.handle) === activeSport);
+  const sportFilteredTalkers = combinedTalkers.filter((talker) => getTalkerSport(talker.handle) === activeSport);
 
   const filteredTalkers = normalizedQuery
     ? sportFilteredTalkers.filter((talker) => `${talker.handle} ${talker.subtitle}`.toLowerCase().includes(normalizedQuery))
@@ -656,7 +652,7 @@ function seededProfilesToTalkers(): TalkerRow[] {
 }
 
 function rowsToPodium(rows: TalkerRow[]): PodiumTalker[] {
-  const fallbackRows = getRankedTalkers("overall", "All Sports", "", [], null).slice(0, 3);
+  const fallbackRows = getRankedTalkers("overall", "World Cup", "", [], null).slice(0, 3);
   const podiumSource = rows.length >= 3 ? rows : fallbackRows;
 
   return podiumSource.slice(0, 3).map((row, index) => ({
@@ -674,21 +670,8 @@ function rowsToPodium(rows: TalkerRow[]): PodiumTalker[] {
 
 
 function getTalkerSport(handle: string): SportFilter {
-  const normalized = handle.replace(/^@/, "").toLowerCase();
-  const map: Record<string, SportFilter> = {
-    talkheavy23: "NBA",
-    midrange: "NBA",
-    bucketsonly: "NBA",
-    fadeking: "NFL",
-    hoopdreams: "NBA",
-    nomercy: "UFC",
-    primetalker: "NFL",
-    clutchcallz: "Soccer",
-    realdeal: "MLB",
-    sharpmind: "NCAA Basketball",
-  };
-
-  return map[normalized] ?? "NBA";
+  void handle;
+  return "World Cup";
 }
 
 function getMetricValue(talker: TalkerRow, metric: Exclude<TalkersTab, "search">) {

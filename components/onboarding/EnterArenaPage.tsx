@@ -7,29 +7,22 @@ import { LocktLogo } from "@/components/LocktLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { createClient } from "@/lib/supabase/client";
 
-const fallbackTeams = ["Chiefs", "Eagles", "Lions", "Lakers", "Cowboys"];
+const fallbackTeams = ["USA", "Mexico", "Canada", "Argentina", "Brazil"];
 
 const teamInitials: Record<string, string> = {
-  Chiefs: "KC",
-  Eagles: "PHI",
-  Lions: "DET",
-  Lakers: "LAL",
-  Cowboys: "DAL",
-  "49ers": "SF",
-  Ravens: "BAL",
-  Bills: "BUF",
-  Packers: "GB",
-  Bengals: "CIN",
-  Dolphins: "MIA",
-  Vikings: "MIN",
-  Bears: "CHI",
-  Steelers: "PIT",
-  Broncos: "DEN",
-  Raiders: "LV",
-  Chargers: "LAC",
-  Seahawks: "SEA",
-  Jets: "NYJ",
-  Buccaneers: "TB",
+  USA: "USA",
+  Mexico: "MEX",
+  Canada: "CAN",
+  Argentina: "ARG",
+  Brazil: "BRA",
+  France: "FRA",
+  England: "ENG",
+  Spain: "ESP",
+  Germany: "GER",
+  Portugal: "POR",
+  Netherlands: "NED",
+  Paraguay: "PAR",
+  "South Africa": "RSA",
 };
 
 export function EnterArenaPage({
@@ -47,7 +40,7 @@ export function EnterArenaPage({
   const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null);
   const [profileUsername, setProfileUsername] = useState<string | null>(null);
   const [profileTeams, setProfileTeams] = useState<string[]>([]);
-  const cleanUsername = sanitizeUsername(profileUsername ?? username) || "FadeKing";
+  const cleanUsername = sanitizeUsername(profileUsername ?? username) || "LocktFan";
   const selectedTeams = useMemo(() => {
     if (profileTeams.length) {
       return profileTeams;
@@ -149,13 +142,13 @@ export function EnterArenaPage({
 
         <section className="mx-auto flex w-full flex-1 flex-col justify-center py-7 text-center sm:py-9">
           <h1 className="sports-display text-[4.2rem] italic leading-[0.82] tracking-tight text-white drop-shadow-[0_10px_28px_rgba(255,255,255,0.15)] min-[390px]:text-[5.1rem] sm:text-[8rem]">
-            The Crowd
+            The World Cup
             <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-500 bg-clip-text text-transparent">
               Is Calling.
             </span>
           </h1>
           <p className="mt-5 text-base font-black uppercase tracking-[0.18em] text-gray-300 sm:text-xl">
-            Your receipts <span className="text-lime-300">start now.</span>
+            Your tournament receipts <span className="text-lime-300">start now.</span>
           </p>
 
           <ProfileSummaryCard avatarUrl={avatarUrl} teams={selectedTeams} username={cleanUsername} />
@@ -166,7 +159,7 @@ export function EnterArenaPage({
             disabled={isLoading}
             className="mt-8 min-h-16 w-full rounded-2xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-xl font-black uppercase italic tracking-[0.18em] text-black shadow-[0_0_42px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_54px_rgba(168,85,247,0.36)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-65 sm:min-h-20 sm:text-2xl"
           >
-            {isLoading ? "Saving..." : "Enter The Arena →"}
+            {isLoading ? "Saving..." : "Enter The World Cup Arena →"}
           </button>
           {message && (
             <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-gray-200">
@@ -176,7 +169,7 @@ export function EnterArenaPage({
 
           <p className="mt-7 flex items-center justify-center gap-3 text-sm font-black uppercase tracking-[0.16em] text-gray-400 sm:text-base">
             <span className="text-purple-400">▱</span>
-            The Arena remembers <span className="text-lime-300">everything.</span>
+            On record from kickoff <span className="text-lime-300">to final whistle.</span>
           </p>
         </section>
       </div>

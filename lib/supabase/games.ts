@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 import type { Game, GamePick } from "@/lib/supabase/types";
 
-export const ACTIVE_GAME_ID = "lal-gsw-live";
+export const ACTIVE_GAME_ID = "wc-usa-par-live";
 export type GamePickSide = "ride" | "fade";
 
 export async function getLiveGames() {

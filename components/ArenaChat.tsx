@@ -135,13 +135,13 @@ export function ArenaChat() {
                 onClick={() => lockArenaCall("Rode LAL")}
                 className="rounded-2xl bg-gradient-to-r from-green-400 to-teal-300 py-3 text-sm font-black text-black shadow-[0_0_24px_rgba(45,212,191,0.22)] transition active:scale-95"
               >
-                Ride LAL
+                Ride USA
               </button>
               <button
                 onClick={() => lockArenaCall("Faded GSW")}
                 className="rounded-2xl bg-gradient-to-r from-purple-700 to-indigo-700 py-3 text-sm font-black text-white transition active:scale-95"
               >
-                Fade GSW
+                Fade PAR
               </button>
               <button
                 onClick={() => setIsSheetOpen(false)}

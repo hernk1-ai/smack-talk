@@ -1,6 +1,6 @@
 const arenaStats = [
-  { label: "Riding LAL", value: "78%", tone: "text-green-300", bar: "w-[78%] bg-green-400" },
-  { label: "Fading GSW", value: "22%", tone: "text-indigo-200", bar: "w-[22%] bg-purple-600" },
+  { label: "Riding USA", value: "78%", tone: "text-green-300", bar: "w-[78%] bg-green-400" },
+  { label: "Fading PAR", value: "22%", tone: "text-indigo-200", bar: "w-[22%] bg-purple-600" },
   { label: "On the Fence", value: "0%", tone: "text-gray-400", bar: "w-[3%] bg-gray-500" },
 ];
 
@@ -8,7 +8,7 @@ const arenaMoves = [
   {
     handle: "FadeKing",
     time: "just now",
-    action: "Faded GSW",
+    action: "Faded PAR",
     heat: "🔥 12",
   },
   {

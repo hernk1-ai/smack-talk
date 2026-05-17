@@ -57,7 +57,7 @@ export type SeededReceipt = {
   isSeeded: true;
 };
 
-export const SEEDED_GAME_ID = "lal-gsw-live";
+export const SEEDED_GAME_ID = "wc-usa-par-live";
 
 const now = Date.now();
 const minutesAgo = (minutes: number) => new Date(now - minutes * 60_000).toISOString();
@@ -78,7 +78,7 @@ export const seededProfiles: SeededProfile[] = [
     hit_rate: 69,
     viral: 24,
     streak: 12,
-    favoriteTeams: ["LAL", "NYK", "DEN"],
+    favoriteTeams: ["USA", "MEX", "ARG"],
     isSeeded: true,
   },
   {
@@ -95,7 +95,7 @@ export const seededProfiles: SeededProfile[] = [
     hit_rate: 66,
     viral: 18,
     streak: 8,
-    favoriteTeams: ["NYK", "BOS", "DEN"],
+    favoriteTeams: ["FRA", "ESP", "NED"],
     isSeeded: true,
   },
   {
@@ -112,7 +112,7 @@ export const seededProfiles: SeededProfile[] = [
     hit_rate: 64,
     viral: 16,
     streak: 7,
-    favoriteTeams: ["LAL", "GSW", "MIA"],
+    favoriteTeams: ["BRA", "POR", "ENG"],
     isSeeded: true,
   },
   {
@@ -129,7 +129,7 @@ export const seededProfiles: SeededProfile[] = [
     hit_rate: 61,
     viral: 22,
     streak: 6,
-    favoriteTeams: ["DEN", "BOS", "GSW"],
+    favoriteTeams: ["GER", "USA", "FRA"],
     isSeeded: true,
   },
   {
@@ -146,7 +146,7 @@ export const seededProfiles: SeededProfile[] = [
     hit_rate: 63,
     viral: 14,
     streak: 9,
-    favoriteTeams: ["MIA", "ATL", "DAL"],
+    favoriteTeams: ["CAN", "MEX", "NED"],
     isSeeded: true,
   },
   {
@@ -163,7 +163,7 @@ export const seededProfiles: SeededProfile[] = [
     hit_rate: 62,
     viral: 11,
     streak: 5,
-    favoriteTeams: ["PHX", "NYK", "DAL"],
+    favoriteTeams: ["BRA", "ARG", "ESP"],
     isSeeded: true,
   },
   {
@@ -180,7 +180,7 @@ export const seededProfiles: SeededProfile[] = [
     hit_rate: 60,
     viral: 9,
     streak: 4,
-    favoriteTeams: ["BOS", "LAL", "NYK"],
+    favoriteTeams: ["ENG", "GER", "USA"],
     isSeeded: true,
   },
   {
@@ -197,7 +197,7 @@ export const seededProfiles: SeededProfile[] = [
     hit_rate: 59,
     viral: 8,
     streak: 4,
-    favoriteTeams: ["GSW", "DAL", "DEN"],
+    favoriteTeams: ["POR", "FRA", "MEX"],
     isSeeded: true,
   },
   {
@@ -214,7 +214,7 @@ export const seededProfiles: SeededProfile[] = [
     hit_rate: 58,
     viral: 7,
     streak: 3,
-    favoriteTeams: ["MIA", "BOS", "ATL"],
+    favoriteTeams: ["NED", "ESP", "CAN"],
     isSeeded: true,
   },
   {
@@ -231,7 +231,7 @@ export const seededProfiles: SeededProfile[] = [
     hit_rate: 57,
     viral: 6,
     streak: 3,
-    favoriteTeams: ["DEN", "NYK", "GSW"],
+    favoriteTeams: ["ARG", "BRA", "ENG"],
     isSeeded: true,
   },
 ];
@@ -241,7 +241,7 @@ export const seededTakes: SeededTake[] = [
     id: "seeded_take_curry_choking",
     userId: "seeded_user_talkheavy23",
     gameId: SEEDED_GAME_ID,
-    takeText: "Curry is choking.",
+    takeText: "USA gets the opener done.",
     ride_count: 1300,
     fade_count: 342,
     reply_count: 18,
@@ -252,10 +252,10 @@ export const seededTakes: SeededTake[] = [
     isSeeded: true,
   },
   {
-    id: "seeded_take_lakers_run_west",
+    id: "seeded_take_mexico_first_goal",
     userId: "seeded_user_bucketsonly",
     gameId: SEEDED_GAME_ID,
-    takeText: "Lakers run the West.",
+    takeText: "Mexico scores first.",
     ride_count: 984,
     fade_count: 509,
     reply_count: 12,
@@ -266,10 +266,10 @@ export const seededTakes: SeededTake[] = [
     isSeeded: true,
   },
   {
-    id: "seeded_take_warriors_push",
+    id: "seeded_take_paraguay_upset",
     userId: "seeded_user_fadeking",
     gameId: SEEDED_GAME_ID,
-    takeText: "Warriors still have one push.",
+    takeText: "Paraguay can steal this.",
     ride_count: 621,
     fade_count: 812,
     reply_count: 15,
@@ -280,10 +280,10 @@ export const seededTakes: SeededTake[] = [
     isSeeded: true,
   },
   {
-    id: "seeded_take_denver_sleeping",
+    id: "seeded_take_france_group",
     userId: "seeded_user_midrange",
     gameId: SEEDED_GAME_ID,
-    takeText: "The Crowd is sleeping on Denver.",
+    takeText: "France tops their group.",
     ride_count: 842,
     fade_count: 193,
     reply_count: 9,
@@ -297,7 +297,7 @@ export const seededTakes: SeededTake[] = [
     id: "seeded_take_fade_crowd",
     userId: "seeded_user_nomercy",
     gameId: SEEDED_GAME_ID,
-    takeText: "Fade the crowd tonight.",
+    takeText: "Fade the crowd before kickoff.",
     ride_count: 487,
     fade_count: 714,
     reply_count: 11,
@@ -311,7 +311,7 @@ export const seededTakes: SeededTake[] = [
     id: "seeded_take_upset_waiting",
     userId: "seeded_user_hoopdreams",
     gameId: SEEDED_GAME_ID,
-    takeText: "This is an upset waiting.",
+    takeText: "Upset alert in this group stage match.",
     ride_count: 621,
     fade_count: 168,
     reply_count: 7,
@@ -324,18 +324,18 @@ export const seededTakes: SeededTake[] = [
 ];
 
 export const seededReplies: SeededReply[] = [
-  { id: "seeded_reply_1", takeId: "seeded_take_curry_choking", userId: "seeded_user_fadeking", replyText: "No chance. Warriors aren't dead yet.", created_at: minutesAgo(1), isSeeded: true },
-  { id: "seeded_reply_2", takeId: "seeded_take_curry_choking", userId: "seeded_user_midrange", replyText: "This take is going on a receipt.", created_at: minutesAgo(1), isSeeded: true },
-  { id: "seeded_reply_3", takeId: "seeded_take_lakers_run_west", userId: "seeded_user_hoopdreams", replyText: "Public is way too heavy on LAL.", created_at: minutesAgo(3), isSeeded: true },
-  { id: "seeded_reply_4", takeId: "seeded_take_warriors_push", userId: "seeded_user_bucketsonly", replyText: "Fade this man immediately.", created_at: minutesAgo(5), isSeeded: true },
-  { id: "seeded_reply_5", takeId: "seeded_take_fade_crowd", userId: "seeded_user_sharpmind", replyText: "He's talking reckless.", created_at: minutesAgo(9), isSeeded: true },
+  { id: "seeded_reply_1", takeId: "seeded_take_curry_choking", userId: "seeded_user_fadeking", replyText: "Called it if USA scores early.", created_at: minutesAgo(1), isSeeded: true },
+  { id: "seeded_reply_2", takeId: "seeded_take_curry_choking", userId: "seeded_user_midrange", replyText: "Check the receipt after full time.", created_at: minutesAgo(1), isSeeded: true },
+  { id: "seeded_reply_3", takeId: "seeded_take_mexico_first_goal", userId: "seeded_user_hoopdreams", replyText: "Public is too heavy on this side.", created_at: minutesAgo(3), isSeeded: true },
+  { id: "seeded_reply_4", takeId: "seeded_take_paraguay_upset", userId: "seeded_user_bucketsonly", replyText: "Got it locked before kickoff.", created_at: minutesAgo(5), isSeeded: true },
+  { id: "seeded_reply_5", takeId: "seeded_take_fade_crowd", userId: "seeded_user_sharpmind", replyText: "Group stage gets wild fast.", created_at: minutesAgo(9), isSeeded: true },
 ];
 
 export const seededReceipts: SeededReceipt[] = [
-  { id: "seeded_receipt_1", userId: "seeded_user_talkheavy23", takeText: "Curry is choking.", result: "hit", gameLabel: "LAL Arena", finalScore: "LAL 108 / GSW 103", ride_count: 1300, fade_count: 342, reply_count: 18, heat: 1678, reputation_delta: 35, created_at: hoursAgo(2), isSeeded: true },
-  { id: "seeded_receipt_2", userId: "seeded_user_midrange", takeText: "Knicks upset incoming.", result: "hit", gameLabel: "NYK Arena", finalScore: "NYK 121 / BOS 116", ride_count: 1000, fade_count: 276, reply_count: 14, heat: 1304, reputation_delta: 35, created_at: hoursAgo(8), isSeeded: true },
-  { id: "seeded_receipt_3", userId: "seeded_user_fadeking", takeText: "The Crowd is sleeping on Denver.", result: "hit", gameLabel: "DEN Arena", finalScore: "DEN 112 / PHX 104", ride_count: 842, fade_count: 193, reply_count: 9, heat: 1053, reputation_delta: 35, created_at: hoursAgo(18), isSeeded: true },
-  { id: "seeded_receipt_4", userId: "seeded_user_bucketsonly", takeText: "Lakers run the West.", result: "miss", gameLabel: "LAL Arena", finalScore: "LAL 98 / PHX 114", ride_count: 984, fade_count: 509, reply_count: 12, heat: 1517, reputation_delta: -10, created_at: hoursAgo(28), isSeeded: true },
+  { id: "seeded_receipt_1", userId: "seeded_user_talkheavy23", takeText: "USA gets the opener done.", result: "hit", gameLabel: "World Cup Group Stage", finalScore: "USA 2 / PAR 1", ride_count: 1300, fade_count: 342, reply_count: 18, heat: 1678, reputation_delta: 35, created_at: hoursAgo(2), isSeeded: true },
+  { id: "seeded_receipt_2", userId: "seeded_user_midrange", takeText: "Mexico scores first.", result: "hit", gameLabel: "World Cup Group Stage", finalScore: "MEX 1 / RSA 0", ride_count: 1000, fade_count: 276, reply_count: 14, heat: 1304, reputation_delta: 35, created_at: hoursAgo(8), isSeeded: true },
+  { id: "seeded_receipt_3", userId: "seeded_user_fadeking", takeText: "France tops their group.", result: "hit", gameLabel: "World Cup Group Stage", finalScore: "FRA 3 / NED 1", ride_count: 842, fade_count: 193, reply_count: 9, heat: 1053, reputation_delta: 35, created_at: hoursAgo(18), isSeeded: true },
+  { id: "seeded_receipt_4", userId: "seeded_user_bucketsonly", takeText: "Paraguay can steal this.", result: "miss", gameLabel: "World Cup Group Stage", finalScore: "USA 2 / PAR 1", ride_count: 984, fade_count: 509, reply_count: 12, heat: 1517, reputation_delta: -10, created_at: hoursAgo(28), isSeeded: true },
 ];
 
 export const seededChaosAlerts = [

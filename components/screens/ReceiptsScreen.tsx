@@ -84,11 +84,11 @@ const recentReceipts: RecentReceipt[] = [
     timestamp: "2h ago",
     handle: "@TalkHeavy23",
     avatar: "TH",
-    take: "Curry is choking.",
-    arena: "LAL Arena",
-    leftTeam: "LAL",
+    take: "USA gets the opener done.",
+    arena: "World Cup Group Stage",
+    leftTeam: "USA",
     leftScore: "108",
-    rightTeam: "GSW",
+    rightTeam: "PAR",
     rightScore: "103",
     crowdResult: "97% Riding",
     side: "riding",
@@ -102,11 +102,11 @@ const recentReceipts: RecentReceipt[] = [
     timestamp: "1d ago",
     handle: "@BucketsOnly",
     avatar: "BO",
-    take: "Lakers run the West.",
-    arena: "LAL Arena",
-    leftTeam: "LAL",
+    take: "Mexico scores first.",
+    arena: "World Cup Group Stage",
+    leftTeam: "USA",
     leftScore: "98",
-    rightTeam: "PHX",
+    rightTeam: "NED",
     rightScore: "114",
     crowdResult: "81% Fading",
     side: "fading",
@@ -120,11 +120,11 @@ const recentReceipts: RecentReceipt[] = [
     timestamp: "2d ago",
     handle: "@MidRange",
     avatar: "MR",
-    take: "Knicks upset incoming.",
-    arena: "NYK Arena",
-    leftTeam: "NYK",
+    take: "Paraguay can steal this.",
+    arena: "World Cup Group Stage",
+    leftTeam: "MEX",
     leftScore: "121",
-    rightTeam: "BOS",
+    rightTeam: "RSA",
     rightScore: "116",
     crowdResult: "92% Riding",
     side: "riding",
@@ -138,9 +138,9 @@ const recentReceipts: RecentReceipt[] = [
     timestamp: "3d ago",
     handle: "@FadeKing",
     avatar: "FK",
-    take: "Fade the Crowd.",
-    arena: "BOS Arena",
-    leftTeam: "BOS",
+    take: "Locked before kickoff.",
+    arena: "World Cup Group Stage",
+    leftTeam: "RSA",
     leftScore: "101",
     rightTeam: "MIA",
     rightScore: "93",
@@ -159,8 +159,8 @@ const viralReceipts: ViralReceipt[] = [
     hitRate: "97%",
     handle: "@TalkHeavy23",
     avatar: "TH",
-    take: "Curry is choking.",
-    arena: "LAL Arena",
+    take: "USA gets the opener done.",
+    arena: "World Cup Group Stage",
     views: "2.4M",
     heat: "12.6K",
     comments: "4.3K",
@@ -172,8 +172,8 @@ const viralReceipts: ViralReceipt[] = [
     hitRate: "94%",
     handle: "@MidRange",
     avatar: "MR",
-    take: "Knicks upset incoming.",
-    arena: "NYK Arena",
+    take: "Paraguay can steal this.",
+    arena: "World Cup Group Stage",
     views: "1.8M",
     heat: "8.9K",
     comments: "3.2K",
@@ -185,8 +185,8 @@ const viralReceipts: ViralReceipt[] = [
     hitRate: "91%",
     handle: "@FadeKing",
     avatar: "FK",
-    take: "The Crowd is sleeping on Denver.",
-    arena: "DEN Arena",
+    take: "France tops their group.",
+    arena: "World Cup Group Stage",
     views: "1.2M",
     heat: "6.4K",
     comments: "2.1K",
@@ -198,8 +198,8 @@ const viralReceipts: ViralReceipt[] = [
     hitRate: "9%",
     handle: "@BucketsOnly",
     avatar: "BO",
-    take: "Lakers run the West.",
-    arena: "LAL Arena",
+    take: "Mexico scores first.",
+    arena: "World Cup Group Stage",
     views: "842K",
     heat: "3.1K",
     comments: "1.6K",
@@ -590,16 +590,16 @@ function ReceiptIdentityCard({
               </div>
 
               <h4 className="mt-3 text-3xl font-black italic leading-tight text-white sm:text-4xl">
-                {featuredReceipt?.take_text ?? "Knicks upset incoming."}
+                {featuredReceipt?.take_text ?? "Paraguay can steal this."}
               </h4>
               <p className="mt-2 text-xs font-black uppercase text-sky-300">
-                {featuredReceipt?.game_label ?? "NYK Arena"}
+                {featuredReceipt?.game_label ?? "World Cup Group Stage"}
               </p>
 
               <div className="mt-5 grid max-w-sm grid-cols-[1fr_auto_1fr] items-end gap-3 text-center">
-                <ScoreMini team={receiptScore?.leftTeam ?? "NYK"} score={receiptScore?.leftScore ?? "121"} />
+                <ScoreMini team={receiptScore?.leftTeam ?? "MEX"} score={receiptScore?.leftScore ?? "121"} />
                 <span className="pb-2 text-2xl text-purple-200">ϟ</span>
-                <ScoreMini team={receiptScore?.rightTeam ?? "BOS"} score={receiptScore?.rightScore ?? "116"} />
+                <ScoreMini team={receiptScore?.rightTeam ?? "RSA"} score={receiptScore?.rightScore ?? "116"} />
               </div>
             </div>
 
@@ -975,9 +975,9 @@ function mapReceiptToRecent(receipt: Receipt, owner: ReceiptOwnerMeta): RecentRe
     avatar: owner.initials,
     take: receipt.take_text,
     arena: receipt.game_label ?? receipt.game_id.replaceAll("-", " ").toUpperCase(),
-    leftTeam: score?.leftTeam ?? "LAL",
+    leftTeam: score?.leftTeam ?? "USA",
     leftScore: score?.leftScore ?? "108",
-    rightTeam: score?.rightTeam ?? "GSW",
+    rightTeam: score?.rightTeam ?? "PAR",
     rightScore: score?.rightScore ?? "103",
     crowdResult: `${crowdPercent || 50}% ${ridingWon ? "Riding" : "Fading"}`,
     side: ridingWon ? "riding" : "fading",
@@ -1001,9 +1001,9 @@ function mapSeededReceiptToRecent(receipt: SeededReceipt, owner: ReceiptOwnerMet
     avatar: owner.initials,
     take: receipt.takeText,
     arena: receipt.gameLabel,
-    leftTeam: score?.leftTeam ?? "LAL",
+    leftTeam: score?.leftTeam ?? "USA",
     leftScore: score?.leftScore ?? "108",
-    rightTeam: score?.rightTeam ?? "GSW",
+    rightTeam: score?.rightTeam ?? "PAR",
     rightScore: score?.rightScore ?? "103",
     crowdResult: `${crowdPercent || 50}% ${ridingWon ? "Riding" : "Fading"}`,
     side: ridingWon ? "riding" : "fading",

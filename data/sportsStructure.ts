@@ -33,6 +33,9 @@ export const sportTabs: SportKey[] = [
 ];
 
 export const sportGameSeeds: SportGameSeed[] = [
+  { id: "wc-usa-par-live", league: "World Cup", eventSlug: "group-stage", eventName: "World Cup Group Stage" },
+  { id: "wc-mex-sa-live", league: "World Cup", eventSlug: "group-stage", eventName: "World Cup Group Stage" },
+  { id: "wc-can-opener", league: "World Cup", eventSlug: "group-stage", eventName: "World Cup Group Stage" },
   { id: "lal-gsw-live", league: "NBA", eventSlug: "playoff-push", eventName: "Playoff Push" },
   { id: "bos-nyk-live", league: "NBA", eventSlug: "east-chaos", eventName: "East Chaos" },
   { id: "kc-phi-live", league: "NFL", eventSlug: "sunday-night-smoke", eventName: "Sunday Night Smoke" },
@@ -47,6 +50,6 @@ export const sportGameSeeds: SportGameSeed[] = [
   { id: "finals-live", league: "Playoffs", eventSlug: "finals-pressure", eventName: "Finals Pressure" },
 ];
 
-export function getGameSport(gameId: string, fallback: SportKey = "NBA") {
+export function getGameSport(gameId: string, fallback: SportKey = "World Cup") {
   return sportGameSeeds.find((game) => game.id === gameId)?.league ?? fallback;
 }

@@ -22,6 +22,8 @@ import { getCrowdPressure, getHeatStatus, getReputationLevel } from "@/lib/reput
 import { getPresenceMeta, getPresenceStatus } from "@/lib/presence";
 import { seededChaosAlerts } from "@/data/seededCrowd";
 import { getGameSport, sportTabs, type SportKey } from "@/data/sportsStructure";
+import { worldCupChaosAlerts, worldCupFeaturedMatch, worldCupLiveArenas, worldCupTrendingTakes } from "@/data/worldCupMvp";
+import { ACTIVE_SPORT, getVisibleSportTabs, SHOW_MULTI_SPORT } from "@/lib/productConfig";
 import type { Game, Profile, TakeReaction } from "@/lib/supabase/types";
 
 type Side = "ride" | "fade";
@@ -62,20 +64,7 @@ type ChaosAlert = {
   tone: "green" | "purple" | "red";
 };
 
-const featuredHotTake = {
-  matchup: "LAL vs GSW",
-  status: "Live",
-  period: "4th QTR · 2:47",
-  watching: "12.8K watching",
-  handle: "@BucketsOnly",
-  avatar: "BO",
-  text: "LAL closing this. Warriors cooked.",
-  heat: "3.6K",
-  rides: "2.1K",
-  fades: "842",
-  score: "LAL 108 — 103 GSW",
-  movement: "LAL +21% last 5 min",
-};
+const featuredHotTake = worldCupFeaturedMatch;
 
 const featuredHotTakesBySport: Record<SportKey, typeof featuredHotTake> = {
   NBA: featuredHotTake,
@@ -221,150 +210,9 @@ const featuredHotTakesBySport: Record<SportKey, typeof featuredHotTake> = {
   },
 };
 
-const trendingTakes: TrendingTake[] = [
-  {
-    id: "curry-choking",
-    rank: 1,
-    handle: "@TalkHeavy23",
-    timestamp: "2m ago",
-    text: "Curry is choking.",
-    heat: "2.1K",
-    rides: "1.3K",
-    fades: "342",
-    avatar: "TH",
-    verified: true,
-  },
-  {
-    id: "knicks-upset",
-    rank: 2,
-    handle: "@MidRange",
-    timestamp: "5m ago",
-    text: "Knicks upset incoming.",
-    heat: "1.7K",
-    rides: "1.0K",
-    fades: "276",
-    avatar: "MR",
-    verified: true,
-  },
-  {
-    id: "denver-sleeping",
-    rank: 3,
-    handle: "@BucketsOnly",
-    timestamp: "7m ago",
-    text: "The Crowd is sleeping on Denver.",
-    heat: "1.3K",
-    rides: "842",
-    fades: "193",
-    avatar: "BO",
-    verified: true,
-  },
-  {
-    id: "upset-waiting",
-    rank: 4,
-    handle: "@HoopDreams",
-    timestamp: "9m ago",
-    text: "This is an upset waiting.",
-    heat: "1.1K",
-    rides: "621",
-    fades: "168",
-    avatar: "HD",
-    verified: true,
-  },
-];
+const trendingTakes: TrendingTake[] = worldCupTrendingTakes;
 
-const liveArenas: LiveArenaCard[] = [
-  {
-    id: "lal-gsw",
-    league: "NBA",
-    matchup: "LAL vs GSW",
-    quarter: "Q4 2:47",
-    viewers: "12.8K",
-    score: "108 - 103",
-    riding: "62% Riding LAL",
-    fading: "38% Fading GSW",
-    heat: "3.6K",
-    trend: "Trending",
-    trendDirection: "up",
-  },
-  {
-    id: "bos-nyk",
-    league: "NBA",
-    matchup: "BOS vs NYK",
-    quarter: "Q3 6:12",
-    viewers: "7.3K",
-    score: "89 - 92",
-    riding: "41% Riding BOS",
-    fading: "59% Fading NYK",
-    heat: "1.9K",
-    trend: "Fade Surge",
-    trendDirection: "down",
-  },
-  {
-    id: "mia-atl",
-    league: "NBA",
-    matchup: "MIA vs ATL",
-    quarter: "Q2 3:38",
-    viewers: "5.1K",
-    score: "64 - 58",
-    riding: "72% Riding MIA",
-    fading: "28% Fading ATL",
-    heat: "1.2K",
-    trend: "Ride Surge",
-    trendDirection: "up",
-  },
-  {
-    id: "kc-phi",
-    league: "NFL",
-    matchup: "KC vs PHI",
-    quarter: "Q4 8:41",
-    viewers: "18.4K",
-    score: "24 - 20",
-    riding: "54% Riding KC",
-    fading: "46% Fading PHI",
-    heat: "2.4K",
-    trend: "Drive Surge",
-    trendDirection: "up",
-  },
-  {
-    id: "nyy-bos",
-    league: "MLB",
-    matchup: "NYY vs BOS",
-    quarter: "8TH",
-    viewers: "9.2K",
-    score: "4 - 5",
-    riding: "47% Riding NYY",
-    fading: "53% Fading BOS",
-    heat: "1.4K",
-    trend: "Crowd Split",
-    trendDirection: "down",
-  },
-  {
-    id: "edm-dal",
-    league: "NHL",
-    matchup: "EDM vs DAL",
-    quarter: "3RD 11:08",
-    viewers: "6.8K",
-    score: "2 - 2",
-    riding: "51% Riding EDM",
-    fading: "49% Fading DAL",
-    heat: "1.2K",
-    trend: "Next Goal",
-    trendDirection: "up",
-  },
-  {
-    id: "ars-mci",
-    league: "Soccer",
-    matchup: "ARS vs MCI",
-    quarter: "76'",
-    viewers: "15.1K",
-    score: "1 - 1",
-    riding: "48% Riding ARS",
-    fading: "52% Fading MCI",
-    heat: "2.2K",
-    trend: "Fade Wave",
-    trendDirection: "down",
-  },
-];
+const liveArenas: LiveArenaCard[] = worldCupLiveArenas as LiveArenaCard[];
 
 export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: string) => void; profile?: Profile | null }) {
   const router = useRouter();
@@ -380,16 +228,17 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   const [reactionLoadingTakeId, setReactionLoadingTakeId] = useState<string | null>(null);
   const [reactionMessage, setReactionMessage] = useState("");
   const [recentActivity, setRecentActivity] = useState<string[]>([]);
-  const [activeSport, setActiveSport] = useState<SportKey>("NBA");
+  const [activeSport, setActiveSport] = useState<SportKey>(ACTIVE_SPORT);
+  const visibleSportTabs = getVisibleSportTabs(sportTabs);
   const sportTakes = gameTakes.filter((take) => getGameSport(take.game_id) === activeSport);
-  const visibleTakes = activeSport === "NBA" ? sportTakes : [];
+  const visibleTakes = sportTakes;
   const featuredTake = getFeaturedTakeFromList(visibleTakes);
   const trendingRealTakes = getTrendingTakesFromList(visibleTakes, 4);
   const activeSportGames = liveGames.filter((game) => getGameSportFromRow(game) === activeSport);
   const liveSportGames = activeSportGames.filter((game) => game.status === "live");
   const scheduledSportGames = activeSportGames.filter((game) => game.status === "scheduled");
   const finalSportGames = activeSportGames.filter((game) => game.status === "final");
-  const activeSportGame = liveSportGames[0] ?? scheduledSportGames[0] ?? (activeSport === "NBA" ? activeGame : null);
+  const activeSportGame = liveSportGames[0] ?? scheduledSportGames[0] ?? (activeSport === ACTIVE_SPORT ? activeGame : null);
   const combinedReactions = { ...takeChoices, ...takeReactions } as Record<string, TakeReaction["reaction"]>;
   const dynamicChaosAlerts = buildChaosAlerts(visibleTakes);
 
@@ -533,7 +382,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   return (
     <div className="space-y-5">
       <FeedHeader profile={profile} />
-      <SportSelector activeSport={activeSport} onSelect={setActiveSport} />
+      <SportSelector activeSport={activeSport} onSelect={setActiveSport} visibleTabs={visibleSportTabs} />
       <FeaturedHotTakeCard
         sport={activeSport}
         game={activeSportGame}
@@ -601,14 +450,16 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
 function SportSelector({
   activeSport,
   onSelect,
+  visibleTabs,
 }: {
   activeSport: SportKey;
   onSelect: (sport: SportKey) => void;
+  visibleTabs: SportKey[];
 }) {
   return (
     <nav className="rounded-[1.5rem] border border-white/10 bg-black/30 p-2 shadow-[0_18px_48px_rgba(0,0,0,0.3)] backdrop-blur">
       <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" aria-label="Sport filters">
-        {sportTabs.map((sport) => (
+        {visibleTabs.map((sport) => (
           <button
             key={sport}
             type="button"
@@ -648,7 +499,7 @@ function FeedHeader({ profile }: { profile?: Profile | null }) {
             <span className="h-2.5 w-2.5 rounded-full bg-lime-400 shadow-[0_0_16px_rgba(132,204,22,0.75)]" />
             12.8K <span className="text-gray-400">Online</span>
           </p>
-          <p className="mt-1 text-xs font-semibold text-gray-400 sm:text-sm">Real talk. Live takes. All heat.</p>
+          <p className="mt-1 text-xs font-semibold text-gray-400 sm:text-sm">World Cup calls. Tournament reputation.</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -801,9 +652,9 @@ function FeaturedHotTakeCard({
           <span className="h-2.5 w-2.5 rounded-full bg-lime-400 shadow-[0_0_16px_rgba(132,204,22,0.75)]" />
           Hottest Live Take
         </p>
-        <span className="rounded-md border border-red-400/60 bg-red-500/10 px-2.5 py-1 text-xs font-black uppercase text-red-300">
-          ▷ {status}
-        </span>
+          <span className="rounded-md border border-red-400/60 bg-red-500/10 px-2.5 py-1 text-xs font-black uppercase text-red-300">
+            ▷ {status}
+          </span>
       </div>
 
       <div
@@ -828,7 +679,7 @@ function FeaturedHotTakeCard({
             }}
             className="min-h-9 rounded-xl border border-purple-300/60 bg-purple-500/10 px-3 text-[10px] font-black uppercase tracking-[0.12em] text-purple-200 transition hover:bg-purple-500/15 active:scale-[0.98]"
           >
-            Join Live
+            Open Match Room
           </button>
         </div>
 
@@ -1009,16 +860,16 @@ function LockTakeComposer({
     <section className="rounded-[1.75rem] border border-purple-300/30 bg-purple-500/10 p-4 shadow-[0_0_34px_rgba(168,85,247,0.14)]">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-300">Lock Take</p>
-          <h2 className="sports-display mt-1 text-2xl italic leading-none text-white">Put your name on it.</h2>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-300">World Cup Call</p>
+          <h2 className="sports-display mt-1 text-2xl italic leading-none text-white">Lock your pick.</h2>
         </div>
         <span className="rounded-full border border-lime-300/25 bg-lime-400/10 px-3 py-1 text-[10px] font-black uppercase text-lime-300">
-          {lockedCount} Arena locks
+          {lockedCount} calls locked
         </span>
       </div>
 
       <label className="sr-only" htmlFor="arena-lock-take">
-        Say it with your chest
+        Lock your World Cup call
       </label>
       <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-stretch">
         <div className="relative">
@@ -1027,7 +878,7 @@ function LockTakeComposer({
             value={value}
             maxLength={150}
             onChange={(event) => onChange(event.target.value)}
-            placeholder="Say it with your chest... 🔥 😂 👀"
+            placeholder="Lock your World Cup call... Who wins? Who scores first?"
             className="min-h-24 w-full resize-none rounded-2xl border border-purple-300/45 bg-black/55 px-4 py-4 pr-16 text-base font-semibold text-white outline-none transition placeholder:text-gray-600 focus:border-lime-300/60 focus:shadow-[0_0_24px_rgba(132,204,22,0.12)] md:min-h-16"
           />
           <span className="absolute bottom-3 right-4 text-xs font-bold text-gray-500">{value.length}/150</span>
@@ -1038,7 +889,7 @@ function LockTakeComposer({
           disabled={isLockedDisabled}
           className="min-h-14 rounded-2xl border border-purple-300/60 bg-purple-500/15 px-6 text-sm font-black uppercase tracking-[0.12em] text-purple-100 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition hover:-translate-y-0.5 hover:bg-purple-500/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
         >
-          {status === "loading" ? "Locking..." : "Lock Take 🔒"}
+          {status === "loading" ? "Locking..." : "Lock It Before Kickoff 🔒"}
         </button>
       </div>
 
@@ -1055,8 +906,8 @@ function LockTakeComposer({
       )}
 
       <div className="mt-3 grid gap-2 text-xs font-semibold text-gray-400 sm:grid-cols-2">
-        <p>Locked &amp; permanent. Everyone will see this.</p>
-        <p>No switching sides. Receipts don&apos;t lie.</p>
+        <p>Locked before kickoff. Everyone sees it.</p>
+        <p>Called it or missed it, check the receipt.</p>
       </div>
     </section>
   );
@@ -1462,7 +1313,7 @@ function LiveArenas({
   const arenas = realArenas.length ? realArenas : fallbackArenas;
 
   return (
-    <FeedSection title="Live Now" icon="≋" action="See all">
+      <FeedSection title="Featured World Cup Matches" icon="≋" action="See all">
       <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
         {arenas.map((arena) => {
           const [left, right] = arena.matchup.split(" vs ");
@@ -1504,7 +1355,7 @@ function LiveArenas({
                 onClick={() => onEnterArena(arena.id)}
                 className="mt-4 min-h-11 w-full rounded-xl border border-lime-300/30 bg-lime-400/5 text-sm font-black uppercase text-lime-300 transition active:scale-[0.98]"
               >
-                Join Live
+                Open Match Room
               </button>
             </article>
           );
@@ -1513,7 +1364,7 @@ function LiveArenas({
           <div className="min-w-full rounded-2xl border border-white/10 bg-black/35 p-4">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-lime-300">{activeSport} rooms warming up</p>
             <p className="mt-2 text-sm font-semibold text-gray-400">
-              The sport lane is ready. Live rooms will plug into the same takes, replies, heat, and Quick Pick structure.
+              Match rooms are loading. Calls, locks, receipts, and reputation stay the same.
             </p>
           </div>
         )}
@@ -1536,7 +1387,7 @@ function ScheduledGames({
   }
 
   return (
-    <FeedSection title="Tonight / Upcoming" icon="◷" action={`${games.length} scheduled`}>
+    <FeedSection title="Upcoming World Cup Matches" icon="◷" action={`${games.length} scheduled`}>
       <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
         {games.map((game) => (
           <ScheduledGameCard key={game.id} game={game} activeSport={activeSport} onEnterArena={onEnterArena} />
@@ -1685,8 +1536,9 @@ function buildChaosAlerts(takes: ArenaTake[]): ChaosAlert[] {
     }
   }
 
-  const seededRotation = seededChaosAlerts.slice((new Date().getMinutes() % 3), seededChaosAlerts.length);
-  const fallbackRotation = [...seededRotation, ...seededChaosAlerts.slice(0, new Date().getMinutes() % 3)];
+  const baseAlerts = SHOW_MULTI_SPORT ? seededChaosAlerts : worldCupChaosAlerts;
+  const seededRotation = baseAlerts.slice((new Date().getMinutes() % 3), baseAlerts.length);
+  const fallbackRotation = [...seededRotation, ...baseAlerts.slice(0, new Date().getMinutes() % 3)];
 
   return [...generatedAlerts, ...fallbackRotation].slice(0, 5);
 }

@@ -1,0 +1,118 @@
+export const WORLD_CUP_GAME_ID = "wc-usa-par-live";
+
+export const worldCupTeams = [
+  "Mexico",
+  "South Africa",
+  "USA",
+  "Paraguay",
+  "Canada",
+  "Argentina",
+  "Brazil",
+  "France",
+  "England",
+  "Spain",
+  "Germany",
+  "Portugal",
+  "Netherlands",
+];
+
+export const worldCupFeaturedMatch = {
+  matchup: "USA vs Paraguay",
+  status: "Live",
+  period: "64' · Group C",
+  watching: "24.8K watching",
+  handle: "@CalledItCam",
+  avatar: "CC",
+  text: "USA win this if they stay brave in transition.",
+  heat: "3.1K",
+  rides: "1.8K",
+  fades: "902",
+  score: "USA 1 - 1 PAR",
+  movement: "Ride surge +19%",
+};
+
+export const worldCupTrendingTakes = [
+  {
+    id: "wc-upset-mexico",
+    rank: 1,
+    handle: "@GroupStageGuru",
+    timestamp: "2m ago",
+    text: "Mexico gets the first goal against South Africa.",
+    heat: "2.3K",
+    rides: "1.5K",
+    fades: "611",
+    avatar: "GG",
+    verified: true,
+  },
+  {
+    id: "wc-usa-winner",
+    rank: 2,
+    handle: "@CalledItCam",
+    timestamp: "4m ago",
+    text: "USA by one. Locked before kickoff.",
+    heat: "2.0K",
+    rides: "1.2K",
+    fades: "703",
+    avatar: "CC",
+    verified: true,
+  },
+  {
+    id: "wc-canada-opening",
+    rank: 3,
+    handle: "@NorthStandNina",
+    timestamp: "8m ago",
+    text: "Canada takes points in the opener.",
+    heat: "1.5K",
+    rides: "924",
+    fades: "422",
+    avatar: "NS",
+    verified: true,
+  },
+  {
+    id: "wc-group-winner",
+    rank: 4,
+    handle: "@KnockoutKeen",
+    timestamp: "11m ago",
+    text: "Portugal wins the group. Got it locked.",
+    heat: "1.2K",
+    rides: "672",
+    fades: "318",
+    avatar: "KK",
+    verified: true,
+  },
+];
+
+export const worldCupLiveArenas = [
+  {
+    id: "wc-usa-par-live",
+    league: "World Cup",
+    matchup: "USA vs PAR",
+    quarter: "64'",
+    viewers: "24.8K",
+    score: "1 - 1",
+    riding: "57% Riding USA",
+    fading: "43% Fading USA",
+    heat: "3.1K",
+    trend: "Group Stage Heat",
+    trendDirection: "up" as const,
+  },
+  {
+    id: "wc-mex-sa-live",
+    league: "World Cup",
+    matchup: "MEX vs RSA",
+    quarter: "38'",
+    viewers: "19.3K",
+    score: "0 - 0",
+    riding: "49% Riding MEX",
+    fading: "51% Fading MEX",
+    heat: "2.4K",
+    trend: "Ride/Fade Split",
+    trendDirection: "down" as const,
+  },
+];
+
+export const worldCupChaosAlerts = [
+  { id: "wc-alert-1", icon: "◎", title: "Group C split 52/48.", detail: "One goal flips every call.", time: "live", tone: "green" as const },
+  { id: "wc-alert-2", icon: "ϟ", title: "Upset talk heating up.", detail: "Fade side jumped 14% in 6 minutes.", time: "now", tone: "purple" as const },
+  { id: "wc-alert-3", icon: "▲", title: "Knockout path pressure.", detail: "Draw keeps both teams alive.", time: "2m", tone: "green" as const },
+];

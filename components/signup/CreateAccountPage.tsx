@@ -181,9 +181,9 @@ function ChallengeCard() {
       </div>
 
       <h2 className="sports-display mt-5 text-[3.7rem] italic leading-[0.86] text-white sm:text-[5rem]">
-        “Lakers Are
+        “USA Are
         <span className="block bg-gradient-to-r from-lime-300 to-purple-400 bg-clip-text text-transparent">
-          Cooked.”
+          Locked before kickoff.”
         </span>
       </h2>
 

@@ -311,9 +311,9 @@ export function ReceiptDetailScreen({ receiptId, profile }: { receiptId: string;
                 </p>
 
                 <div className="mt-6 grid max-w-xl grid-cols-[1fr_auto_1fr] items-end gap-3 text-center">
-                  <ScoreMini team={score?.leftTeam ?? "LAL"} score={score?.leftScore ?? "108"} />
+                  <ScoreMini team={score?.leftTeam ?? "USA"} score={score?.leftScore ?? "108"} />
                   <span className="pb-2 text-3xl text-purple-200">ϟ</span>
-                  <ScoreMini team={score?.rightTeam ?? "GSW"} score={score?.rightScore ?? "103"} />
+                  <ScoreMini team={score?.rightTeam ?? "PAR"} score={score?.rightScore ?? "103"} />
                 </div>
 
                 <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-5">
@@ -397,7 +397,7 @@ function mapReceipt(receipt: Receipt): ReceiptView {
     result: receipt.result,
     takeText: receipt.take_text,
     gameLabel: receipt.game_label ?? receipt.game_id.replaceAll("-", " ").toUpperCase(),
-    finalScore: receipt.final_score ?? "LAL 108 / GSW 103",
+    finalScore: receipt.final_score ?? "USA 2 / PAR 1",
     rideCount: receipt.ride_count,
     fadeCount: receipt.fade_count,
     replyCount: receipt.reply_count,
