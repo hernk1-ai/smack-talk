@@ -5,15 +5,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LocktLogo } from "@/components/LocktLogo";
 import { UserAvatar } from "@/components/UserAvatar";
-import { ACTIVE_GAME_ID, getArenaGames } from "@/lib/supabase/games";
+import { ACTIVE_GAME_ID, getArenaGames, getGameById } from "@/lib/supabase/games";
 import {
   attachAuthorToTake,
   formatTakeForUI,
+  getArenaFeedByGameIds,
+  getCurrentUserReactionMap,
   getFeaturedTakeFromList,
   getTrendingTakesFromList,
   isSeededTakeId,
   mergeArenaFeedWithSeeded,
-  refreshArenaData,
   type ArenaTake,
 } from "@/lib/supabase/arena";
 import { reactToTake } from "@/lib/supabase/reactions";
@@ -237,9 +238,10 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   const [replyLoadingTakeId, setReplyLoadingTakeId] = useState<string | null>(null);
   const [recentActivity, setRecentActivity] = useState<string[]>([]);
   const [activeSport, setActiveSport] = useState<SportKey>(ACTIVE_SPORT);
+  const preTournamentMode = isPreTournamentMode();
   const visibleSportTabs = getVisibleSportTabs(sportTabs);
   const sportTakes = gameTakes.filter((take) => getGameSport(take.game_id) === activeSport);
-  const visibleTakes = sportTakes;
+  const visibleTakes = preTournamentMode ? gameTakes : sportTakes;
   const featuredTake = getFeaturedTakeFromList(visibleTakes);
   const trendingRealTakes = getTrendingTakesFromList(visibleTakes, 4);
   const activeSportGames = liveGames.filter((game) => getGameSportFromRow(game) === activeSport);
@@ -249,14 +251,13 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   const activeSportGame = liveSportGames[0] ?? scheduledSportGames[0] ?? (activeSport === ACTIVE_SPORT ? activeGame : null);
   const combinedReactions = { ...takeChoices, ...takeReactions } as Record<string, TakeReaction["reaction"]>;
   const dynamicChaosAlerts = buildChaosAlerts(visibleTakes);
-  const preTournamentMode = isPreTournamentMode();
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadArenaData() {
-      const [{ game, feed, reactionMap }, { games }] = await Promise.all([
-        refreshArenaData(ACTIVE_GAME_ID),
+      const [{ game }, { games }] = await Promise.all([
+        getGameById(ACTIVE_GAME_ID),
         getArenaGames(),
       ]);
 
@@ -266,6 +267,10 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
 
       setActiveGame(game);
       setLiveGames(games);
+      const knownGameIds = games.map((arenaGame: Game) => arenaGame.id);
+      const targetGameIds = knownGameIds.length ? knownGameIds : [game?.id ?? ACTIVE_GAME_ID];
+      const { takes: feed } = await getArenaFeedByGameIds(targetGameIds);
+      const { reactionMap } = await getCurrentUserReactionMap(feed.map((take) => take.id));
       const mergedFeed = mergeArenaFeedWithSeeded(feed, game?.id ?? ACTIVE_GAME_ID);
       setGameTakes(mergedFeed);
       setTakeReactions(reactionMap);
@@ -647,6 +652,10 @@ function PreTournamentEarlyCalls({
       ) : null}
       {takes.length ? (
         <div className="max-h-[30rem] space-y-2 overflow-y-auto pr-1">
+          <div className="sticky top-0 z-10 -mx-1 mb-2 flex items-center justify-between rounded-lg border border-white/10 bg-black/80 px-3 py-2 backdrop-blur">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">Early Call Feed</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.1em] text-gray-400">Newest first</p>
+          </div>
           {takes.map((take) => {
             const activeReaction = reactions[take.id];
             const isLoading = loadingTakeId === take.id;

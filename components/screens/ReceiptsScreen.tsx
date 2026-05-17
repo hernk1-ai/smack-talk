@@ -340,15 +340,10 @@ export function ReceiptsScreen({
     <div className="space-y-5">
       <ReceiptsHeader profile={profile} />
       <ReceiptIdentityCard
-        preTournamentMode={preTournamentMode}
-        pendingTakeText={pendingTakeText}
-        shareState={profileShareState}
         featuredReceipt={featuredReceipt}
-        onShare={copyShareUrl}
         owner={owner}
         profile={profile}
         receipts={realReceipts}
-        onReportUser={() => setReportProfileOpen(true)}
       />
 
       {receiptError && (
@@ -507,22 +502,12 @@ function HeaderIcon({
 }
 
 function ReceiptIdentityCard({
-  preTournamentMode,
-  pendingTakeText,
-  shareState,
   featuredReceipt,
-  onShare,
-  onReportUser,
   owner,
   profile,
   receipts,
 }: {
-  preTournamentMode: boolean;
-  pendingTakeText: string;
-  shareState: "idle" | ShareOutcome;
   featuredReceipt: Receipt | null;
-  onShare: () => void;
-  onReportUser: () => void;
   owner: ReceiptOwnerMeta;
   profile?: Profile | null;
   receipts: Receipt[];
@@ -569,15 +554,14 @@ function ReceiptIdentityCard({
     },
     badges,
   );
-  const receiptScore = featuredReceipt ? parseFinalScore(featuredReceipt.final_score) : null;
-  const isWin = featuredReceipt?.result !== "miss";
+  void featuredReceipt;
 
   return (
     <section className="relative isolate overflow-hidden rounded-[2rem] border border-lime-300/25 bg-[#05070d]/90 p-4 shadow-[0_30px_90px_rgba(0,0,0,0.56),0_0_48px_rgba(132,204,22,0.1)] sm:p-5">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_12%_12%,rgba(132,204,22,0.2),transparent_34%),radial-gradient(circle_at_86%_18%,rgba(168,85,247,0.22),transparent_34%),linear-gradient(135deg,rgba(132,204,22,0.1),transparent_40%,rgba(168,85,247,0.11))]" />
       <div className="pointer-events-none absolute inset-x-5 top-32 -z-10 h-px bg-gradient-to-r from-transparent via-lime-300/30 to-transparent" />
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,0.92fr)_minmax(21rem,0.72fr)] xl:items-stretch">
+      <div className="grid gap-5">
         <div className="min-w-0 space-y-4">
           <div className="grid gap-4 min-[460px]:grid-cols-[auto_1fr] min-[460px]:items-center">
             <UserAvatar avatarUrl={owner.avatarUrl} initials={owner.initials} label={`${owner.handle} avatar`} size="xl" active />
@@ -640,95 +624,6 @@ function ReceiptIdentityCard({
             ))}
           </div>
         </div>
-
-        <article className={`relative isolate flex min-w-0 flex-col overflow-hidden rounded-[1.6rem] border p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition sm:p-5 ${isWin ? "border-lime-300/25 bg-[#061006]/95 hover:border-lime-300/40" : "border-red-300/25 bg-[#120607]/95 hover:border-red-300/40"}`}>
-          <div className="pointer-events-none absolute right-0 top-0 -z-10 h-full w-2/3 bg-[radial-gradient(circle_at_70%_30%,rgba(132,204,22,0.2),transparent_48%),radial-gradient(circle_at_100%_82%,rgba(168,85,247,0.2),transparent_46%)]" />
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime-300">Featured Receipt</p>
-              <h3 className="sports-display mt-1 text-2xl italic leading-none text-white">Permanent game call</h3>
-            </div>
-            <span className={`rounded-md px-2 py-1 text-[10px] font-black uppercase ${isWin ? "bg-lime-400/15 text-lime-300" : "bg-red-500/15 text-red-300"}`}>
-              {isWin ? "Win" : "Loss"}
-            </span>
-          </div>
-
-          <div className="mt-4 flex grow flex-col justify-between rounded-2xl border border-white/10 bg-black/45 p-4">
-            <div>
-              <div className="flex items-center justify-between gap-3">
-                <p className="truncate text-xs font-bold text-gray-400">
-                  <Link href={getReceiptHref(owner.handle, owner.isCurrentUser)} className="transition hover:text-lime-200">
-                    {owner.handle}
-                  </Link>{" "}
-                  · {featuredReceipt ? formatReceiptAge(featuredReceipt.created_at) : "2d ago"}
-                </p>
-                <span className="shrink-0 rounded-full border border-lime-300/30 bg-lime-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-lime-300">
-                  Shareable
-                </span>
-              </div>
-
-              <h4 className="mt-3 text-3xl font-black italic leading-tight text-white sm:text-4xl">
-                {featuredReceipt?.take_text ?? (pendingTakeText || (preTournamentMode ? "No settled receipts yet." : "Brazil wins Group C."))}
-              </h4>
-              <p className="mt-2 text-xs font-black uppercase text-sky-300">
-                {featuredReceipt?.game_label ?? "World Cup Group Stage"}
-              </p>
-
-              <div className="mt-5 grid max-w-sm grid-cols-[1fr_auto_1fr] items-end gap-3 text-center">
-                <ScoreMini team={receiptScore?.leftTeam ?? "TBD"} score={receiptScore?.leftScore ?? "--"} />
-                <span className="pb-2 text-2xl text-purple-200">ϟ</span>
-                <ScoreMini team={receiptScore?.rightTeam ?? "TBD"} score={receiptScore?.rightScore ?? "--"} />
-              </div>
-            </div>
-
-            <div className="mt-5 rounded-2xl border border-lime-300/20 bg-black/65 p-3">
-              <div className="grid gap-3 min-[430px]:grid-cols-[1fr_auto] min-[430px]:items-center">
-                <div>
-                  <p className={`text-[10px] font-black uppercase tracking-[0.12em] ${isWin ? "text-lime-300" : "text-red-300"}`}>
-                    {isWin ? "Receipt held" : "Talk exposed"}
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-gray-300">
-                    {featuredReceipt
-                      ? "Snapshot locked. Your record follows you."
-                      : pendingTakeText
-                        ? "Call pending! Come back for the game!"
-                        : "Receipts unlock when the World Cup starts. Lock your calls before kickoff."}
-                  </p>
-                </div>
-                <div className="min-[430px]:text-right">
-                  <p className="scoreboard-number text-5xl leading-none text-white drop-shadow-[0_0_18px_rgba(132,204,22,0.22)]">
-                    {featuredReceipt ? formatSignedRep(featuredReceipt.reputation_delta) : "TBD"}
-                  </p>
-                  <p className={`text-xs font-black uppercase tracking-[0.12em] ${isWin ? "text-lime-300" : "text-red-300"}`}>
-                    REP Delta
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-4 gap-2 rounded-xl border border-white/10 bg-black/65 p-2 text-center text-xs font-black text-gray-400">
-              <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">🔥 {formatCompact(featuredReceipt?.heat ?? 0)}</span>
-              <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">Ride {formatCompact(featuredReceipt?.ride_count ?? 0)}</span>
-              <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">Fade {formatCompact(featuredReceipt?.fade_count ?? 0)}</span>
-              <span className="rounded-lg py-1 transition hover:bg-white/[0.04]">Replies {formatCompact(featuredReceipt?.reply_count ?? 0)}</span>
-            </div>
-
-            <button
-              type="button"
-              onClick={onShare}
-              className="mt-4 min-h-12 rounded-2xl border border-purple-300/60 bg-purple-500/15 px-5 text-sm font-black uppercase tracking-[0.1em] text-purple-100 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition hover:-translate-y-0.5 hover:bg-purple-500/25 hover:shadow-[0_0_34px_rgba(168,85,247,0.24)] active:scale-95"
-            >
-              {shareState === "shared" ? "SHARED" : shareState === "copied" ? "LINK COPIED" : "SHARE"}
-            </button>
-            <button
-              type="button"
-              onClick={onReportUser}
-              className="mt-2 min-h-10 rounded-2xl border border-yellow-300 px-4 text-xs font-black uppercase text-yellow-100"
-            >
-              FLAG USER
-            </button>
-          </div>
-        </article>
       </div>
     </section>
   );
