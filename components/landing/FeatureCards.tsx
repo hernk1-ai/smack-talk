@@ -14,20 +14,12 @@ function ShieldIcon() {
   );
 }
 
-function RankIcon() {
+function TrophyIcon() {
   return (
     <svg aria-hidden="true" className="h-11 w-11" viewBox="0 0 24 24" fill="none">
-      <path d="M5 19V9m7 10V5m7 14v-7" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
-      <path d="M3.5 19.5h17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function RivalIcon() {
-  return (
-    <svg aria-hidden="true" className="h-11 w-11" viewBox="0 0 24 24" fill="none">
-      <path d="M8 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M3.5 19c.7-2.8 2.3-4.2 4.5-4.2s3.8 1.4 4.5 4.2M11.5 19c.7-2.8 2.3-4.2 4.5-4.2s3.8 1.4 4.5 4.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M8 4h8v3.8c0 3.4-1.7 5.7-4 6.7-2.3-1-4-3.3-4-6.7V4Z" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M8 6H4.5c0 3.3 1.1 5 4.1 5.5M16 6h3.5c0 3.3-1.1 5-4.1 5.5M12 15v3M8.5 21h7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="m12 7.2.7 1.4 1.5.2-1.1 1.1.3 1.5-1.4-.7-1.4.7.3-1.5-1.1-1.1 1.5-.2.7-1.4Z" fill="currentColor" />
     </svg>
   );
 }
@@ -41,12 +33,11 @@ function ReceiptIcon() {
   );
 }
 
-function TrophyIcon() {
+function FansIcon() {
   return (
     <svg aria-hidden="true" className="h-11 w-11" viewBox="0 0 24 24" fill="none">
-      <path d="M8 4h8v3.8c0 3.4-1.7 5.7-4 6.7-2.3-1-4-3.3-4-6.7V4Z" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M8 6H4.5c0 3.3 1.1 5 4.1 5.5M16 6h3.5c0 3.3-1.1 5-4.1 5.5M12 15v3M8.5 21h7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="m12 7.2.7 1.4 1.5.2-1.1 1.1.3 1.5-1.4-.7-1.4.7.3-1.5-1.1-1.1 1.5-.2.7-1.4Z" fill="currentColor" />
+      <path d="M8 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M3.5 19c.7-2.8 2.3-4.2 4.5-4.2s3.8 1.4 4.5 4.2M11.5 19c.7-2.8 2.3-4.2 4.5-4.2s3.8 1.4 4.5 4.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
@@ -54,33 +45,27 @@ function TrophyIcon() {
 const features: Feature[] = [
   {
     icon: <ShieldIcon />,
-    title: "Lock It.",
-    text: "Make your take public before the game, the run, or the meltdown. Once it’s locked, it lives.",
+    title: "Make World Cup Calls",
+    text: "Pick winners, exact scores, and tournament moments before kickoff.",
     tone: "lime",
-  },
-  {
-    icon: <RankIcon />,
-    title: "Ride or Fade",
-    text: "Back a take, fade the Crowd, or call out your opps when the game flips.",
-    tone: "purple",
-  },
-  {
-    icon: <RivalIcon />,
-    title: "Build REP",
-    text: "Every lock, ride, fade, and receipt shapes your reputation.",
-    tone: "lime",
-  },
-  {
-    icon: <ReceiptIcon />,
-    title: "Show Receipts",
-    text: "Receipts track who talked, who stood on it, and who got cooked.",
-    tone: "purple",
   },
   {
     icon: <TrophyIcon />,
-    title: "Top Talkers",
-    text: "Climb the board and prove your Smack IQ when the Crowd is loud.",
+    title: "Collect Trophies",
+    text: "Unlock trophies as you make calls, hit receipts, and build your World Cup board.",
+    tone: "purple",
+  },
+  {
+    icon: <ReceiptIcon />,
+    title: "Check Receipts",
+    text: "Every locked call becomes a receipt after the match result is final.",
     tone: "lime",
+  },
+  {
+    icon: <FansIcon />,
+    title: "Follow Fans",
+    text: "Follow other users, compare calls, and share receipts throughout the tournament.",
+    tone: "purple",
   },
 ];
 
@@ -89,11 +74,11 @@ export function FeatureCards() {
     <section id="features" className="scroll-mt-24 border-b border-white/10 py-14 sm:py-24">
       <div className="landing-shell">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-lime-300">This isn’t just talk.</p>
-          <h2 className="sports-display mt-3 text-4xl italic leading-none text-white sm:text-6xl">This is LOCKT.</h2>
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-lime-300">World Cup Ready</p>
+          <h2 className="sports-display mt-3 text-4xl italic leading-none text-white sm:text-6xl">Built For The Fans</h2>
         </div>
 
-        <div className="mt-10 grid gap-0 overflow-hidden rounded-[2rem] border border-white/10 bg-black/25 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-10 grid gap-0 overflow-hidden rounded-[2rem] border border-white/10 bg-black/25 sm:grid-cols-2 lg:grid-cols-4">
           {features.map((feature) => (
             <article
               key={feature.title}

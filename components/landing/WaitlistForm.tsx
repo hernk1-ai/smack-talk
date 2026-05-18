@@ -70,10 +70,10 @@ export function WaitlistForm() {
       className="rounded-[1.75rem] border border-lime-300/35 bg-black/58 p-4 shadow-[0_24px_70px_rgba(0,0,0,0.44),0_0_44px_rgba(132,204,22,0.08)] backdrop-blur sm:p-5"
     >
       <p className="text-center text-sm font-black uppercase italic tracking-[0.16em] text-lime-300 sm:text-base">
-        Join The First Lock
+        Join The World Cup Board
       </p>
       <p className="mt-2 text-center text-sm font-semibold text-gray-300">
-        Founding talkers get in early before the Crowd gets loud.
+        Get updates for schedule drops, storylines, and receipts as kickoff approaches.
       </p>
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row">
@@ -122,9 +122,9 @@ export function WaitlistForm() {
         </p>
       )}
       <div className="mt-5 grid grid-cols-3 gap-2 border-t border-white/10 pt-4 text-center text-[10px] font-black uppercase leading-4 tracking-[0.08em] text-gray-400">
-        <span>Founding talker access</span>
-        <span>Early access to launch</span>
-        <span>The First Lock perks</span>
+        <span>World Cup schedule alerts</span>
+        <span>Early call updates</span>
+        <span>Receipt board news</span>
       </div>
     </form>
   );

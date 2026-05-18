@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 import { LocktLogo } from "@/components/LocktLogo";
 
@@ -23,7 +24,7 @@ export function Header() {
             <p className="brand-lockup text-2xl sm:text-[2rem]">
               <span className="bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
             </p>
-            <p className="mt-1 text-[9px] font-black uppercase tracking-[0.2em] text-lime-300/75">The First Lock</p>
+            <p className="mt-1 text-[9px] font-black uppercase tracking-[0.2em] text-lime-300/75">World Cup 2026</p>
           </div>
         </a>
 
@@ -35,11 +36,11 @@ export function Header() {
           ))}
         </nav>
 
-        <a
-          href="#waitlist"
+        <Link
+          href="/signup"
           className="hidden min-h-12 items-center rounded-xl border border-lime-300/70 bg-black/45 px-5 text-xs font-black uppercase tracking-[0.12em] text-white shadow-[0_0_28px_rgba(132,204,22,0.16)] transition hover:scale-[1.02] hover:border-purple-300 hover:shadow-[0_0_34px_rgba(168,85,247,0.22)] md:inline-flex"
         >
-          Join The First Lock
+          Make First Call
           <Image
             src="/brand/lockt-icon.svg"
             alt=""
@@ -47,7 +48,7 @@ export function Header() {
             height={20}
             className="ml-3 rounded-md object-contain"
           />
-        </a>
+        </Link>
 
         <button
           onClick={() => setIsOpen((value) => !value)}
@@ -73,12 +74,12 @@ export function Header() {
                 {link.label}
               </a>
             ))}
-            <a
-              href="#waitlist"
+            <Link
+              href="/signup"
               onClick={() => setIsOpen(false)}
               className="mt-2 flex min-h-12 items-center justify-center rounded-2xl bg-gradient-to-r from-lime-400 to-purple-500 px-4 text-sm font-black uppercase tracking-[0.14em] text-black"
             >
-              Join The First Lock
+              Make First Call
               <Image
                 src="/brand/lockt-icon.svg"
                 alt=""
@@ -86,7 +87,7 @@ export function Header() {
                 height={20}
                 className="ml-3 rounded-md object-contain"
               />
-            </a>
+            </Link>
           </div>
         </div>
       )}

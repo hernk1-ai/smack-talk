@@ -3,7 +3,7 @@
 import { WaitlistForm } from "@/components/landing/WaitlistForm";
 import { useEffect, useState } from "react";
 
-const LAUNCH_DATE = "2026-09-05T20:00:00-07:00";
+const WORLD_CUP_KICKOFF_DATE = "2026-06-11T15:00:00-04:00";
 
 type TimeLeft = {
   days: number;
@@ -20,7 +20,7 @@ const zeroTime: TimeLeft = {
 };
 
 function getTimeLeft(): TimeLeft {
-  const distance = new Date(LAUNCH_DATE).getTime() - Date.now();
+  const distance = new Date(WORLD_CUP_KICKOFF_DATE).getTime() - Date.now();
 
   if (distance <= 0) return zeroTime;
 
@@ -58,13 +58,13 @@ export function CountdownSection() {
       <div className="landing-shell">
         <div className="grid gap-8 lg:grid-cols-[0.85fr_1fr] lg:items-center">
           <div>
-            <p className="text-lg font-black uppercase italic tracking-[0.12em] text-purple-300">Coming Soon</p>
-            <h2 className="sports-display mt-2 text-6xl leading-none text-white sm:text-8xl">The First Lock</h2>
+            <p className="text-lg font-black uppercase italic tracking-[0.12em] text-purple-300">World Cup Kickoff Countdown</p>
+            <h2 className="sports-display mt-2 text-6xl leading-none text-white sm:text-8xl">Countdown to World Cup 2026</h2>
             <div className="mt-4 h-1.5 w-64 max-w-full rounded-full bg-gradient-to-r from-lime-300 to-purple-500" />
 
-            <p className="mt-7 text-2xl font-black text-white">Join The First Lock.</p>
+            <p className="mt-7 text-2xl font-black text-white">Mexico vs South Africa · June 11, 2026</p>
             <p className="mt-4 max-w-xl text-base font-semibold leading-7 text-gray-300">
-              Founding talkers get in early before the Crowd gets loud. Your first receipts start here.
+              Study the groups, track the schedule, and lock your World Cup calls before kickoff.
             </p>
 
             <div className="mt-8 grid grid-cols-4 gap-2 sm:max-w-md sm:gap-4">

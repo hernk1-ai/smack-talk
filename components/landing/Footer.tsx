@@ -16,7 +16,7 @@ export function Footer() {
                 <span className="bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
               </p>
               <p className="mt-1 text-xs font-black uppercase tracking-[0.18em] text-gray-500">
-                LOCKT is a sports reputation platform. Rep has no cash value. Just calls, receipts, and trophies.
+                13+ · No betting · No odds · No cash prizes. Rep has no cash value.
               </p>
             </div>
           </div>

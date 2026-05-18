@@ -1,15 +1,15 @@
 const faqs = [
   {
     question: "What is LOCKT?",
-    answer: "A sports reputation platform where locked takes become receipts and your talk becomes your REP.",
+    answer: "A World Cup call-and-receipt platform where locked calls become receipts and your calls build REP.",
   },
   {
     question: "Is this about money?",
-    answer: "No. LOCKT is about REP, rivalry, receipts, and bragging rights. Rep has no cash value.",
+    answer: "No. LOCKT is a 13+ reputation game. No betting, no odds, no cash prizes, and REP has no cash value.",
   },
   {
-    question: "What is The First Lock?",
-    answer: "The founding launch era where early talkers reserve their place before the Crowd gets loud.",
+    question: "How does the World Cup flow work?",
+    answer: "Call before kickoff, lock it in, and check the receipt after the final result.",
   },
 ];
 

@@ -576,8 +576,8 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   );
 }
 
-// Assumes kickoff-day countdown target at midnight Eastern Time on June 11, 2026.
-const WORLD_CUP_KICKOFF_TARGET = "2026-06-11T00:00:00-04:00";
+// Assumes opening-match kickoff in Eastern Time on June 11, 2026.
+const WORLD_CUP_KICKOFF_TARGET = "2026-06-11T15:00:00-04:00";
 
 function PreTournamentCountdown() {
   const [countdown, setCountdown] = useState(getCountdownLabel());
@@ -585,7 +585,7 @@ function PreTournamentCountdown() {
   useEffect(() => {
     const timer = window.setInterval(() => {
       setCountdown(getCountdownLabel());
-    }, 60000);
+    }, 1000);
 
     return () => window.clearInterval(timer);
   }, []);
@@ -836,11 +836,12 @@ function getCountdownLabel() {
   const now = Date.now();
   const target = new Date(WORLD_CUP_KICKOFF_TARGET).getTime();
   const diff = Math.max(0, target - now);
-  const totalMinutes = Math.floor(diff / (1000 * 60));
-  const days = Math.floor(totalMinutes / (60 * 24));
-  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
-  const minutes = totalMinutes % 60;
-  return `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m`;
+  const totalSeconds = Math.floor(diff / 1000);
+  const days = Math.floor(totalSeconds / (60 * 60 * 24));
+  const hours = Math.floor((totalSeconds % (60 * 60 * 24)) / (60 * 60));
+  const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
+  const seconds = totalSeconds % 60;
+  return `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
 }
 
 function SportSelector({

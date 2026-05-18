@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { LocktLogo } from "@/components/LocktLogo";
 import { NotificationBell } from "@/components/social/NotificationBell";
 import { UserAvatar } from "@/components/UserAvatar";
+import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/supabase/types";
 
 export function AppHeader({
@@ -17,7 +19,50 @@ export function AppHeader({
   rightHref?: string;
   rightAriaLabel?: string;
 }) {
-  const username = profile?.username || "LOCKT";
+  const [resolvedProfile, setResolvedProfile] = useState<Profile | null>(null);
+  const activeProfile = profile ?? resolvedProfile;
+  const username = activeProfile?.username || "LOCKT";
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadCurrentProfile() {
+      if (profile) {
+        return;
+      }
+
+      const supabase = createClient();
+      if (!supabase) {
+        return;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user || !mounted) {
+        return;
+      }
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!mounted) {
+        return;
+      }
+
+      setResolvedProfile((data as Profile | null) ?? null);
+    }
+
+    loadCurrentProfile();
+
+    return () => {
+      mounted = false;
+    };
+  }, [profile]);
 
   return (
     <header className="rounded-[1.75rem] border border-white/10 bg-black/35 px-3 py-2.5 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur sm:px-3.5 sm:py-3">
@@ -46,7 +91,7 @@ export function AppHeader({
             className="relative grid h-11 w-11 place-items-center rounded-2xl border border-white/15 bg-white/[0.04] text-xl text-white shadow-[0_0_22px_rgba(255,255,255,0.06)] transition hover:-translate-y-0.5 hover:border-purple-300/35 hover:bg-white/[0.07] active:scale-95 sm:h-12 sm:w-12"
             aria-label={rightAriaLabel}
           >
-            <UserAvatar avatarUrl={profile?.avatar_url} initials={getInitials(username)} size="sm" />
+            <UserAvatar avatarUrl={activeProfile?.avatar_url} initials={getInitials(username)} size="sm" />
           </Link>
         </div>
       </div>
