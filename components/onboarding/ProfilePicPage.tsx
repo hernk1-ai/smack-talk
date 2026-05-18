@@ -267,7 +267,7 @@ function AvatarChoices({
       <p className="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-gray-400">
         Or use a LOCKT avatar
       </p>
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+      <div className="grid grid-cols-3 gap-2">
         {avatarOptions.map((option) => {
           const isSelected = option.key === selectedAvatarKey;
 

@@ -1,4 +1,4 @@
-import { socialHandles, socialLinks, type SocialPlatform } from "@/config/socialLinks";
+import { socialLinks, type SocialPlatform } from "@/config/socialLinks";
 
 type SocialLinksProps = {
   className?: string;
@@ -11,14 +11,13 @@ type SocialLinkDef = {
   platform: SocialPlatform;
   label: string;
   href: string;
-  handle: string;
 };
 
 const linkDefs: SocialLinkDef[] = [
-  { platform: "x", label: "X", href: socialLinks.x, handle: socialHandles.x },
-  { platform: "instagram", label: "Instagram", href: socialLinks.instagram, handle: socialHandles.instagram },
-  { platform: "tiktok", label: "TikTok", href: socialLinks.tiktok, handle: socialHandles.tiktok },
-  { platform: "discord", label: "Discord", href: socialLinks.discord, handle: socialHandles.discord },
+  { platform: "x", label: "X", href: socialLinks.x },
+  { platform: "instagram", label: "Instagram", href: socialLinks.instagram },
+  { platform: "tiktok", label: "TikTok", href: socialLinks.tiktok },
+  { platform: "discord", label: "Discord", href: socialLinks.discord },
 ];
 
 export function SocialLinks({
@@ -43,7 +42,6 @@ export function SocialLinks({
               className="group inline-flex min-h-11 items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-white transition hover:border-lime-300/45 hover:text-lime-200"
             >
               <span>{link.label}</span>
-              <span className="text-[10px] font-bold normal-case tracking-normal text-gray-400 group-hover:text-gray-300">{link.handle}</span>
             </a>
           ))}
         </div>

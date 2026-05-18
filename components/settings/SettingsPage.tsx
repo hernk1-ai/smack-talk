@@ -390,7 +390,7 @@ function ProfilePictureSettings({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+      <div className="grid grid-cols-3 gap-2">
         {avatarOptions.map((option) => {
           const isSelected = option.key === selectedAvatarKey;
 

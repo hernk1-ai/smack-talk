@@ -17,7 +17,7 @@ export function TeamsPage({ avatar, username }: { avatar?: string; username?: st
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const cleanUsername = sanitizeUsername(username) || "LocktFan";
-  const cleanAvatar = sanitizeToken(avatar) || "lightning";
+  const cleanAvatar = sanitizeToken(avatar) || "logo";
   const teams: WorldCupTeam[] = worldCupGroups[activeGroup];
 
   function toggleTeam(teamName: string) {

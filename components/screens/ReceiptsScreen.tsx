@@ -671,7 +671,7 @@ function ReceiptIdentityCard({
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime-300">Trophy Case</p>
                 <h3 className="sports-display mt-1 text-2xl italic leading-none text-white">Trophies Earned</h3>
               </div>
-              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-purple-300">Proof stack</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-purple-300">Trophy board</p>
             </div>
             <div className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1 lg:grid lg:grid-cols-5 lg:overflow-visible">
               {badges.map((badge) => (

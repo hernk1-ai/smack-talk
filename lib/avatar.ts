@@ -1,4 +1,4 @@
-export type AvatarKey = "logo" | "lightning" | "skull" | "hood" | "crown" | "target";
+export type AvatarKey = "logo" | "soccer" | "trophy";
 
 export type AvatarOption = {
   key: AvatarKey;
@@ -10,12 +10,9 @@ export type AvatarOption = {
 export const AVATAR_PREFIX = "smack-avatar:";
 
 export const avatarOptions: AvatarOption[] = [
-  { key: "logo", label: "LOCKT", glyph: "ST", tone: "green" },
-  { key: "lightning", label: "Lightning", glyph: "ϟ", tone: "green" },
-  { key: "skull", label: "Receipt King", glyph: "☠", tone: "purple" },
-  { key: "hood", label: "Hooded", glyph: "◒", tone: "purple" },
-  { key: "crown", label: "Top Talker", glyph: "♕", tone: "green" },
-  { key: "target", label: "Sharp Mind", glyph: "◎", tone: "purple" },
+  { key: "logo", label: "Lockt Logo", glyph: "L", tone: "green" },
+  { key: "soccer", label: "Soccer Ball", glyph: "⚽", tone: "green" },
+  { key: "trophy", label: "Trophy", glyph: "🏆", tone: "purple" },
 ];
 
 export function serializeAvatarKey(key: AvatarKey) {
@@ -28,7 +25,15 @@ export function isStoredAvatarKey(value?: string | null) {
 
 export function normalizeAvatarKey(value?: string | null): AvatarKey {
   const rawKey = value?.startsWith(AVATAR_PREFIX) ? value.slice(AVATAR_PREFIX.length) : value;
-  const match = avatarOptions.find((option) => option.key === rawKey);
+  const legacyMap: Record<string, AvatarKey> = {
+    lightning: "soccer",
+    skull: "trophy",
+    hood: "logo",
+    crown: "trophy",
+    target: "soccer",
+  };
+  const normalizedRawKey = rawKey && legacyMap[rawKey] ? legacyMap[rawKey] : rawKey;
+  const match = avatarOptions.find((option) => option.key === normalizedRawKey);
 
   return match?.key ?? "logo";
 }

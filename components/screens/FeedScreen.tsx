@@ -601,12 +601,12 @@ function PreTournamentCountdown() {
           {countdown}
         </p>
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <a href="#lock-your-pick" className="grid min-h-11 place-items-center rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-black uppercase tracking-[0.1em] text-white">
+            Make First Call
+          </a>
           <Link href="/schedule" className="grid min-h-11 place-items-center rounded-xl border border-purple-300/45 bg-purple-500/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-purple-200">
             Schedule
           </Link>
-          <a href="#lock-your-pick" className="grid min-h-11 place-items-center rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-black uppercase tracking-[0.1em] text-white">
-            Make Early Call
-          </a>
         </div>
       </div>
     </FeedSection>
