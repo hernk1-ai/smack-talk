@@ -13,8 +13,10 @@ export async function POST(request: NextRequest) {
 async function runFanout(request: NextRequest) {
   const bearer = request.headers.get("authorization");
   const token = bearer?.startsWith("Bearer ") ? bearer.slice("Bearer ".length) : "";
-  const configuredSecret = process.env.NOTIFICATION_FANOUT_SECRET;
-  if (!configuredSecret || token !== configuredSecret) {
+  const querySecret = request.nextUrl.searchParams.get("secret") ?? "";
+  const configuredSecrets = [process.env.NOTIFICATION_FANOUT_SECRET, process.env.CRON_SECRET].filter(Boolean) as string[];
+  const isAuthorized = configuredSecrets.some((secret) => token === secret || querySecret === secret);
+  if (!isAuthorized) {
     return NextResponse.json({ error: "Unauthorized fanout request." }, { status: 401 });
   }
 
@@ -59,7 +61,7 @@ async function runFanout(request: NextRequest) {
       if (row.channel === "push") {
         const { data: notification } = await client
           .from("notifications")
-          .select("id, title, body, entity_type, entity_id")
+          .select("id, type, title, body, entity_type, entity_id")
           .eq("id", row.notification_id)
           .maybeSingle();
 
@@ -109,6 +111,8 @@ async function runFanout(request: NextRequest) {
                 title: notification.title,
                 body: notification.body ?? "Open LOCKT for updates.",
                 url: resolveNotificationUrl(notification.entity_type, notification.entity_id),
+                type: notification.type,
+                notificationId: notification.id,
               },
             });
             sentForUser += 1;

@@ -8,6 +8,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { RouteBottomNav } from "@/components/BottomNav";
 import { UserAvatar } from "@/components/UserAvatar";
 import { avatarOptions, isImageAvatar, normalizeAvatarKey, serializeAvatarKey, type AvatarKey } from "@/lib/avatar";
+import { ensurePushSubscription } from "@/lib/push/subscription";
 import { getInAppNotificationsEnabled, getSoundMutedPreference, setInAppNotificationsEnabled, setSoundMutedPreference } from "@/lib/preferences";
 import { createClient } from "@/lib/supabase/client";
 import { getMyNotificationPreferences, updateMyNotificationPreferences, type NotificationPreferences } from "@/lib/supabase/notificationPreferences";
@@ -34,6 +35,7 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
     receipts_enabled: true,
   });
   const [notificationPrefsMessage, setNotificationPrefsMessage] = useState("");
+  const [pushSubscriptionMessage, setPushSubscriptionMessage] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -122,6 +124,32 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
 
     setAvatarMessage("Profile picture updated.");
     setIsAvatarSaving(false);
+  }
+
+  async function handleEnablePushNotifications() {
+    setPushSubscriptionMessage("Enabling notifications...");
+    const result = await ensurePushSubscription({ requestPermission: true });
+    if (result.ok) {
+      setPushSubscriptionMessage("Push notifications enabled.");
+      return;
+    }
+
+    if (result.reason === "permission-denied") {
+      setPushSubscriptionMessage("Notifications are blocked. Enable them in your browser settings.");
+      return;
+    }
+
+    if (result.reason === "missing-vapid-key") {
+      setPushSubscriptionMessage("Push setup is incomplete. Missing VAPID public key.");
+      return;
+    }
+
+    if (result.reason === "unsupported") {
+      setPushSubscriptionMessage("Push notifications are not supported on this browser/device.");
+      return;
+    }
+
+    setPushSubscriptionMessage("Unable to enable push notifications right now.");
   }
 
   async function handleAvatarUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -227,7 +255,22 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
                 setInAppNotificationsEnabled(enabled);
               }}
             />
-            <TogglePlaceholder title="Push notifications" copy="Coming soon for browser and mobile app support." />
+            <div className="rounded-2xl border border-white/10 bg-black/35 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-black uppercase tracking-[0.1em] text-white">Push notifications</p>
+                  <p className="mt-1 text-xs font-semibold leading-5 text-gray-400">Get browser alerts for follows, replies, reactions, and receipts.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleEnablePushNotifications}
+                  className="min-h-10 rounded-xl border border-lime-300/40 bg-lime-400/10 px-3 text-xs font-black uppercase text-lime-200 transition hover:border-lime-300 hover:text-lime-100"
+                >
+                  Enable Notifications
+                </button>
+              </div>
+              {pushSubscriptionMessage ? <p className="mt-2 text-xs font-semibold text-gray-300">{pushSubscriptionMessage}</p> : null}
+            </div>
             <div className="rounded-2xl border border-white/10 bg-black/35 p-3">
               <p className="text-sm font-black uppercase tracking-[0.1em] text-white">Notification Types</p>
               <p className="mt-1 text-xs font-semibold leading-5 text-gray-400">Choose the updates you want from follows, replies, reactions, and receipts.</p>
@@ -451,20 +494,6 @@ function SettingsRow({ label, value }: { label: string; value: string }) {
     <div className="grid gap-1 rounded-2xl border border-white/10 bg-black/35 p-3 sm:grid-cols-[11rem_1fr] sm:items-center">
       <p className="text-[10px] font-black uppercase tracking-[0.14em] text-gray-500">{label}</p>
       <p className="break-words text-sm font-black text-white">{value}</p>
-    </div>
-  );
-}
-
-function TogglePlaceholder({ title, copy }: { title: string; copy: string }) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/35 p-3">
-      <div>
-        <p className="text-sm font-black uppercase tracking-[0.1em] text-white">{title}</p>
-        <p className="mt-1 text-xs font-semibold leading-5 text-gray-400">{copy}</p>
-      </div>
-      <span className="shrink-0 rounded-full border border-purple-300/30 bg-purple-500/10 px-3 py-1 text-[10px] font-black uppercase text-purple-200">
-        Soon
-      </span>
     </div>
   );
 }

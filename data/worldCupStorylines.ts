@@ -25,7 +25,7 @@ export const worldCupStorylines: WorldCupStoryline[] = [
     category: "Group Stage",
     relatedTeams: ["United States", "Paraguay", "Australia", "Türkiye"],
     relatedGroup: "Group D",
-    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    videoUrl: "https://www.youtube.com/watch?v=XKAV4qRIvJ8",
     createdAt: "2026-05-10",
   },
   {

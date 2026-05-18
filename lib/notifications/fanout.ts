@@ -28,7 +28,7 @@ export async function sendPushNotification({
   endpoint: string;
   p256dh: string;
   auth: string;
-  payload: { title: string; body: string; url: string };
+  payload: { title: string; body: string; url: string; type?: string; notificationId?: string };
 }) {
   configureWebPush();
   return webpush.sendNotification(

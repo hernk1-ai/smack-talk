@@ -30,7 +30,7 @@ export function HeroSection() {
           </div>
         </div>
 
-        <div className="mx-auto h-[40rem] w-full max-w-[20.5rem] overflow-hidden pb-0 sm:h-[42rem] sm:max-w-[20rem] lg:hidden">
+        <div className="mx-auto w-full max-w-[20.5rem] pb-2 sm:max-w-[20rem] lg:hidden">
           <div className="origin-top scale-[0.9] sm:scale-[0.88]">
             <PhonePreview />
           </div>

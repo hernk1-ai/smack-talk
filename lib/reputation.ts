@@ -34,34 +34,24 @@ export type HeatStatus = {
   tone: "green" | "purple" | "red" | "gray";
 };
 
-const reputationLevels = [
-  { title: "Rookie", level: 1, minRep: 0 },
-  { title: "Prospect", level: 2, minRep: 25 },
-  { title: "Starter", level: 3, minRep: 250 },
-  { title: "Certified", level: 4, minRep: 1000 },
-  { title: "Heat Check", level: 5, minRep: 2500 },
-  { title: "Crowd Favorite", level: 6, minRep: 6000 },
-  { title: "Top Talker", level: 7, minRep: 12000 },
-  { title: "Legend", level: 8, minRep: 25000 },
-] as const;
-
 export function getReputationLevel(reputation: number, activityCount = 0): ReputationLevel {
-  const adjustedReputation = activityCount > 0 ? Math.max(reputation, 25) : reputation;
-  let currentIndex = 0;
-
-  reputationLevels.forEach((level, index) => {
-    if (adjustedReputation >= level.minRep) {
-      currentIndex = index;
-    }
-  });
-
-  const current = reputationLevels[currentIndex];
-  const next = reputationLevels[currentIndex + 1];
+  const hasFirstLock = activityCount > 0 || reputation > 0;
+  if (hasFirstLock) {
+    return {
+      title: "Player",
+      level: 2,
+      minRep: 25,
+      nextTitle: undefined,
+      nextRep: undefined,
+    };
+  }
 
   return {
-    ...current,
-    nextTitle: next?.title,
-    nextRep: next?.minRep,
+    title: "Rookie",
+    level: 1,
+    minRep: 0,
+    nextTitle: "Player",
+    nextRep: 25,
   };
 }
 

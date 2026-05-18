@@ -567,6 +567,7 @@ function ReceiptIdentityCard({
   profile?: Profile | null;
   receipts: Receipt[];
 }) {
+  const [shareOpen, setShareOpen] = useState(false);
   const receiptCount = receipts.length || profile?.receipts_count || 0;
   const wins = receipts.length ? receipts.filter((receipt) => receipt.result === "hit").length : profile?.hits_count ?? 0;
   const losses = receipts.length ? receipts.filter((receipt) => receipt.result === "miss").length : profile?.misses_count ?? 0;
@@ -633,7 +634,25 @@ function ReceiptIdentityCard({
                 <span className="rounded-lg border border-white/10 bg-black/45 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-gray-300">
                   Heat Status: {heatStatus.label}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => setShareOpen((current) => !current)}
+                  className="rounded-lg border border-white/15 bg-white/[0.03] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-gray-300 transition hover:border-purple-300/35 hover:text-purple-200"
+                >
+                  {shareOpen ? "Hide Share" : "Share"}
+                </button>
               </div>
+              {shareOpen ? (
+                <div className="mt-3 rounded-xl border border-white/10 bg-black/40 p-2">
+                  <ShareActions
+                    type="profile"
+                    title="Share Profile"
+                    text="Follow my World Cup calls on Lockt."
+                    caption={`${owner.handle} is building a World Cup receipt board on Lockt.`}
+                    url={buildSiteUrl(`/receipts/${encodeURIComponent(owner.handle.replace(/^@/, "").toLowerCase())}`)}
+                  />
+                </div>
+              ) : null}
               <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-gray-300">
                 Your record follows you. Receipts don&apos;t lie. Permanent game calls, settled outcomes, and the REP trail behind every lock.
               </p>

@@ -88,9 +88,10 @@ export function ProfileScreen({ profile }: { profile?: Profile | null }) {
     };
   }, []);
 
+  const normalizedLevel = getCurrentLocktLevel(profile);
   const socialItems: SocialItem[] = [
     { label: "Rep", value: String(profile?.reputation_score ?? profile?.reputation ?? 0), detail: "Build your rep", tone: "white" },
-    { label: "Level", value: profile?.level ?? "Rookie", detail: "Current status", tone: "purple" },
+    { label: "Level", value: normalizedLevel, detail: "Current status", tone: "purple" },
     { label: "Trophies", value: String(trophiesCount), detail: "Unlocked", tone: "white" },
     { label: "Pending Receipts", value: String(pendingReceipts), detail: "Awaiting results", tone: "purple" },
     { label: "Calls Locked", value: String(callsLocked), detail: "World Cup calls", tone: "white" },
@@ -114,8 +115,7 @@ function ProfileHeader({ profile }: { profile?: Profile | null }) {
 function ProfileIdentityCard({ profile }: { profile?: Profile | null }) {
   const username = profile?.username || "TalkHeavy23";
   const initials = getInitials(username);
-  const reputation = profile?.reputation_score ?? profile?.reputation ?? 0;
-  const statusLabel = `ϟ ${profile?.level ?? (reputation > 0 ? "Player" : "Rookie")}`;
+  const statusLabel = `ϟ ${getCurrentLocktLevel(profile)}`;
   const displayTags = identityTags;
 
   return (
@@ -186,6 +186,14 @@ function ProfileIdentityCard({ profile }: { profile?: Profile | null }) {
       </div>
     </section>
   );
+}
+
+function getCurrentLocktLevel(profile?: Profile | null) {
+  const hasFirstLock =
+    Boolean(profile?.starter_rep_awarded) ||
+    (profile?.created_takes_count ?? 0) > 0 ||
+    (profile?.reputation_score ?? profile?.reputation ?? 0) > 0;
+  return hasFirstLock ? "Player" : "Rookie";
 }
 
 function SocialSection({ socialItems }: { socialItems: SocialItem[] }) {
