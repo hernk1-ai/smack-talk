@@ -60,6 +60,8 @@ export async function ensureProfile(supabase: AppSupabaseClient, user: User) {
       reputation: 0,
       reputation_score: 0,
       created_takes_count: 0,
+      starter_rep_awarded: false,
+      level: "Rookie",
       onboarding_completed: false,
     })
     .select("*")

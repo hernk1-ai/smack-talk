@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { LocktLogo } from "@/components/LocktLogo";
+import { AppHeader } from "@/components/AppHeader";
 import { RouteBottomNav } from "@/components/BottomNav";
 import type { WorldCupStoryline } from "@/data/worldCupStorylines";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
@@ -10,11 +10,11 @@ import { createLockedTake } from "@/lib/supabase/takes";
 import { getArenaFeedByStorylineId, getCurrentUserReactionMap, type ArenaTake } from "@/lib/supabase/arena";
 import { reactToTake } from "@/lib/supabase/reactions";
 import { createReply, getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/replies";
-import type { TakeReaction } from "@/lib/supabase/types";
+import type { Profile, TakeReaction } from "@/lib/supabase/types";
 
 type Side = "ride" | "fade";
 
-export function StorylineDetailPage({ storyline }: { storyline: WorldCupStoryline }) {
+export function StorylineDetailPage({ storyline, profile }: { storyline: WorldCupStoryline; profile?: Profile | null }) {
   const [takeText, setTakeText] = useState("");
   const [takeStatus, setTakeStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [takeMessage, setTakeMessage] = useState("");
@@ -67,7 +67,7 @@ export function StorylineDetailPage({ storyline }: { storyline: WorldCupStorylin
     setTakeStatus("loading");
     setTakeMessage("");
 
-    const { take, error } = await createLockedTake({ takeText: text, storylineId: storyline.id });
+    const { take, error, starterRepAwarded } = await createLockedTake({ takeText: text, storylineId: storyline.id });
     if (error) {
       setTakeStatus("error");
       setTakeMessage(getUserFacingErrorMessage(error, "Unable to lock your take right now. Try again."));
@@ -76,7 +76,7 @@ export function StorylineDetailPage({ storyline }: { storyline: WorldCupStorylin
 
     setTakeText("");
     setTakeStatus("success");
-    setTakeMessage("Locked before kickoff.");
+    setTakeMessage(starterRepAwarded ? "You’re on the board. +200 Starter Rep and First Lock Trophy unlocked." : "Locked before kickoff.");
     if (take) {
       setRelatedTakes((current) => [take as ArenaTake, ...current].slice(0, 12));
     }
@@ -132,12 +132,10 @@ export function StorylineDetailPage({ storyline }: { storyline: WorldCupStorylin
   return (
     <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white sm:py-6">
       <div className="feed-shell screen-safe-bottom space-y-4 pb-24">
-        <header className="rounded-[1.5rem] border border-white/10 bg-black/35 p-3">
-          <div className="flex items-center justify-between gap-3">
-            <Link href="/app" className="text-xs font-black uppercase tracking-[0.1em] text-lime-300">← Back to Arena</Link>
-            <LocktLogo size={48} />
-          </div>
-        </header>
+        <AppHeader subtitle="Storyline detail and discussion." profile={profile} rightHref="/app" rightAriaLabel="Arena" />
+        <div className="px-1">
+          <Link href="/app" className="text-xs font-black uppercase tracking-[0.1em] text-lime-300">← Back to Arena</Link>
+        </div>
 
         <article className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4">
           <p className="text-[10px] font-black uppercase tracking-[0.14em] text-lime-300">{storyline.category}{storyline.relatedGroup ? ` · ${storyline.relatedGroup}` : ""}</p>

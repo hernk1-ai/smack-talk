@@ -14,7 +14,9 @@ export type WorldCupGroupKey =
 
 export type WorldCupTeam = {
   name: string;
-  initials: string;
+  code: string;
+  flag: string;
+  confederation: "AFC" | "CAF" | "CONCACAF" | "CONMEBOL" | "UEFA" | "OFC";
 };
 
 export const worldCupGroupOrder: WorldCupGroupKey[] = [
@@ -36,76 +38,76 @@ export const worldCupGroupOrder: WorldCupGroupKey[] = [
 // Keep centralized so we can swap with official final groups later.
 export const worldCupGroups: Record<WorldCupGroupKey, WorldCupTeam[]> = {
   "Group A": [
-    { name: "Mexico", initials: "MEX" },
-    { name: "South Korea", initials: "KOR" },
-    { name: "South Africa", initials: "RSA" },
-    { name: "Czechia", initials: "CZE" },
+    { name: "Mexico", code: "MEX", flag: "🇲🇽", confederation: "CONCACAF" },
+    { name: "South Korea", code: "KOR", flag: "🇰🇷", confederation: "AFC" },
+    { name: "South Africa", code: "RSA", flag: "🇿🇦", confederation: "CAF" },
+    { name: "Czechia", code: "CZE", flag: "🇨🇿", confederation: "UEFA" },
   ],
   "Group B": [
-    { name: "Canada", initials: "CAN" },
-    { name: "Bosnia and Herzegovina", initials: "BIH" },
-    { name: "Qatar", initials: "QAT" },
-    { name: "Switzerland", initials: "SUI" },
+    { name: "Canada", code: "CAN", flag: "🇨🇦", confederation: "CONCACAF" },
+    { name: "Bosnia and Herzegovina", code: "BIH", flag: "🇧🇦", confederation: "UEFA" },
+    { name: "Qatar", code: "QAT", flag: "🇶🇦", confederation: "AFC" },
+    { name: "Switzerland", code: "SUI", flag: "🇨🇭", confederation: "UEFA" },
   ],
   "Group C": [
-    { name: "Brazil", initials: "BRA" },
-    { name: "Morocco", initials: "MAR" },
-    { name: "Haiti", initials: "HAI" },
-    { name: "Scotland", initials: "SCO" },
+    { name: "Brazil", code: "BRA", flag: "🇧🇷", confederation: "CONMEBOL" },
+    { name: "Morocco", code: "MAR", flag: "🇲🇦", confederation: "CAF" },
+    { name: "Haiti", code: "HAI", flag: "🇭🇹", confederation: "CONCACAF" },
+    { name: "Scotland", code: "SCO", flag: "🇬🇧", confederation: "UEFA" },
   ],
   "Group D": [
-    { name: "United States", initials: "USA" },
-    { name: "Paraguay", initials: "PAR" },
-    { name: "Australia", initials: "AUS" },
-    { name: "Türkiye", initials: "TUR" },
+    { name: "United States", code: "USA", flag: "🇺🇸", confederation: "CONCACAF" },
+    { name: "Paraguay", code: "PAR", flag: "🇵🇾", confederation: "CONMEBOL" },
+    { name: "Australia", code: "AUS", flag: "🇦🇺", confederation: "AFC" },
+    { name: "Türkiye", code: "TUR", flag: "🇹🇷", confederation: "UEFA" },
   ],
   "Group E": [
-    { name: "Germany", initials: "GER" },
-    { name: "Curaçao", initials: "CUW" },
-    { name: "Côte d'Ivoire", initials: "CIV" },
-    { name: "Ecuador", initials: "ECU" },
+    { name: "Germany", code: "GER", flag: "🇩🇪", confederation: "UEFA" },
+    { name: "Curaçao", code: "CUW", flag: "🇨🇼", confederation: "CONCACAF" },
+    { name: "Côte d'Ivoire", code: "CIV", flag: "🇨🇮", confederation: "CAF" },
+    { name: "Ecuador", code: "ECU", flag: "🇪🇨", confederation: "CONMEBOL" },
   ],
   "Group F": [
-    { name: "Netherlands", initials: "NED" },
-    { name: "Japan", initials: "JPN" },
-    { name: "Sweden", initials: "SWE" },
-    { name: "Tunisia", initials: "TUN" },
+    { name: "Netherlands", code: "NED", flag: "🇳🇱", confederation: "UEFA" },
+    { name: "Japan", code: "JPN", flag: "🇯🇵", confederation: "AFC" },
+    { name: "Sweden", code: "SWE", flag: "🇸🇪", confederation: "UEFA" },
+    { name: "Tunisia", code: "TUN", flag: "🇹🇳", confederation: "CAF" },
   ],
   "Group G": [
-    { name: "Belgium", initials: "BEL" },
-    { name: "Egypt", initials: "EGY" },
-    { name: "Iran", initials: "IRN" },
-    { name: "New Zealand", initials: "NZL" },
+    { name: "Belgium", code: "BEL", flag: "🇧🇪", confederation: "UEFA" },
+    { name: "Egypt", code: "EGY", flag: "🇪🇬", confederation: "CAF" },
+    { name: "Iran", code: "IRN", flag: "🇮🇷", confederation: "AFC" },
+    { name: "New Zealand", code: "NZL", flag: "🇳🇿", confederation: "OFC" },
   ],
   "Group H": [
-    { name: "Spain", initials: "ESP" },
-    { name: "Cabo Verde", initials: "CPV" },
-    { name: "Saudi Arabia", initials: "KSA" },
-    { name: "Uruguay", initials: "URU" },
+    { name: "Spain", code: "ESP", flag: "🇪🇸", confederation: "UEFA" },
+    { name: "Cabo Verde", code: "CPV", flag: "🇨🇻", confederation: "CAF" },
+    { name: "Saudi Arabia", code: "KSA", flag: "🇸🇦", confederation: "AFC" },
+    { name: "Uruguay", code: "URU", flag: "🇺🇾", confederation: "CONMEBOL" },
   ],
   "Group I": [
-    { name: "France", initials: "FRA" },
-    { name: "Senegal", initials: "SEN" },
-    { name: "Iraq", initials: "IRQ" },
-    { name: "Norway", initials: "NOR" },
+    { name: "France", code: "FRA", flag: "🇫🇷", confederation: "UEFA" },
+    { name: "Senegal", code: "SEN", flag: "🇸🇳", confederation: "CAF" },
+    { name: "Iraq", code: "IRQ", flag: "🇮🇶", confederation: "AFC" },
+    { name: "Norway", code: "NOR", flag: "🇳🇴", confederation: "UEFA" },
   ],
   "Group J": [
-    { name: "Argentina", initials: "ARG" },
-    { name: "Algeria", initials: "ALG" },
-    { name: "Austria", initials: "AUT" },
-    { name: "Jordan", initials: "JOR" },
+    { name: "Argentina", code: "ARG", flag: "🇦🇷", confederation: "CONMEBOL" },
+    { name: "Algeria", code: "ALG", flag: "🇩🇿", confederation: "CAF" },
+    { name: "Austria", code: "AUT", flag: "🇦🇹", confederation: "UEFA" },
+    { name: "Jordan", code: "JOR", flag: "🇯🇴", confederation: "AFC" },
   ],
   "Group K": [
-    { name: "Portugal", initials: "POR" },
-    { name: "DR Congo", initials: "COD" },
-    { name: "Uzbekistan", initials: "UZB" },
-    { name: "Colombia", initials: "COL" },
+    { name: "Portugal", code: "POR", flag: "🇵🇹", confederation: "UEFA" },
+    { name: "DR Congo", code: "COD", flag: "🇨🇩", confederation: "CAF" },
+    { name: "Uzbekistan", code: "UZB", flag: "🇺🇿", confederation: "AFC" },
+    { name: "Colombia", code: "COL", flag: "🇨🇴", confederation: "CONMEBOL" },
   ],
   "Group L": [
-    { name: "England", initials: "ENG" },
-    { name: "Croatia", initials: "CRO" },
-    { name: "Ghana", initials: "GHA" },
-    { name: "Panama", initials: "PAN" },
+    { name: "England", code: "ENG", flag: "🇬🇧", confederation: "UEFA" },
+    { name: "Croatia", code: "CRO", flag: "🇭🇷", confederation: "UEFA" },
+    { name: "Ghana", code: "GHA", flag: "🇬🇭", confederation: "CAF" },
+    { name: "Panama", code: "PAN", flag: "🇵🇦", confederation: "CONCACAF" },
   ],
 };
 

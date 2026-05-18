@@ -31,7 +31,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
     blocks: [
       {
         type: "p",
-        text: "You must be at least 17 years old to use LOCKT.",
+        text: "You must be at least 13 years old to use LOCKT.",
       },
       {
         type: "p",
@@ -65,10 +65,8 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
       {
         type: "ul",
         items: [
-          "real-money wagering;",
-          "peer-to-peer betting;",
-          "sportsbook operations;",
-          "gambling transactions;",
+          "real-money gambling;",
+          "sportsbook-style services;",
           "financial investment activity.",
         ],
       },
@@ -226,7 +224,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
           "rankings;",
           "streaks;",
           "scores;",
-          "badges;",
+          "trophies;",
           "receipts;",
           "creator status;",
           "ride/fade metrics;",
@@ -253,7 +251,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
       },
       {
         type: "p",
-        text: "Platform reputation has no cash value and is not property.",
+        text: "Platform reputation has no cash value, is non-transferable, cannot be bought or sold, and is not redeemable for money or prizes.",
       },
     ],
   },
@@ -453,7 +451,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
       },
       {
         type: "p",
-        text: "The Arena never forgets.",
+        text: "Called it. Check the receipt.",
       },
       {
         type: "p",
@@ -507,7 +505,7 @@ export default function TermsPage() {
                 <span className="bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
               </p>
               <p className="mt-1 text-[0.65rem] font-black uppercase tracking-[0.24em] text-lime-300">
-                The Arena Never Forgets
+                Check the Receipt
               </p>
             </div>
           </Link>

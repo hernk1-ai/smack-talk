@@ -1,5 +1,5 @@
 const steps = [
-  { icon: "⚡", title: "Lock a Take", text: "Say it before the result. No switching sides after." },
+  { icon: "⚡", title: "Lock a Take", text: "Say it before kickoff and track the result on your receipt board." },
   { icon: "😈", title: "Ride or Fade", text: "Back the take or go against the Crowd." },
   { icon: "🧾", title: "Collect Receipts", text: "Every outcome builds your history." },
   { icon: "🏆", title: "Build REP", text: "Your calls build your reputation." },

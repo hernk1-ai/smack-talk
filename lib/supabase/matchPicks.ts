@@ -1,5 +1,6 @@
 import { getWorldCupKickoffIso, getWorldCupMatchId, isWorldCupMatchLocked, type WorldCupMatch } from "@/data/worldCupSchedule";
 import { createClient } from "@/lib/supabase/client";
+import { awardStarterRepAndFirstLockTrophy } from "@/lib/supabase/starterRep";
 import type { MatchPick } from "@/lib/supabase/types";
 
 type LockWinnerInput = {
@@ -80,14 +81,14 @@ export async function lockCurrentUserWinnerPick({ match, selectedWinner }: LockW
 
   const { existingPick } = base;
   if (existingPick?.winner_locked_at) {
-    return { pick: existingPick, error: new Error("Locked, no take backs.") };
+    return { pick: existingPick, error: new Error("Your call is already locked.") };
   }
 
   if (!selectedWinner.trim()) {
     return { pick: null as MatchPick | null, error: new Error("Choose a winner before locking.") };
   }
 
-  const payload = getBasePayload(match, base.userId, base.kickoffIso, existingPick);
+  const payload = getBasePayload(match, base.userId, base.kickoffIso, existingPick, base.firstCallProtected);
   const { data, error } = await base.supabase
     .from("match_picks")
     .upsert(
@@ -101,7 +102,13 @@ export async function lockCurrentUserWinnerPick({ match, selectedWinner }: LockW
     .select("*")
     .single();
 
-  return { pick: data, error: normalizeWritableError(error) };
+  const normalizedError = normalizeWritableError(error);
+  if (normalizedError || !data) {
+    return { pick: data, error: normalizedError, starterRepAwarded: false };
+  }
+
+  const starterReward = await awardStarterRepAndFirstLockTrophy(base.supabase, base.userId);
+  return { pick: data, error: normalizedError, starterRepAwarded: starterReward.awarded };
 }
 
 export async function lockCurrentUserExactScorePick({ match, homeScore, awayScore }: LockExactScoreInput) {
@@ -112,14 +119,14 @@ export async function lockCurrentUserExactScorePick({ match, homeScore, awayScor
 
   const { existingPick } = base;
   if (existingPick?.exact_score_locked_at) {
-    return { pick: existingPick, error: new Error("Locked, no take backs.") };
+    return { pick: existingPick, error: new Error("Your call is already locked.") };
   }
 
   if (!Number.isFinite(homeScore) || homeScore < 0 || !Number.isFinite(awayScore) || awayScore < 0) {
     return { pick: null as MatchPick | null, error: new Error("Enter valid score predictions.") };
   }
 
-  const payload = getBasePayload(match, base.userId, base.kickoffIso, existingPick);
+  const payload = getBasePayload(match, base.userId, base.kickoffIso, existingPick, base.firstCallProtected);
   const { data, error } = await base.supabase
     .from("match_picks")
     .upsert(
@@ -134,7 +141,13 @@ export async function lockCurrentUserExactScorePick({ match, homeScore, awayScor
     .select("*")
     .single();
 
-  return { pick: data, error: normalizeWritableError(error) };
+  const normalizedError = normalizeWritableError(error);
+  if (normalizedError || !data) {
+    return { pick: data, error: normalizedError, starterRepAwarded: false };
+  }
+
+  const starterReward = await awardStarterRepAndFirstLockTrophy(base.supabase, base.userId);
+  return { pick: data, error: normalizedError, starterRepAwarded: starterReward.awarded };
 }
 
 async function getWritableContext(match: WorldCupMatch) {
@@ -173,10 +186,29 @@ async function getWritableContext(match: WorldCupMatch) {
     return { supabase: null, userId: null, kickoffIso: null, existingPick: null as MatchPick | null, error: normalizeMatchPicksError(error) };
   }
 
-  return { supabase, userId: user.id, kickoffIso, existingPick, error: null as Error | null };
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("starter_rep_awarded")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  return {
+    supabase,
+    userId: user.id,
+    kickoffIso,
+    existingPick,
+    firstCallProtected: profile?.starter_rep_awarded === false,
+    error: null as Error | null,
+  };
 }
 
-function getBasePayload(match: WorldCupMatch, userId: string, kickoffIso: string, existingPick: MatchPick | null) {
+function getBasePayload(
+  match: WorldCupMatch,
+  userId: string,
+  kickoffIso: string,
+  existingPick: MatchPick | null,
+  firstCallProtected = false,
+) {
   return {
     user_id: userId,
     match_id: getWorldCupMatchId(match),
@@ -193,6 +225,7 @@ function getBasePayload(match: WorldCupMatch, userId: string, kickoffIso: string
     exact_score_locked_at: existingPick?.exact_score_locked_at ?? null,
     winner_result: existingPick?.winner_result ?? ("pending" as const),
     exact_score_result: existingPick?.exact_score_result ?? ("pending" as const),
+    first_call_protected: existingPick?.first_call_protected ?? firstCallProtected,
     winner_rep_delta: existingPick?.winner_rep_delta ?? 0,
     exact_score_rep_delta: existingPick?.exact_score_rep_delta ?? 0,
   };
@@ -200,7 +233,7 @@ function getBasePayload(match: WorldCupMatch, userId: string, kickoffIso: string
 
 function normalizeWritableError(error: { code?: string | null; message?: string | null } | null) {
   if (error?.code === "42501") {
-    return new Error("Locked, no take backs.");
+    return new Error("Your call is already locked.");
   }
 
   return normalizeMatchPicksError(error);

@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "LOCKT Receipts",
-    description: "Public takes. Permanent receipts. The Arena remembers.",
+    description: "Public takes. Permanent receipts. Check the receipt.",
     url: `${BASE_URL}/receipts`,
     siteName: "LOCKT",
     type: "website",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "LOCKT Receipts",
-    description: "Public takes. Permanent receipts. The Arena remembers.",
+    description: "Public takes. Permanent receipts. Check the receipt.",
   },
 };
 

@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
-import { LocktLogo } from "@/components/LocktLogo";
+import { useEffect, useState } from "react";
+import { AppHeader } from "@/components/AppHeader";
 import { ShareActions } from "@/components/ShareActions";
 import { UserAvatar } from "@/components/UserAvatar";
 import { buildSiteUrl } from "@/lib/site-url";
+import { getCurrentUserMatchPicks } from "@/lib/supabase/matchPicks";
+import { getCurrentUserTakes } from "@/lib/supabase/takes";
+import { getCurrentUserTrophies } from "@/lib/supabase/starterRep";
 import type { Profile } from "@/lib/supabase/types";
 
 type SocialItem = {
@@ -24,13 +27,6 @@ type ActivityItem = {
 };
 
 const identityTags = ["Tournament Rep Coming Soon", "On Record", "Early Calls Locked"];
-
-const socialItems: SocialItem[] = [
-  { label: "Calls Locked", value: "0", detail: "Before kickoff", tone: "white" },
-  { label: "Early World Cup Calls", value: "0", detail: "Public calls", tone: "white" },
-  { label: "Pending Receipts", value: "0", detail: "Unlocks at kickoff", tone: "purple" },
-  { label: "Tournament Rep", value: "Soon", detail: "Coming soon", tone: "purple" },
-];
 
 const recentActivity: ActivityItem[] = [
   {
@@ -57,86 +53,69 @@ const recentActivity: ActivityItem[] = [
 ];
 
 export function ProfileScreen({ profile }: { profile?: Profile | null }) {
+  const [callsLocked, setCallsLocked] = useState(0);
+  const [pendingReceipts, setPendingReceipts] = useState(0);
+  const [trophiesCount, setTrophiesCount] = useState(0);
+  const [trophies, setTrophies] = useState<Array<{ trophy_name: string; description: string | null }>>([]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadStats() {
+      const [{ takes }, { picks }, { trophies }] = await Promise.all([
+        getCurrentUserTakes(),
+        getCurrentUserMatchPicks(),
+        getCurrentUserTrophies(),
+      ]);
+
+      if (!mounted) {
+        return;
+      }
+
+      setCallsLocked(takes.length + picks.length);
+      setPendingReceipts(
+        takes.filter((take) => take.status === "locked").length +
+          picks.filter((pick) => pick.status === "locked").length,
+      );
+      setTrophiesCount(trophies.length);
+      setTrophies(trophies);
+    }
+
+    loadStats().catch(() => null);
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const socialItems: SocialItem[] = [
+    { label: "Rep", value: String(profile?.reputation_score ?? profile?.reputation ?? 0), detail: "Build your rep", tone: "white" },
+    { label: "Level", value: profile?.level ?? "Rookie", detail: "Current status", tone: "purple" },
+    { label: "Trophies", value: String(trophiesCount), detail: "Unlocked", tone: "white" },
+    { label: "Pending Receipts", value: String(pendingReceipts), detail: "Awaiting results", tone: "purple" },
+    { label: "Calls Locked", value: String(callsLocked), detail: "World Cup calls", tone: "white" },
+  ];
+
   return (
-    <div className="space-y-4">
+    <div className="page-rhythm">
       <ProfileHeader profile={profile} />
       <ProfileIdentityCard profile={profile} />
-      <SocialSection />
+      <SocialSection socialItems={socialItems} />
+      <TrophyCase trophies={trophies} />
       <RecentActivity />
     </div>
   );
 }
 
 function ProfileHeader({ profile }: { profile?: Profile | null }) {
-  const username = profile?.username || "LOCKT";
-
-  return (
-    <header className="rounded-[1.75rem] border border-white/10 bg-black/35 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur">
-      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <LocktLogo size={58} />
-          <div className="min-w-0">
-            <h1 className="brand-lockup text-[2rem] leading-[0.82] sm:text-4xl">
-              <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
-            </h1>
-          </div>
-        </div>
-
-        <div className="min-w-0">
-          <p className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.08em] text-gray-200">
-            <span className="h-2.5 w-2.5 rounded-full bg-lime-400 shadow-[0_0_16px_rgba(132,204,22,0.75)]" />
-            12.8K <span className="text-gray-400">Online</span>
-          </p>
-          <p className="mt-1 text-xs font-semibold text-gray-400 sm:text-sm">Your World Cup reputation profile.</p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <HeaderIcon label="Notifications" badge="3">
-            ♧
-          </HeaderIcon>
-          <Link
-            href="/receipts"
-            className="relative grid h-12 w-12 place-items-center rounded-2xl border border-white/15 bg-white/[0.04] text-xl text-white shadow-[0_0_22px_rgba(255,255,255,0.06)] transition hover:-translate-y-0.5 hover:border-purple-300/35 hover:bg-white/[0.07] active:scale-95"
-            aria-label={`${username} receipts identity`}
-          >
-            <UserAvatar avatarUrl={profile?.avatar_url} initials={getInitials(username)} size="sm" />
-          </Link>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-function HeaderIcon({
-  label,
-  badge,
-  children,
-}: {
-  label: string;
-  badge?: string;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      className="relative grid h-12 w-12 place-items-center rounded-2xl border border-white/15 bg-white/[0.04] text-xl text-white shadow-[0_0_22px_rgba(255,255,255,0.06)] transition hover:-translate-y-0.5 hover:border-purple-300/35 hover:bg-white/[0.07] active:scale-95"
-      aria-label={label}
-    >
-      {children}
-      {badge && (
-        <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-purple-500 text-[10px] font-black text-white">
-          {badge}
-        </span>
-      )}
-    </button>
-  );
+  return <AppHeader profile={profile} subtitle="Your World Cup reputation profile." rightHref="/receipts" rightAriaLabel="Receipts" />;
 }
 
 function ProfileIdentityCard({ profile }: { profile?: Profile | null }) {
   const username = profile?.username || "TalkHeavy23";
   const initials = getInitials(username);
   const reputation = profile?.reputation_score ?? profile?.reputation ?? 0;
-  const statusLabel = reputation > 0 ? "ϟ Tournament Rep" : "ϟ World Cup Rookie";
+  const statusLabel = `ϟ ${profile?.level ?? (reputation > 0 ? "Player" : "Rookie")}`;
   const displayTags = identityTags;
 
   return (
@@ -209,7 +188,7 @@ function ProfileIdentityCard({ profile }: { profile?: Profile | null }) {
   );
 }
 
-function SocialSection() {
+function SocialSection({ socialItems }: { socialItems: SocialItem[] }) {
   const [shareOpen, setShareOpen] = useState(false);
 
   return (
@@ -265,6 +244,28 @@ function RecentActivity() {
           <ActivityRow key={item.type} item={item} />
         ))}
       </div>
+    </section>
+  );
+}
+
+function TrophyCase({ trophies }: { trophies: Array<{ trophy_name: string; description: string | null }> }) {
+  return (
+    <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_52px_rgba(0,0,0,0.38)]">
+      <SectionHeader eyebrow="Trophy Case" title="Unlocked Trophies" action="Receipts" />
+      {trophies.length ? (
+        <div className="mt-3 grid gap-2">
+          {trophies.map((trophy) => (
+            <article key={trophy.trophy_name} className="rounded-xl border border-lime-300/25 bg-lime-400/10 p-3">
+              <p className="text-sm font-black text-lime-100">🏆 {trophy.trophy_name}</p>
+              <p className="mt-1 text-xs font-semibold text-gray-200">{trophy.description ?? "Trophy unlocked."}</p>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 text-sm font-semibold text-gray-300">
+          No trophies yet. Make your first World Cup call to unlock your first one.
+        </p>
+      )}
     </section>
   );
 }

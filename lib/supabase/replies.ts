@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { getMyModerationFilters } from "@/lib/supabase/moderation";
+import { createNotification } from "@/lib/supabase/notifications";
 import { touchMyPresence } from "@/lib/supabase/presence";
 import type { ProfileCard, TakeReply } from "@/lib/supabase/types";
 
@@ -129,6 +130,20 @@ export async function createReply({
     })
     .select("*")
     .single();
+
+  if (data && !error) {
+    const { data: take } = await supabase.from("takes").select("id, user_id, take_text").eq("id", takeId).maybeSingle();
+    if (take?.user_id) {
+      await createNotification({
+        userId: take.user_id,
+        type: "take_replied",
+        title: "New reply on your take.",
+        body: cleanReplyText.slice(0, 120),
+        entityType: "take",
+        entityId: take.id,
+      });
+    }
+  }
 
   await touchMyPresence();
 

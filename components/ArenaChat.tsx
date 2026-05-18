@@ -128,7 +128,7 @@ export function ArenaChat() {
           <div className="arena-surface mx-auto w-full max-w-md rounded-t-[2rem] border border-white/10 p-5 shadow-2xl">
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/20" />
             <p className="sports-display text-3xl leading-none">Lock a call</p>
-            <p className="mt-1 text-sm text-gray-400">Choose your side. No switching sides.</p>
+            <p className="mt-1 text-sm text-gray-400">Choose your side and lock it in before kickoff.</p>
 
             <div className="mt-5 grid gap-3">
               <button

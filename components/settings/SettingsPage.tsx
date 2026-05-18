@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type ChangeEvent, type ReactNode, useRef, useState } from "react";
+import { type ChangeEvent, type ReactNode, useEffect, useRef, useState } from "react";
 
+import { AppHeader } from "@/components/AppHeader";
 import { RouteBottomNav } from "@/components/BottomNav";
-import { LocktLogo } from "@/components/LocktLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { avatarOptions, isImageAvatar, normalizeAvatarKey, serializeAvatarKey, type AvatarKey } from "@/lib/avatar";
+import { getInAppNotificationsEnabled, getSoundMutedPreference, setInAppNotificationsEnabled, setSoundMutedPreference } from "@/lib/preferences";
 import { createClient } from "@/lib/supabase/client";
+import { getMyNotificationPreferences, updateMyNotificationPreferences, type NotificationPreferences } from "@/lib/supabase/notificationPreferences";
 import type { Profile } from "@/lib/supabase/types";
 
 export function SettingsPage({ email, profile }: { email?: string | null; profile?: Profile | null }) {
@@ -19,11 +21,60 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? null);
   const [avatarMessage, setAvatarMessage] = useState("");
   const [isAvatarSaving, setIsAvatarSaving] = useState(false);
+  const [accountVisibility, setAccountVisibility] = useState<"public" | "private">(profile?.account_visibility ?? "public");
+  const [privacyMessage, setPrivacyMessage] = useState("");
+  const [soundsEnabled, setSoundsEnabled] = useState(() => !getSoundMutedPreference());
+  const [inAppEnabled, setInAppEnabled] = useState(() => getInAppNotificationsEnabled());
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>({
+    push_enabled: true,
+    email_enabled: false,
+    follows_enabled: true,
+    replies_enabled: true,
+    reactions_enabled: true,
+    receipts_enabled: true,
+  });
+  const [notificationPrefsMessage, setNotificationPrefsMessage] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadPreferences() {
+      const { preferences } = await getMyNotificationPreferences();
+      if (!mounted) return;
+      setNotificationPrefs(preferences);
+    }
+    void loadPreferences();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   async function handleLogout() {
     const supabase = createClient();
     await supabase?.auth.signOut();
     router.replace("/signed-out");
+  }
+
+  async function updatePrivacy(nextVisibility: "public" | "private") {
+    setAccountVisibility(nextVisibility);
+    setPrivacyMessage("Saving privacy setting...");
+    const supabase = createClient();
+    if (!supabase) {
+      setPrivacyMessage("Supabase not configured.");
+      return;
+    }
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setPrivacyMessage("Log in again to update privacy.");
+      return;
+    }
+    const { error } = await supabase.from("profiles").update({ account_visibility: nextVisibility }).eq("id", user.id);
+    if (error) {
+      setPrivacyMessage(error.message);
+      return;
+    }
+    setPrivacyMessage("Privacy updated.");
   }
 
   async function updateAvatar(nextAvatarUrl: string) {
@@ -158,13 +209,109 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
           </SettingsCard>
 
           <SettingsCard title="Preferences" eyebrow="Controls">
-            <TogglePlaceholder title="Notifications" copy="Push and in-app alert controls are coming soon." />
-            <TogglePlaceholder title="Email updates" copy="Launch notes, receipts, and product updates." />
+            <ToggleRow
+              title="Sounds"
+              copy="Play LOCKT sounds for lock, ride/fade, replies, and follows."
+              enabled={soundsEnabled}
+              onToggle={(enabled) => {
+                setSoundsEnabled(enabled);
+                setSoundMutedPreference(!enabled);
+              }}
+            />
+            <ToggleRow
+              title="In-app notifications"
+              copy="Show confirmation toasts in the app."
+              enabled={inAppEnabled}
+              onToggle={(enabled) => {
+                setInAppEnabled(enabled);
+                setInAppNotificationsEnabled(enabled);
+              }}
+            />
+            <TogglePlaceholder title="Push notifications" copy="Coming soon for browser and mobile app support." />
+            <div className="rounded-2xl border border-white/10 bg-black/35 p-3">
+              <p className="text-sm font-black uppercase tracking-[0.1em] text-white">Notification Types</p>
+              <p className="mt-1 text-xs font-semibold leading-5 text-gray-400">Choose the updates you want from follows, replies, reactions, and receipts.</p>
+              <div className="mt-3 grid gap-2">
+                <ToggleRow
+                  title="Follows"
+                  copy="Follow requests and accepted requests."
+                  enabled={notificationPrefs.follows_enabled}
+                  onToggle={(enabled) => setNotificationPrefs((current) => ({ ...current, follows_enabled: enabled }))}
+                />
+                <ToggleRow
+                  title="Replies"
+                  copy="Replies to your takes."
+                  enabled={notificationPrefs.replies_enabled}
+                  onToggle={(enabled) => setNotificationPrefs((current) => ({ ...current, replies_enabled: enabled }))}
+                />
+                <ToggleRow
+                  title="Reactions"
+                  copy="Ride/Fade on your takes."
+                  enabled={notificationPrefs.reactions_enabled}
+                  onToggle={(enabled) => setNotificationPrefs((current) => ({ ...current, reactions_enabled: enabled }))}
+                />
+                <ToggleRow
+                  title="Receipts"
+                  copy="Pick and receipt status updates."
+                  enabled={notificationPrefs.receipts_enabled}
+                  onToggle={(enabled) => setNotificationPrefs((current) => ({ ...current, receipts_enabled: enabled }))}
+                />
+                <ToggleRow
+                  title="Push Channel"
+                  copy="Allow push delivery when your device is subscribed."
+                  enabled={notificationPrefs.push_enabled}
+                  onToggle={(enabled) => setNotificationPrefs((current) => ({ ...current, push_enabled: enabled }))}
+                />
+                <ToggleRow
+                  title="Email Channel"
+                  copy="Allow email delivery when email fanout is enabled."
+                  enabled={notificationPrefs.email_enabled}
+                  onToggle={(enabled) => setNotificationPrefs((current) => ({ ...current, email_enabled: enabled }))}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  setNotificationPrefsMessage("Saving notification preferences...");
+                  const { error } = await updateMyNotificationPreferences(notificationPrefs);
+                  setNotificationPrefsMessage(error ? "Unable to save notification preferences right now." : "Notification preferences saved.");
+                }}
+                className="mt-3 min-h-10 rounded-xl border border-lime-300/40 bg-lime-400/10 px-3 text-xs font-black uppercase text-lime-200"
+              >
+                Save Notification Preferences
+              </button>
+              {notificationPrefsMessage ? <p className="mt-2 text-xs font-semibold text-gray-300">{notificationPrefsMessage}</p> : null}
+            </div>
           </SettingsCard>
         </section>
 
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <SettingsCard title="Privacy / Safety" eyebrow="Rules">
+            <div className="rounded-2xl border border-white/10 bg-black/35 p-3">
+              <p className="text-sm font-black uppercase tracking-[0.1em] text-white">Account Privacy</p>
+              <p className="mt-1 text-xs font-semibold text-gray-400">
+                {accountVisibility === "public"
+                  ? "Anyone can view your profile, follow you, and see your public receipts."
+                  : "Only approved followers can view your receipts."}
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => updatePrivacy("public")}
+                  className={`min-h-10 rounded-xl border text-xs font-black uppercase ${accountVisibility === "public" ? "border-lime-300/50 bg-lime-400/10 text-lime-200" : "border-white/10 bg-white/[0.03] text-gray-300"}`}
+                >
+                  Public Account
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updatePrivacy("private")}
+                  className={`min-h-10 rounded-xl border text-xs font-black uppercase ${accountVisibility === "private" ? "border-purple-300/50 bg-purple-500/10 text-purple-200" : "border-white/10 bg-white/[0.03] text-gray-300"}`}
+                >
+                  Private Account
+                </button>
+              </div>
+              {privacyMessage ? <p className="mt-2 text-xs font-semibold text-gray-300">{privacyMessage}</p> : null}
+            </div>
             <SettingsLink href="/terms" label="Community rules" detail="Attack takes. Not lives." />
             <SettingsLink href="/terms" label="Terms of Use" detail="How LOCKT works." />
             <SettingsLink href="/privacy" label="Privacy Policy" detail="How your data is handled." />
@@ -192,31 +339,9 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
 
 function SettingsHeader({ profile, avatarUrl }: { profile?: Profile | null; avatarUrl?: string | null }) {
   const username = profile?.username || "LOCKT";
+  void avatarUrl;
 
-  return (
-    <header className="rounded-[1.75rem] border border-white/10 bg-black/35 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur">
-      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <LocktLogo size={58} />
-          <div className="min-w-0">
-            <p className="brand-lockup text-[2rem] leading-[0.82] sm:text-4xl">
-              <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
-            </p>
-          </div>
-        </div>
-
-        <div className="min-w-0">
-          <p className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.08em] text-gray-200">
-            <span className="h-2.5 w-2.5 rounded-full bg-lime-400 shadow-[0_0_16px_rgba(132,204,22,0.75)]" />
-            Account <span className="text-gray-400">Settings</span>
-          </p>
-          <p className="mt-1 text-xs font-semibold text-gray-400 sm:text-sm">Keep your identity clean.</p>
-        </div>
-
-        <UserAvatar avatarUrl={avatarUrl} initials={getInitials(username)} size="sm" />
-      </div>
-    </header>
-  );
+  return <AppHeader profile={profile} subtitle="Account settings. Keep your identity clean." rightHref="/settings" rightAriaLabel={`${username} settings`} />;
 }
 
 function ProfilePictureSettings({
@@ -340,6 +465,38 @@ function TogglePlaceholder({ title, copy }: { title: string; copy: string }) {
       <span className="shrink-0 rounded-full border border-purple-300/30 bg-purple-500/10 px-3 py-1 text-[10px] font-black uppercase text-purple-200">
         Soon
       </span>
+    </div>
+  );
+}
+
+function ToggleRow({
+  title,
+  copy,
+  enabled,
+  onToggle,
+}: {
+  title: string;
+  copy: string;
+  enabled: boolean;
+  onToggle: (enabled: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/35 p-3">
+      <div>
+        <p className="text-sm font-black uppercase tracking-[0.1em] text-white">{title}</p>
+        <p className="mt-1 text-xs font-semibold leading-5 text-gray-400">{copy}</p>
+      </div>
+      <button
+        type="button"
+        onClick={() => onToggle(!enabled)}
+        className={`shrink-0 rounded-full border px-3 py-1 text-[10px] font-black uppercase ${
+          enabled
+            ? "border-lime-300/40 bg-lime-400/10 text-lime-200"
+            : "border-white/20 bg-white/[0.03] text-gray-300"
+        }`}
+      >
+        {enabled ? "On" : "Off"}
+      </button>
     </div>
   );
 }

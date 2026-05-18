@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { createNotification } from "@/lib/supabase/notifications";
 import { touchMyPresence } from "@/lib/supabase/presence";
 import type { Take, TakeReaction } from "@/lib/supabase/types";
 
@@ -139,6 +140,17 @@ export async function reactToTake({ takeId, reaction }: ReactToTakeInput) {
   }
 
   const { data: take, error: takeError } = await supabase.from("takes").select("*").eq("id", takeId).maybeSingle();
+
+  if (take && !takeError) {
+    await createNotification({
+      userId: take.user_id,
+      type: reaction === "ride" ? "take_rode" : "take_faded",
+      title: reaction === "ride" ? "Someone rode your take." : "Someone faded your take.",
+      body: take.take_text.slice(0, 120),
+      entityType: "take",
+      entityId: take.id,
+    });
+  }
 
   await touchMyPresence();
 

@@ -21,7 +21,7 @@ const featureCards = [
   },
   {
     title: "Compete Daily",
-    body: "Real matchups. Real stakes.",
+    body: "Real matchups. Real receipts.",
     icon: "♕",
   },
   {

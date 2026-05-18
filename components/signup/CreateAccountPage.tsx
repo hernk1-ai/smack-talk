@@ -66,7 +66,7 @@ export function CreateAccountPage() {
     }
 
     if (!termsAccepted) {
-      setMessage("Agree to the terms before entering the arena.");
+      setMessage("Please confirm age and agree to Terms and Privacy Policy.");
       return;
     }
 
@@ -305,9 +305,9 @@ function SignupCard({
           type="checkbox"
         />
         <span>
-          I agree to the{" "}
+          By creating an account, you confirm you are at least 13 years old and agree to Lockt&apos;s{" "}
           <Link className="font-black text-lime-300 transition hover:text-purple-300" href="/terms">
-            Terms of Service
+            Terms
           </Link>{" "}
           and{" "}
           <Link className="font-black text-lime-300 transition hover:text-purple-300" href="/privacy">
@@ -332,7 +332,7 @@ function SignupCard({
       </button>
 
       <p className="mt-5 text-center text-xs font-black uppercase tracking-[0.14em] text-gray-400">
-        Receipts are permanent. No switching sides. The Arena is watching.
+        Lock it in before kickoff. Your receipt is pending until match end.
       </p>
     </form>
   );
@@ -403,9 +403,9 @@ function SignupFooterLockup() {
       <div className="relative isolate overflow-hidden rounded-2xl border border-white/10 bg-black/50 px-4 py-4 text-center shadow-[0_18px_60px_rgba(0,0,0,0.42)]">
         <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(132,204,22,0.1),transparent_32%,rgba(168,85,247,0.12))]" />
         <p className="text-xs font-black uppercase tracking-[0.19em] text-gray-400">
-          <span className="text-lime-300">Receipts are permanent.</span>{" "}
-          <span className="text-white">No switching sides.</span>{" "}
-          <span className="text-purple-300">The Arena is watching.</span>
+          <span className="text-lime-300">Every call leaves a receipt.</span>{" "}
+          <span className="text-white">Lock it in before kickoff.</span>{" "}
+          <span className="text-purple-300">Back to the board.</span>
         </p>
       </div>
     </footer>

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { MakeCallPage } from "@/components/world-cup/MakeCallPage";
 import { getWorldCupMatchById, getWorldCupMatchId } from "@/data/worldCupSchedule";
 import { getSiteUrl } from "@/lib/site-url";
+import { ensureProfile } from "@/lib/supabase/profiles";
 import { createClient } from "@/lib/supabase/server";
 import type { MatchPick } from "@/lib/supabase/types";
 
@@ -56,5 +57,7 @@ export default async function MatchMakeCallPage({ params }: { params: Promise<{ 
     .eq("match_id", getWorldCupMatchId(match))
     .maybeSingle();
 
-  return <MakeCallPage match={match} initialPick={pick as MatchPick | null} />;
+  const { profile } = await ensureProfile(supabase, user);
+
+  return <MakeCallPage match={match} initialPick={pick as MatchPick | null} profile={profile} />;
 }

@@ -5,7 +5,7 @@ const faqs = [
   },
   {
     question: "Is this about money?",
-    answer: "No. LOCKT is about REP, rivalry, receipts, and bragging rights. No bets. No odds.",
+    answer: "No. LOCKT is about REP, rivalry, receipts, and bragging rights. Rep has no cash value.",
   },
   {
     question: "What is The First Lock?",

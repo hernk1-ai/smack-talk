@@ -230,7 +230,7 @@ export function getActivityAlerts(stats: ReputationStats, badges: ReputationBadg
   const alerts: string[] = [];
 
   if (earnedBadges[0]) {
-    alerts.push(`Badge earned: ${earnedBadges[0].name}`);
+    alerts.push(`Trophy unlocked: ${earnedBadges[0].name}`);
   }
 
   if (stats.streak >= 3) {

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LocktLogo } from "@/components/LocktLogo";
-import { worldCupGroupOrder, worldCupGroups, type WorldCupGroupKey } from "@/data/worldCupGroups";
+import { worldCupGroupOrder, worldCupGroups, type WorldCupGroupKey, type WorldCupTeam } from "@/data/worldCupGroups";
 import { createClient } from "@/lib/supabase/client";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 
@@ -18,7 +18,7 @@ export function TeamsPage({ avatar, username }: { avatar?: string; username?: st
   const [isLoading, setIsLoading] = useState(false);
   const cleanUsername = sanitizeUsername(username) || "LocktFan";
   const cleanAvatar = sanitizeToken(avatar) || "lightning";
-  const teams: Array<{ name: string; initials: string }> = worldCupGroups[activeGroup];
+  const teams: WorldCupTeam[] = worldCupGroups[activeGroup];
 
   function toggleTeam(teamName: string) {
     setMessage("");
@@ -93,16 +93,16 @@ export function TeamsPage({ avatar, username }: { avatar?: string; username?: st
 
         <section className="mx-auto flex w-full flex-1 flex-col justify-center py-7 text-center sm:py-9">
           <h1 className="sports-display text-[4.2rem] italic leading-[0.82] tracking-tight text-white drop-shadow-[0_10px_28px_rgba(255,255,255,0.15)] min-[390px]:text-[5rem] sm:text-[7.8rem]">
-            Pick your
+            Choose your
             <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-500 bg-clip-text text-transparent">
               teams
             </span>
           </h1>
           <p className="mt-5 text-base font-black uppercase tracking-[0.18em] text-gray-300 sm:text-xl">
-            Choose up to three teams you want in your feed.
+            Follow the nations you want on your Lockt feed.
           </p>
           <p className="mt-2 text-sm font-semibold text-gray-400">
-            This only personalizes your feed. You&apos;ll make match calls later.
+            Choose up to three teams. You&apos;ll make match calls later.
           </p>
 
           <div className="mt-5 sm:hidden">
@@ -164,15 +164,20 @@ export function TeamsPage({ avatar, username }: { avatar?: string; username?: st
                       </span>
                     )}
                     <div
-                      className={`mx-auto grid h-16 w-16 place-items-center rounded-2xl border text-xl font-black ${
+                      className={`mx-auto grid h-16 w-16 place-items-center rounded-2xl border text-4xl ${
                         isSelected
-                          ? "border-lime-300/55 bg-lime-300/10 text-lime-300"
-                          : "border-white/16 bg-white/[0.035] text-gray-200"
+                          ? "border-lime-300/55 bg-lime-300/10"
+                          : "border-white/16 bg-white/[0.035]"
                       }`}
                     >
-                      {team.initials}
+                      <span role="img" aria-label={`${team.name} flag`}>
+                        {team.flag}
+                      </span>
                     </div>
-                    <p className="mt-4 text-sm font-black uppercase tracking-[0.12em] text-white">{team.name}</p>
+                    <p className="mt-3 text-sm font-black uppercase tracking-[0.12em] text-white">{team.name}</p>
+                    <p className={`mt-1 text-[11px] font-black uppercase tracking-[0.18em] ${isSelected ? "text-lime-300" : "text-purple-200"}`}>
+                      {team.code}
+                    </p>
                   </button>
                 );
               })}
@@ -185,7 +190,7 @@ export function TeamsPage({ avatar, username }: { avatar?: string; username?: st
             disabled={isLoading}
             className="mt-8 min-h-16 w-full rounded-2xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-xl font-black uppercase italic tracking-[0.18em] text-black shadow-[0_0_42px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_54px_rgba(168,85,247,0.36)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-65 sm:min-h-20 sm:text-2xl"
           >
-            {isLoading ? "Saving..." : "Continue"}
+            {isLoading ? "Saving..." : "Lock in teams"}
           </button>
           {message && (
             <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-gray-200">

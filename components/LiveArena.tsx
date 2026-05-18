@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { LocktLogo } from "@/components/LocktLogo";
 import { formatRepSwing, QUICK_PICK_LOSS, QUICK_PICK_WIN } from "@/lib/engagement";
@@ -177,20 +177,7 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
     };
   }, [gameId]);
 
-  useEffect(() => {
-    if (!quickPickQueue.length || savingQuickPickKey) {
-      return;
-    }
-
-    const delayMs = game?.status === "live" ? 14000 : game?.status === "scheduled" ? 22000 : 26000;
-    const timer = window.setTimeout(() => {
-      rotateQuickPick("timer");
-    }, delayMs);
-
-    return () => window.clearTimeout(timer);
-  }, [game?.status, quickPickQueue, quickPickSelections, savingQuickPickKey]);
-
-  function rotateQuickPick(reason: "timer" | "interaction") {
+  const rotateQuickPick = useCallback((reason: "timer" | "interaction") => {
     if (!quickPickQueue.length) {
       return;
     }
@@ -216,7 +203,20 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
     if (reason === "timer") {
       setQuickPickCrowdLine(getQuickPickCrowdLine(game, incoming));
     }
-  }
+  }, [awayTeam, game, homeTeam, quickPickQueue, quickPickRecentKeys, quickPickSelections]);
+
+  useEffect(() => {
+    if (!quickPickQueue.length || savingQuickPickKey) {
+      return;
+    }
+
+    const delayMs = game?.status === "live" ? 14000 : game?.status === "scheduled" ? 22000 : 26000;
+    const timer = window.setTimeout(() => {
+      rotateQuickPick("timer");
+    }, delayMs);
+
+    return () => window.clearTimeout(timer);
+  }, [game?.status, quickPickQueue, rotateQuickPick, savingQuickPickKey]);
 
   async function lockQuickPick(question: QuickPickQuestion, selectedSide: string) {
     if (quickPickSelections[question.key] || savingQuickPickKey) {

@@ -16,6 +16,11 @@ export type Database = {
           hits_count: number;
           misses_count: number;
           receipts_count: number;
+          account_visibility: "public" | "private";
+          followers_count: number;
+          following_count: number;
+          starter_rep_awarded: boolean;
+          level: string;
           onboarding_completed: boolean;
           last_active_at: string;
           is_suspended: boolean;
@@ -34,6 +39,11 @@ export type Database = {
           hits_count?: number;
           misses_count?: number;
           receipts_count?: number;
+          account_visibility?: "public" | "private";
+          followers_count?: number;
+          following_count?: number;
+          starter_rep_awarded?: boolean;
+          level?: string;
           onboarding_completed?: boolean;
           last_active_at?: string;
           is_suspended?: boolean;
@@ -52,6 +62,11 @@ export type Database = {
           hits_count?: number;
           misses_count?: number;
           receipts_count?: number;
+          account_visibility?: "public" | "private";
+          followers_count?: number;
+          following_count?: number;
+          starter_rep_awarded?: boolean;
+          level?: string;
           onboarding_completed?: boolean;
           last_active_at?: string;
           is_suspended?: boolean;
@@ -63,6 +78,41 @@ export type Database = {
             foreignKeyName: "profiles_id_fkey";
             columns: ["id"];
             isOneToOne: true;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      user_trophies: {
+        Row: {
+          id: string;
+          user_id: string;
+          trophy_key: string;
+          trophy_name: string;
+          description: string | null;
+          unlocked_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          trophy_key: string;
+          trophy_name: string;
+          description?: string | null;
+          unlocked_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          trophy_key?: string;
+          trophy_name?: string;
+          description?: string | null;
+          unlocked_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "user_trophies_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
             referencedRelation: "users";
             referencedColumns: ["id"];
           },
@@ -215,6 +265,7 @@ export type Database = {
           exact_score_locked_at: string | null;
           winner_result: "pending" | "hit" | "miss";
           exact_score_result: "pending" | "hit" | "miss";
+          first_call_protected: boolean;
           winner_rep_delta: number;
           exact_score_rep_delta: number;
           created_at: string;
@@ -237,6 +288,7 @@ export type Database = {
           exact_score_locked_at?: string | null;
           winner_result?: "pending" | "hit" | "miss";
           exact_score_result?: "pending" | "hit" | "miss";
+          first_call_protected?: boolean;
           winner_rep_delta?: number;
           exact_score_rep_delta?: number;
           created_at?: string;
@@ -259,6 +311,7 @@ export type Database = {
           exact_score_locked_at?: string | null;
           winner_result?: "pending" | "hit" | "miss";
           exact_score_result?: "pending" | "hit" | "miss";
+          first_call_protected?: boolean;
           winner_rep_delta?: number;
           exact_score_rep_delta?: number;
           created_at?: string;
@@ -449,6 +502,97 @@ export type Database = {
           {
             foreignKeyName: "takes_user_id_fkey";
             columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      follows: {
+        Row: {
+          id: string;
+          follower_id: string;
+          following_id: string;
+          status: "active" | "pending" | "blocked";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          follower_id: string;
+          following_id: string;
+          status?: "active" | "pending" | "blocked";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          follower_id?: string;
+          following_id?: string;
+          status?: "active" | "pending" | "blocked";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "follows_follower_id_fkey";
+            columns: ["follower_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "follows_following_id_fkey";
+            columns: ["following_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      receipt_shares: {
+        Row: {
+          id: string;
+          receipt_id: string;
+          sender_id: string;
+          recipient_id: string;
+          message: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          receipt_id: string;
+          sender_id: string;
+          recipient_id: string;
+          message?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          receipt_id?: string;
+          sender_id?: string;
+          recipient_id?: string;
+          message?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "receipt_shares_receipt_id_fkey";
+            columns: ["receipt_id"];
+            isOneToOne: false;
+            referencedRelation: "receipts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "receipt_shares_sender_id_fkey";
+            columns: ["sender_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "receipt_shares_recipient_id_fkey";
+            columns: ["recipient_id"];
             isOneToOne: false;
             referencedRelation: "users";
             referencedColumns: ["id"];
@@ -764,8 +908,10 @@ export type GamePick = Database["public"]["Tables"]["game_picks"]["Row"];
 export type QuickPick = Database["public"]["Tables"]["quick_picks"]["Row"];
 export type MatchPick = Database["public"]["Tables"]["match_picks"]["Row"];
 export type Take = Database["public"]["Tables"]["takes"]["Row"];
+export type Follow = Database["public"]["Tables"]["follows"]["Row"];
 export type TakeReaction = Database["public"]["Tables"]["take_reactions"]["Row"];
 export type TakeReply = Database["public"]["Tables"]["take_replies"]["Row"];
+export type ReceiptShare = Database["public"]["Tables"]["receipt_shares"]["Row"];
 export type Report = Database["public"]["Tables"]["reports"]["Row"];
 export type UserMute = Database["public"]["Tables"]["user_mutes"]["Row"];
 export type UserBlock = Database["public"]["Tables"]["user_blocks"]["Row"];

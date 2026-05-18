@@ -3,8 +3,9 @@
 import { type KeyboardEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LocktLogo } from "@/components/LocktLogo";
+import { AppHeader } from "@/components/AppHeader";
 import { ShareActions } from "@/components/ShareActions";
+import { FollowButton } from "@/components/social/FollowButton";
 import { UserAvatar } from "@/components/UserAvatar";
 import { getSeededReceiptsByUsername, type SeededReceipt } from "@/data/seededCrowd";
 import {
@@ -18,6 +19,7 @@ import {
 } from "@/lib/reputation";
 import { getCurrentUserReceipts, getReceiptsByUser } from "@/lib/supabase/receipts";
 import { getCurrentUserMatchPicks } from "@/lib/supabase/matchPicks";
+import { getFollowingUserIds } from "@/lib/supabase/follows";
 import { getCurrentUserTakes } from "@/lib/supabase/takes";
 import type { Profile, Receipt } from "@/lib/supabase/types";
 import { ReportModal } from "@/components/moderation/ReportModal";
@@ -69,6 +71,11 @@ export type ReceiptOwner = {
   avatarUrl?: string | null;
   reputation?: number | null;
   favoriteTeams?: string[] | null;
+  accountVisibility?: "public" | "private";
+  followersCount?: number;
+  followingCount?: number;
+  currentFollowStatus?: "active" | "pending" | "blocked" | null;
+  canViewReceipts?: boolean;
 };
 
 type ReceiptOwnerMeta = {
@@ -78,6 +85,11 @@ type ReceiptOwnerMeta = {
   avatarUrl?: string | null;
   reputation?: number | null;
   isCurrentUser: boolean;
+  accountVisibility: "public" | "private";
+  followersCount: number;
+  followingCount: number;
+  currentFollowStatus: "active" | "pending" | "blocked" | null;
+  canViewReceipts: boolean;
 };
 
 const recentReceipts: RecentReceipt[] = [
@@ -221,6 +233,8 @@ export function ReceiptsScreen({
   const owner = getReceiptOwner(profile, recordOwner);
   const currentUser = owner;
   const [realReceipts, setRealReceipts] = useState<Receipt[]>([]);
+  const [followingReceipts, setFollowingReceipts] = useState<Receipt[]>([]);
+  const [activeTab, setActiveTab] = useState<"mine" | "following">("mine");
   const [myLockedTakes, setMyLockedTakes] = useState<Array<{ id: string; take_text: string; created_at: string; game_id: string; ride_count: number; fade_count: number }>>([]);
   const [myMatchPicks, setMyMatchPicks] = useState<
     Array<{
@@ -249,6 +263,13 @@ export function ReceiptsScreen({
     let isMounted = true;
 
     async function loadReceipts() {
+      if (!owner.canViewReceipts) {
+        setRealReceipts([]);
+        setFollowingReceipts([]);
+        setReceiptError("");
+        return;
+      }
+
       const { receipts, error } = owner.isCurrentUser
         ? await getCurrentUserReceipts()
         : owner.userId
@@ -263,7 +284,7 @@ export function ReceiptsScreen({
       setReceiptError(error ? getUserFacingErrorMessage(error, "Could not load receipts right now.") : "");
 
       if (owner.isCurrentUser) {
-        const [{ takes }, { picks }] = await Promise.all([getCurrentUserTakes(), getCurrentUserMatchPicks()]);
+        const [{ takes }, { picks }, { userIds }] = await Promise.all([getCurrentUserTakes(), getCurrentUserMatchPicks(), getFollowingUserIds()]);
         setMyLockedTakes(
           takes.map((take) => ({
             id: take.id,
@@ -293,6 +314,13 @@ export function ReceiptsScreen({
             status: pick.status,
           })),
         );
+
+        if (userIds.length) {
+          const loadFollowing = await Promise.all(userIds.map((userId) => getReceiptsByUser(userId)));
+          setFollowingReceipts(loadFollowing.flatMap((item) => item.receipts));
+        } else {
+          setFollowingReceipts([]);
+        }
       }
     }
 
@@ -301,7 +329,7 @@ export function ReceiptsScreen({
     return () => {
       isMounted = false;
     };
-  }, [owner.isCurrentUser, owner.userId]);
+  }, [owner.isCurrentUser, owner.userId, owner.canViewReceipts]);
 
   const recentReceiptCards = useMemo(
     () => {
@@ -332,7 +360,7 @@ export function ReceiptsScreen({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="page-rhythm">
       <ReceiptsHeader profile={profile} />
       <ReceiptIdentityCard
         featuredReceipt={featuredReceipt}
@@ -347,7 +375,65 @@ export function ReceiptsScreen({
         </p>
       )}
 
-      {preTournamentMode ? (
+      {!owner.canViewReceipts ? (
+        <section className="rounded-[1.75rem] border border-white/10 bg-black/30 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.34)] backdrop-blur">
+          <h2 className="sports-display text-2xl italic leading-none text-white sm:text-3xl">This account is private.</h2>
+          <p className="mt-2 text-sm font-semibold text-gray-300">Follow this user to see their receipts.</p>
+          <div className="mt-3">
+            <FollowButton
+              targetUserId={owner.userId}
+              targetAccountVisibility={owner.accountVisibility}
+              currentFollowStatus={owner.currentFollowStatus}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      {owner.isCurrentUser ? (
+        <section className="rounded-2xl border border-white/10 bg-black/30 p-2">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveTab("mine")}
+              className={`min-h-10 rounded-xl border text-xs font-black uppercase tracking-[0.1em] ${activeTab === "mine" ? "border-lime-300/50 bg-lime-400/10 text-lime-200" : "border-white/15 bg-white/[0.03] text-gray-300"}`}
+            >
+              My Receipts
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("following")}
+              className={`min-h-10 rounded-xl border text-xs font-black uppercase tracking-[0.1em] ${activeTab === "following" ? "border-purple-300/50 bg-purple-500/10 text-purple-200" : "border-white/15 bg-white/[0.03] text-gray-300"}`}
+            >
+              Following
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      {owner.canViewReceipts && activeTab === "following" ? (
+        <ReceiptSection title="Following" icon="◉" action="">
+          {followingReceipts.length ? (
+            <div className="space-y-2">
+              {followingReceipts.slice(0, 20).map((receipt) => {
+                const mapped = mapReceiptToRecent(receipt, owner);
+                return (
+                  <article key={receipt.id} className="rounded-2xl border border-white/10 bg-black/45 p-3">
+                    <p className="text-sm font-black text-white">{mapped.take}</p>
+                    <p className="mt-1 text-xs font-semibold text-gray-300">{mapped.arena}</p>
+                    <p className="mt-1 text-[11px] font-semibold text-gray-500">{mapped.timestamp}</p>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-white/10 bg-black/45 p-4">
+              <p className="text-sm font-semibold text-gray-300">
+                No receipts from people you follow yet. Follow users to build your World Cup feed.
+              </p>
+            </div>
+          )}
+        </ReceiptSection>
+      ) : owner.canViewReceipts && preTournamentMode ? (
         myLockedTakes.length || myMatchPicks.length ? (
           <>
             {myMatchPicks.length ? (
@@ -410,15 +496,15 @@ export function ReceiptsScreen({
             ) : null}
           </>
         ) : (
-          <ReceiptSection title="No receipts yet." icon="▤" action="Make a World Cup Call">
+          <ReceiptSection title="Your receipt board is empty." icon="▤" action="Make My First Call">
             <div className="rounded-2xl border border-white/10 bg-black/45 p-4">
               <p className="text-sm font-semibold text-gray-300">
-                Receipts unlock when World Cup matches begin. Until then, lock your calls before kickoff.
+                Make your first World Cup call to unlock 200 Starter Rep and your First Lock Trophy.
               </p>
             </div>
           </ReceiptSection>
         )
-      ) : (
+      ) : owner.canViewReceipts ? (
         <>
           <ReceiptSection title="Recent Receipts" icon="▤" action="See all">
             <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-1">
@@ -446,7 +532,7 @@ export function ReceiptsScreen({
             </div>
           </ReceiptSection>
         </>
-      )}
+      ) : null}
       <section className="rounded-[1.75rem] border border-white/10 bg-black/30 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.34)] backdrop-blur">
         <h2 className="sports-display text-2xl italic leading-none text-white sm:text-3xl">Top Talkers Coming Soon</h2>
         <p className="mt-2 text-sm font-semibold text-gray-300">
@@ -467,68 +553,7 @@ export function ReceiptsScreen({
 }
 
 function ReceiptsHeader({ profile }: { profile?: Profile | null }) {
-  const username = profile?.username || "LOCKT";
-
-  return (
-    <header className="rounded-[1.75rem] border border-white/10 bg-black/35 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur">
-      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <LocktLogo size={58} />
-          <div className="min-w-0">
-            <h1 className="brand-lockup text-[2rem] leading-[0.82] sm:text-4xl">
-              <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
-            </h1>
-          </div>
-        </div>
-
-        <div className="min-w-0">
-          <p className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.08em] text-gray-200">
-            <span className="h-2.5 w-2.5 rounded-full bg-lime-400 shadow-[0_0_16px_rgba(132,204,22,0.75)]" />
-            12.8K <span className="text-gray-400">Online</span>
-          </p>
-          <p className="mt-1 text-xs font-semibold text-gray-400 sm:text-sm">Receipts don&apos;t lie.</p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <HeaderIcon label="Notifications" badge="3">
-            ♧
-          </HeaderIcon>
-          <Link
-            href="/receipts"
-            className="relative grid h-12 w-12 place-items-center rounded-2xl border border-white/15 bg-white/[0.04] text-xl text-white shadow-[0_0_22px_rgba(255,255,255,0.06)] transition hover:-translate-y-0.5 hover:border-purple-300/35 hover:bg-white/[0.07] active:scale-95"
-            aria-label={`${username} receipts identity`}
-          >
-            <UserAvatar avatarUrl={profile?.avatar_url} initials={getInitials(username)} size="sm" />
-          </Link>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-function HeaderIcon({
-  label,
-  badge,
-  children,
-}: {
-  label: string;
-  badge?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      className="relative grid h-12 w-12 place-items-center rounded-2xl border border-white/15 bg-white/[0.04] text-xl text-white shadow-[0_0_22px_rgba(255,255,255,0.06)] transition hover:-translate-y-0.5 hover:border-purple-300/35 hover:bg-white/[0.07] active:scale-95"
-      aria-label={label}
-    >
-      {children}
-      {badge && (
-        <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-purple-500 text-[10px] font-black text-white">
-          {badge}
-        </span>
-      )}
-    </button>
-  );
+  return <AppHeader profile={profile} subtitle="Receipts don&apos;t lie." rightHref="/receipts" rightAriaLabel="Receipts" />;
 }
 
 function ReceiptIdentityCard({
@@ -626,16 +651,25 @@ function ReceiptIdentityCard({
           </div>
 
           <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-black/45 p-2">
-            <IdentityMiniMeta label="Followers" value="4.2K" />
-            <IdentityMiniMeta label="Following" value="312" />
+            <IdentityMiniMeta label="Followers" value={formatCompact(owner.followersCount)} href={owner.isCurrentUser ? "/followers" : undefined} />
+            <IdentityMiniMeta label="Following" value={formatCompact(owner.followingCount)} href={owner.isCurrentUser ? "/following" : undefined} />
             <IdentityMiniMeta label="Crew" value="Soon" />
           </div>
+          {!owner.isCurrentUser ? (
+            <div className="rounded-xl border border-white/10 bg-black/45 p-3">
+              <FollowButton
+                targetUserId={owner.userId}
+                targetAccountVisibility={owner.accountVisibility}
+                currentFollowStatus={owner.currentFollowStatus}
+              />
+            </div>
+          ) : null}
 
           <div className="rounded-[1.4rem] border border-white/10 bg-black/45 p-3">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime-300">Trophy Case</p>
-                <h3 className="sports-display mt-1 text-2xl italic leading-none text-white">Badges Earned</h3>
+                <h3 className="sports-display mt-1 text-2xl italic leading-none text-white">Trophies Earned</h3>
               </div>
               <p className="text-[10px] font-black uppercase tracking-[0.12em] text-purple-300">Proof stack</p>
             </div>
@@ -668,12 +702,22 @@ function IdentityStat({ label, value, tone }: { label: string; value: string; to
   );
 }
 
-function IdentityMiniMeta({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0 rounded-xl border border-white/10 bg-black/35 px-2 py-2 text-center">
+function IdentityMiniMeta({ label, value, href }: { label: string; value: string; href?: string }) {
+  const content = (
+    <>
       <p className="truncate text-[9px] font-black uppercase tracking-[0.08em] text-gray-500">{label}</p>
       <p className="mt-1 truncate text-sm font-black text-gray-100">{value}</p>
-    </div>
+    </>
+  );
+
+  if (!href) {
+    return <div className="min-w-0 rounded-xl border border-white/10 bg-black/35 px-2 py-2 text-center">{content}</div>;
+  }
+
+  return (
+    <Link href={href} className="min-w-0 rounded-xl border border-white/10 bg-black/35 px-2 py-2 text-center transition hover:border-lime-300/35 hover:bg-lime-400/10">
+      {content}
+    </Link>
   );
 }
 
@@ -811,6 +855,13 @@ function RecentReceiptCard({
           />
         </div>
       ) : null}
+      <button
+        type="button"
+        disabled
+        className="mt-2 min-h-9 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-[10px] font-black uppercase tracking-[0.1em] text-gray-500"
+      >
+        Share in Lockt (Soon)
+      </button>
     </article>
   );
 }
@@ -925,6 +976,13 @@ function ViralReceiptCard({
             />
           </div>
         ) : null}
+        <button
+          type="button"
+          disabled
+          className="mt-2 min-h-9 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 text-[10px] font-black uppercase tracking-[0.1em] text-gray-500"
+        >
+          Share in Lockt (Soon)
+        </button>
       </div>
     </article>
   );
@@ -964,6 +1022,11 @@ function getReceiptOwner(profile?: Profile | null, recordOwner?: ReceiptOwner | 
     avatarUrl: isViewingRecordOwner ? (recordOwner?.avatarUrl ?? null) : profile?.avatar_url,
     reputation: isViewingRecordOwner ? recordOwner?.reputation : profile?.reputation_score ?? profile?.reputation,
     isCurrentUser: !isViewingRecordOwner,
+    accountVisibility: isViewingRecordOwner ? recordOwner?.accountVisibility ?? "public" : profile?.account_visibility ?? "public",
+    followersCount: isViewingRecordOwner ? recordOwner?.followersCount ?? 0 : profile?.followers_count ?? 0,
+    followingCount: isViewingRecordOwner ? recordOwner?.followingCount ?? 0 : profile?.following_count ?? 0,
+    currentFollowStatus: isViewingRecordOwner ? recordOwner?.currentFollowStatus ?? null : null,
+    canViewReceipts: isViewingRecordOwner ? recordOwner?.canViewReceipts ?? true : true,
   };
 }
 

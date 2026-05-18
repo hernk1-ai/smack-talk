@@ -351,6 +351,28 @@ textarea {
   padding-bottom: calc(8.5rem + env(safe-area-inset-bottom));
 }
 
+.page-rhythm {
+  display: grid;
+  gap: 0.875rem;
+}
+
+@media (min-width: 640px) {
+  .page-rhythm {
+    gap: 1rem;
+  }
+}
+
+.section-rhythm {
+  display: grid;
+  gap: 0.625rem;
+}
+
+@media (min-width: 640px) {
+  .section-rhythm {
+    gap: 0.75rem;
+  }
+}
+
 .safe-bottom-sheet {
   padding-bottom: calc(1rem + env(safe-area-inset-bottom));
 }

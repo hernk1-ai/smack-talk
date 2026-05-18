@@ -57,17 +57,40 @@ export default async function PublicReceiptsPage({ params }: { params: Promise<{
 
     const { data: viewedProfile } = await supabase
       .from("profiles")
-      .select("id, username, avatar_url, reputation_score, reputation, favorite_teams")
+      .select("id, username, avatar_url, reputation_score, reputation, favorite_teams, account_visibility, followers_count, following_count")
       .ilike("username", key)
       .maybeSingle();
 
     if (viewedProfile) {
+      const viewerId = user?.id ?? null;
+      let followStatus: "active" | "pending" | "blocked" | null = null;
+      if (viewerId && viewerId !== viewedProfile.id) {
+        const { data: followRow } = await supabase
+          .from("follows")
+          .select("status")
+          .eq("follower_id", viewerId)
+          .eq("following_id", viewedProfile.id)
+          .maybeSingle();
+        followStatus = (followRow?.status as "active" | "pending" | "blocked" | null) ?? null;
+      }
+
+      const isOwner = Boolean(viewerId && viewerId === viewedProfile.id);
+      const canViewReceipts =
+        isOwner ||
+        (viewedProfile.account_visibility ?? "public") === "public" ||
+        followStatus === "active";
+
       publicProfileOwner = {
         userId: viewedProfile.id,
         username: viewedProfile.username || toDisplayUsername(key),
         avatarUrl: viewedProfile.avatar_url,
         reputation: viewedProfile.reputation_score ?? viewedProfile.reputation ?? 0,
         favoriteTeams: viewedProfile.favorite_teams ?? ["USA", "MEX", "ARG"],
+        accountVisibility: (viewedProfile.account_visibility as "public" | "private") ?? "public",
+        followersCount: viewedProfile.followers_count ?? 0,
+        followingCount: viewedProfile.following_count ?? 0,
+        currentFollowStatus: followStatus,
+        canViewReceipts,
       };
     }
   }
@@ -79,6 +102,8 @@ export default async function PublicReceiptsPage({ params }: { params: Promise<{
         avatarUrl: null,
         reputation: seededProfile.reputation_score,
         favoriteTeams: seededProfile.favoriteTeams,
+        accountVisibility: "public",
+        canViewReceipts: true,
       }
     : null;
   const recordOwner = publicProfileOwner ?? seededOwner ?? {
@@ -86,6 +111,8 @@ export default async function PublicReceiptsPage({ params }: { params: Promise<{
     avatarUrl: null,
     reputation: 4200,
     favoriteTeams: ["USA", "MEX", "ARG"],
+    accountVisibility: "public",
+    canViewReceipts: true,
   };
 
   return <LocktApp profile={profile} receiptOwner={recordOwner} initialView="receipts" />;

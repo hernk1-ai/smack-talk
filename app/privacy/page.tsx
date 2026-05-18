@@ -91,7 +91,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
           "rides/fades;",
           "rankings;",
           "streaks;",
-          "badges;",
+          "trophies;",
           "receipts;",
           "profile activity;",
           "community engagement metrics.",
@@ -240,11 +240,19 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
     blocks: [
       {
         type: "p",
-        text: "LOCKT is intended for users 17 years of age or older.",
+        text: "LOCKT is intended for users 13 years of age or older.",
       },
       {
         type: "p",
         text: "We do not knowingly collect personal information from children under 13.",
+      },
+      {
+        type: "p",
+        text: "LOCKT is not a gambling product and does not offer betting, odds, cash prizes, or cash-value rewards.",
+      },
+      {
+        type: "p",
+        text: "Rep is non-monetary, non-transferable, and has no cash value.",
       },
       {
         type: "p",
@@ -419,7 +427,7 @@ const sections: { title: string; blocks: LegalBlock[] }[] = [
       },
       {
         type: "p",
-        text: "The Arena remembers what you post.",
+        text: "Every call leaves a receipt.",
       },
       {
         type: "p",
@@ -473,7 +481,7 @@ export default function PrivacyPage() {
                 <span className="bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
               </p>
               <p className="mt-1 text-[0.65rem] font-black uppercase tracking-[0.24em] text-lime-300">
-                The Arena Remembers
+                Check the Receipt
               </p>
             </div>
           </Link>

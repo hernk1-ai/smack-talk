@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 import { ACTIVE_GAME_ID } from "@/lib/supabase/games";
 import { touchMyPresence } from "@/lib/supabase/presence";
+import { awardStarterRepAndFirstLockTrophy } from "@/lib/supabase/starterRep";
 import type { Take } from "@/lib/supabase/types";
 
 type CreateLockedTakeInput = {
@@ -16,13 +17,13 @@ export async function createLockedTake({ gameId, storylineId, takeText }: Create
   const supabase = createClient();
 
   if (!supabase) {
-    return { take: null, error: new Error("Supabase is not configured.") };
+    return { take: null, error: new Error("Supabase is not configured."), starterRepAwarded: false };
   }
 
   const cleanTakeText = takeText.trim();
 
   if (!cleanTakeText) {
-    return { take: null, error: new Error("Say it before you lock it.") };
+    return { take: null, error: new Error("Say it before you lock it."), starterRepAwarded: false };
   }
 
   const {
@@ -31,18 +32,18 @@ export async function createLockedTake({ gameId, storylineId, takeText }: Create
   } = await supabase.auth.getUser();
 
   if (userError) {
-    return { take: null, error: userError };
+    return { take: null, error: userError, starterRepAwarded: false };
   }
 
   if (!user) {
-    return { take: null, error: new Error("Log in to lock a take.") };
+    return { take: null, error: new Error("Log in to lock a take."), starterRepAwarded: false };
   }
 
   const now = Date.now();
   const { gameId: targetGameId, error: gameError } = await resolveTakeGameId(supabase, gameId);
 
   if (gameError || !targetGameId) {
-    return { take: null, error: gameError ?? new Error("Unable to lock your take right now. Try again.") };
+    return { take: null, error: gameError ?? new Error("Unable to lock your take right now. Try again."), starterRepAwarded: false };
   }
 
   const windowCutoffIso = new Date(now - TAKE_DUPLICATE_WINDOW_MS).toISOString();
@@ -57,7 +58,7 @@ export async function createLockedTake({ gameId, storylineId, takeText }: Create
     .limit(10);
 
   if (recentError) {
-    return { take: null, error: recentError };
+    return { take: null, error: recentError, starterRepAwarded: false };
   }
 
   const duplicateTake = (recentTakes ?? []).find(
@@ -65,7 +66,7 @@ export async function createLockedTake({ gameId, storylineId, takeText }: Create
   );
 
   if (duplicateTake) {
-    return { take: null, error: new Error("That take is already live. Switch your angle before locking again.") };
+    return { take: null, error: new Error("That take is already live. Switch your angle before locking again."), starterRepAwarded: false };
   }
 
   const latestTake = (recentTakes ?? [])[0];
@@ -73,7 +74,7 @@ export async function createLockedTake({ gameId, storylineId, takeText }: Create
   if (latestTake) {
     const latestCreatedAt = new Date(latestTake.created_at).getTime();
     if (Number.isFinite(latestCreatedAt) && now - latestCreatedAt < TAKE_ACTION_COOLDOWN_MS) {
-      return { take: null, error: new Error("Slow down. Give it a few seconds before locking another take.") };
+      return { take: null, error: new Error("Slow down. Give it a few seconds before locking another take."), starterRepAwarded: false };
     }
   }
 
@@ -89,12 +90,18 @@ export async function createLockedTake({ gameId, storylineId, takeText }: Create
     .single();
 
   if (error?.code === "23503") {
-    return { take: null, error: new Error("Unable to lock your take right now. Try again.") };
+    return { take: null, error: new Error("Unable to lock your take right now. Try again."), starterRepAwarded: false };
   }
 
+  const starterReward = await awardStarterRepAndFirstLockTrophy(supabase, user.id);
   await touchMyPresence();
 
-  return { take: data, error };
+  return {
+    take: data,
+    error,
+    starterRepAwarded: starterReward.awarded,
+    starterRepTotal: starterReward.newRep,
+  };
 }
 
 async function resolveTakeGameId(

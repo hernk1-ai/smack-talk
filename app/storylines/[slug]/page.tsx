@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { StorylineDetailPage } from "@/components/storylines/StorylineDetailPage";
 import { getStorylineBySlug } from "@/data/worldCupStorylines";
 import { getSiteUrl } from "@/lib/site-url";
+import { ensureProfile } from "@/lib/supabase/profiles";
+import { createClient } from "@/lib/supabase/server";
 
 const BASE_URL = getSiteUrl();
 
@@ -47,5 +49,19 @@ export default async function StorylinePage({ params }: { params: Promise<{ slug
     notFound();
   }
 
-  return <StorylineDetailPage storyline={storyline} />;
+  const supabase = await createClient();
+  let profile = null;
+
+  if (supabase) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      const ensured = await ensureProfile(supabase, user);
+      profile = ensured.profile ?? null;
+    }
+  }
+
+  return <StorylineDetailPage storyline={storyline} profile={profile} />;
 }

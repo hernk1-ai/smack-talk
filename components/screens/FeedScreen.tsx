@@ -3,10 +3,12 @@
 import { useEffect, useState, type KeyboardEvent, type MouseEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LocktLogo } from "@/components/LocktLogo";
+import { AppHeader } from "@/components/AppHeader";
+import { useToast } from "@/components/providers/ToastProvider";
 import { ShareActions } from "@/components/ShareActions";
 import { SocialLinks } from "@/components/SocialLinks";
 import { UserAvatar } from "@/components/UserAvatar";
+import { playSound } from "@/lib/sound";
 import { ACTIVE_GAME_ID, getArenaGames, getGameById } from "@/lib/supabase/games";
 import {
   attachAuthorToTake,
@@ -208,7 +210,7 @@ const featuredHotTakesBySport: Record<SportKey, typeof featuredHotTake> = {
     watching: "31.4K watching",
     handle: "@TalkHeavy23",
     avatar: "TH",
-    text: "Legacy quarter. Somebody is getting exposed.",
+    text: "Legacy quarter. Somebody is about to be right.",
     heat: "4.7K",
     rides: "2.7K",
     fades: "1.4K",
@@ -223,11 +225,14 @@ const liveArenas: LiveArenaCard[] = worldCupLiveArenas as LiveArenaCard[];
 
 export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: string) => void; profile?: Profile | null }) {
   const router = useRouter();
+  const { showToast } = useToast();
   const [takeChoices, setTakeChoices] = useState<Record<string, Side>>({});
   const [featuredChoice, setFeaturedChoice] = useState<Side | null>(null);
   const [lockedTake, setLockedTake] = useState("");
   const [lockTakeStatus, setLockTakeStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [lockTakeMessage, setLockTakeMessage] = useState("");
+  const [starterRepUnlocked, setStarterRepUnlocked] = useState(false);
+  const [myCallCount, setMyCallCount] = useState(profile?.created_takes_count ?? 0);
   const [activeGame, setActiveGame] = useState<Game | null>(null);
   const [liveGames, setLiveGames] = useState<Game[]>([]);
   const [gameTakes, setGameTakes] = useState<ArenaTake[]>([]);
@@ -306,7 +311,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
     setLockTakeStatus("loading");
     setLockTakeMessage("");
 
-    const { take, error } = await createLockedTake({
+    const { take, error, starterRepAwarded } = await createLockedTake({
       gameId: activeSportGame?.id ?? activeGame?.id ?? ACTIVE_GAME_ID,
       takeText: lockedTake,
     });
@@ -314,6 +319,8 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
     if (error) {
       setLockTakeStatus("error");
       setLockTakeMessage(getUserFacingErrorMessage(error, "Unable to lock your take right now. Try again."));
+      playSound("error");
+      showToast("Unable to lock your take right now. Try again.", "error");
       return;
     }
 
@@ -321,12 +328,16 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
     if (take) {
       const arenaTake = attachAuthorToTake(take, profile);
       setGameTakes((currentTakes) => [arenaTake, ...currentTakes]);
+      setMyCallCount((currentCount) => currentCount + 1);
       setRecentActivity((currentActivity) =>
         [`${formatTakeForUI(arenaTake).handle} locked a take`, ...currentActivity].slice(0, 4),
       );
     }
+    setStarterRepUnlocked(Boolean(starterRepAwarded));
     setLockTakeStatus("success");
-    setLockTakeMessage("Locked. No switching sides.");
+    setLockTakeMessage(starterRepAwarded ? "You’re on the board." : "Your call is locked. Receipt pending until match ends.");
+    playSound("take_locked");
+    showToast("Take locked.", "success");
   }
 
   async function reactToLockedTake(takeId: string, reaction: Side) {
@@ -371,6 +382,8 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
 
     if (error) {
       setReactionMessage(getUserFacingErrorMessage(error, "Could not save your reaction. Try again."));
+      playSound("error");
+      showToast("Unable to save right now.", "error");
       setReactionLoadingTakeId(null);
       return;
     }
@@ -395,6 +408,8 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
         setRecentActivity((currentActivity) =>
           [`You ${savedReaction.reaction === "ride" ? "rode" : "faded"} ${activityHandle}`, ...currentActivity].slice(0, 4),
         );
+        playSound(savedReaction.reaction === "ride" ? "ride" : "fade");
+        showToast(savedReaction.reaction === "ride" ? "You rode this take." : "You faded this take.", "success");
       }
     }
 
@@ -428,6 +443,8 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
 
     if (error || !reply) {
       setReactionMessage(getUserFacingErrorMessage(error, "Could not post reply. Try again."));
+      playSound("error");
+      showToast("Unable to save right now.", "error");
       setReplyLoadingTakeId(null);
       return;
     }
@@ -438,12 +455,14 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
     setGameTakes((currentTakes) =>
       currentTakes.map((take) => (take.id === takeId ? { ...take, reply_count: take.reply_count + 1 } : take)),
     );
+    playSound("reply_posted");
+    showToast("Reply posted.", "success");
     setReplyLoadingTakeId(null);
   }
 
   if (preTournamentMode) {
     return (
-      <div className="space-y-5">
+      <div className="page-rhythm">
         <FeedHeader profile={profile} />
         <SportSelector activeSport={activeSport} onSelect={setActiveSport} visibleTabs={visibleSportTabs} />
         <PreTournamentCountdown />
@@ -469,6 +488,8 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
           value={lockedTake}
           status={lockTakeStatus}
           message={lockTakeMessage}
+          isFirstCall={myCallCount === 0}
+          starterRepUnlocked={starterRepUnlocked}
           lockedCount={gameTakes.length}
           onChange={(value) => {
             setLockedTake(value);
@@ -486,7 +507,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   }
 
   return (
-    <div className="space-y-5">
+    <div className="page-rhythm">
       <FeedHeader profile={profile} />
       <SportSelector activeSport={activeSport} onSelect={setActiveSport} visibleTabs={visibleSportTabs} />
       <FeaturedHotTakeCard
@@ -513,6 +534,8 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
         value={lockedTake}
         status={lockTakeStatus}
         message={lockTakeMessage}
+        isFirstCall={myCallCount === 0}
+        starterRepUnlocked={starterRepUnlocked}
         lockedCount={gameTakes.length}
         onChange={(value) => {
           setLockedTake(value);
@@ -594,7 +617,7 @@ function PreTournamentStorylines() {
   const storylines = worldCupStorylines.slice(0, 5);
 
   return (
-    <FeedSection title="🔥 Storylines to Watch" icon="" action="Prep Board">
+    <FeedSection title="🔥 Storylines to Watch" icon="" action="">
       <div className="grid gap-2 sm:grid-cols-2">
         {storylines.map((storyline) => (
           <Link
@@ -853,61 +876,7 @@ function SportSelector({
 }
 
 function FeedHeader({ profile }: { profile?: Profile | null }) {
-  const username = profile?.username || "LOCKT";
-
-  return (
-    <header className="rounded-[1.75rem] border border-white/10 bg-black/35 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur">
-      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <LocktLogo size={58} />
-          <div className="min-w-0">
-            <h1 className="brand-lockup text-[2rem] leading-[0.82] sm:text-4xl">
-              <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
-            </h1>
-          </div>
-        </div>
-
-        <div className="min-w-0">
-          <p className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.08em] text-gray-200">
-            <span className="h-2.5 w-2.5 rounded-full bg-lime-400 shadow-[0_0_16px_rgba(132,204,22,0.75)]" />
-            12.8K <span className="text-gray-400">Online</span>
-          </p>
-          <p className="mt-1 text-xs font-semibold text-gray-400 sm:text-sm">World Cup calls. Tournament reputation.</p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="relative grid h-12 w-12 place-items-center rounded-2xl border border-white/15 bg-white/[0.04] text-xl text-white shadow-[0_0_22px_rgba(255,255,255,0.06)] transition active:scale-95"
-            aria-label="Notifications"
-          >
-            ♧
-            <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-purple-500 text-[10px] font-black text-white">
-              3
-            </span>
-          </button>
-          <Link
-            href="/receipts"
-            className="grid h-12 w-12 place-items-center rounded-2xl border border-purple-300/25 bg-purple-500/10 text-2xl text-purple-300 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition active:scale-95"
-            aria-label={`${username} profile avatar`}
-          >
-            <UserAvatar avatarUrl={profile?.avatar_url} initials={getInitials(username)} size="sm" />
-          </Link>
-        </div>
-      </div>
-    </header>
-  );
-}
-
-function getInitials(username: string) {
-  const cleanUsername = username.replace(/^@/, "").trim();
-  const capitalLetters = cleanUsername.match(/[A-Z]/g);
-
-  if (capitalLetters && capitalLetters.length > 1) {
-    return capitalLetters.slice(0, 2).join("");
-  }
-
-  return cleanUsername.slice(0, 2).toUpperCase() || "ST";
+  return <AppHeader profile={profile} subtitle="World Cup calls. Tournament reputation." rightHref="/receipts" rightAriaLabel="Receipts" />;
 }
 
 function getReceiptHref(handle: string) {
@@ -1216,6 +1185,8 @@ function LockTakeComposer({
   value,
   status,
   message,
+  isFirstCall,
+  starterRepUnlocked,
   lockedCount,
   onChange,
   onLock,
@@ -1223,6 +1194,8 @@ function LockTakeComposer({
   value: string;
   status: "idle" | "loading" | "success" | "error";
   message: string;
+  isFirstCall: boolean;
+  starterRepUnlocked: boolean;
   lockedCount: number;
   onChange: (value: string) => void;
   onLock: () => void;
@@ -1234,12 +1207,24 @@ function LockTakeComposer({
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-300">World Cup Call</p>
-          <h2 className="sports-display mt-1 text-2xl italic leading-none text-white">Lock your pick.</h2>
+          <h2 className="sports-display mt-1 text-2xl italic leading-none text-white">
+            {isFirstCall ? "Make Your First World Cup Call" : "Lock your pick."}
+          </h2>
         </div>
         <span className="rounded-full border border-lime-300/25 bg-lime-400/10 px-3 py-1 text-[10px] font-black uppercase text-lime-300">
           {lockedCount} calls locked
         </span>
       </div>
+      {isFirstCall ? (
+        <div className="mb-3 rounded-xl border border-lime-300/30 bg-lime-400/10 p-3">
+          <p className="text-xs font-semibold text-gray-200">
+            Every receipt starts with a call. Pick a match, choose a side, or call your tournament winner.
+          </p>
+          <p className="mt-2 text-[11px] font-black uppercase tracking-[0.1em] text-lime-200">
+            Make your first call to unlock: +200 Starter Rep · First Lock Trophy · Player status
+          </p>
+        </div>
+      ) : null}
 
       <label className="sr-only" htmlFor="arena-lock-take">
         Lock your World Cup call
@@ -1262,7 +1247,7 @@ function LockTakeComposer({
           disabled={isLockedDisabled}
           className="min-h-14 w-full rounded-2xl border border-purple-300/60 bg-purple-500/15 px-6 text-sm font-black uppercase tracking-[0.12em] text-purple-100 shadow-[0_0_24px_rgba(168,85,247,0.14)] transition hover:-translate-y-0.5 hover:bg-purple-500/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 md:w-auto"
         >
-          {status === "loading" ? "Locking..." : "Lock It Before Kickoff 🔒"}
+          {status === "loading" ? "Locking..." : isFirstCall ? "Make My First Call" : "Lock My Call"}
         </button>
       </div>
 
@@ -1279,9 +1264,33 @@ function LockTakeComposer({
       )}
 
       <div className="mt-3 grid gap-2 text-xs font-semibold text-gray-400 sm:grid-cols-2">
-        <p>Locked before kickoff. Everyone sees it.</p>
+        <p>Locked before kickoff. Check the receipt after the final whistle.</p>
         <p>Called it or missed it, check the receipt.</p>
       </div>
+      {starterRepUnlocked ? (
+        <div className="mt-3 rounded-xl border border-lime-300/35 bg-lime-400/10 p-3">
+          <p className="text-sm font-black text-lime-100">You&apos;re on the board.</p>
+          <p className="mt-1 text-xs font-semibold text-gray-200">+200 Starter Rep</p>
+          <p className="text-xs font-semibold text-gray-200">🏆 First Lock Trophy unlocked</p>
+          <p className="text-xs font-semibold text-gray-200">Rookie → Player</p>
+          <p className="mt-2 text-xs font-semibold text-gray-300">Your call is pending until the match is played.</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            <Link href="/receipts" className="rounded-lg border border-purple-300/35 bg-purple-500/10 px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.1em] text-purple-100">
+              View My Receipt Board
+            </Link>
+            <Link href="/app" className="rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.1em] text-white">
+              Enter the Arena
+            </Link>
+            <button
+              type="button"
+              onClick={() => onChange("Called it. Check the receipt.")}
+              className="rounded-lg border border-lime-300/35 bg-lime-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.1em] text-lime-100"
+            >
+              Share My Call
+            </button>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

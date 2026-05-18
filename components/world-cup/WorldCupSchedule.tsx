@@ -60,23 +60,23 @@ export function WorldCupSchedule({ limit, showHeader = true, showViewFullLink = 
   }, [filteredMatches]);
 
   return (
-    <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.34)]">
+    <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-3.5 shadow-[0_18px_50px_rgba(0,0,0,0.34)] sm:p-4">
       {showHeader ? (
-        <div className="mb-4">
+        <div className="mb-3.5 sm:mb-4">
           <h1 className="sports-display text-3xl italic leading-none text-white sm:text-4xl">WORLD CUP 2026 SCHEDULE</h1>
-          <p className="mt-2 text-sm font-semibold text-gray-300">
+          <p className="mt-1.5 text-sm font-semibold text-gray-300">
             Browse the matches. Study the groups. Lock your calls before kickoff.
           </p>
         </div>
       ) : null}
 
-      <div className="sticky top-2 z-10 mb-4 grid gap-2 rounded-2xl border border-white/10 bg-black/70 p-2 backdrop-blur sm:grid-cols-3">
+      <div className="sticky top-2 z-10 mb-3.5 grid gap-2 rounded-2xl border border-white/10 bg-black/70 p-2 backdrop-blur sm:mb-4 sm:grid-cols-3 sm:p-2.5">
         <FilterSelect label="Group" value={selectedGroup} onChange={setSelectedGroup} options={groupFilters} />
         <FilterSelect label="City" value={selectedCity} onChange={setSelectedCity} options={cities.map((city) => ({ value: city, label: city }))} />
         <FilterSelect label="Team" value={selectedTeam} onChange={setSelectedTeam} options={teams.map((team) => ({ value: team, label: team }))} />
       </div>
 
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-2.5 flex items-center justify-between sm:mb-3">
         <p className="text-xs font-black uppercase tracking-[0.12em] text-lime-300">{filteredMatches.length} Upcoming Matches</p>
         {showViewFullLink ? (
           <Link href="/schedule" className="text-xs font-black uppercase tracking-[0.1em] text-purple-300 hover:text-purple-100">
@@ -85,11 +85,11 @@ export function WorldCupSchedule({ limit, showHeader = true, showViewFullLink = 
         ) : null}
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2.5 sm:space-y-3">
         {groupedByDate.map(([date, matches]) => (
-          <article key={date} className="rounded-2xl border border-white/10 bg-black/45 p-3">
+          <article key={date} className="rounded-2xl border border-white/10 bg-black/45 p-2.5 sm:p-3">
             <p className="text-xs font-black uppercase tracking-[0.12em] text-gray-300">{formatDateLabel(date)}</p>
-            <div className="mt-2 space-y-2">
+            <div className="mt-1.5 space-y-1.5 sm:mt-2 sm:space-y-2">
               {matches.map((match) => (
                 <MatchRow key={match.id} match={match} />
               ))}
@@ -118,7 +118,7 @@ function FilterSelect<T extends string>({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value as T)}
-        className="mt-1 min-h-10 w-full rounded-xl border border-white/10 bg-black/60 px-3 text-sm font-semibold text-white outline-none focus:border-lime-300/60"
+        className="mt-1 min-h-10 w-full rounded-xl border border-white/10 bg-black/60 px-3 text-sm font-semibold text-white outline-none focus:border-lime-300/60 sm:min-h-11"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value} className="bg-[#090b13]">
@@ -135,22 +135,22 @@ function MatchRow({ match }: { match: WorldCupMatch }) {
 
   return (
     <div
-      className={`grid gap-2 rounded-xl border p-3 sm:grid-cols-[auto_1fr_auto] sm:items-center ${
+      className={`grid gap-1.5 rounded-xl border p-2.5 sm:grid-cols-[7.5rem_minmax(0,1fr)_auto] sm:items-center sm:gap-3 sm:p-3 ${
         isKnockout ? "border-purple-300/30 bg-purple-500/10" : "border-white/10 bg-black/50"
       }`}
     >
-      <p className="text-xs font-black uppercase tracking-[0.1em] text-lime-300">{match.kickoffET}</p>
+      <p className="text-xs font-black uppercase tracking-[0.1em] text-lime-300 sm:text-[13px]">{match.kickoffET}</p>
       <div className="min-w-0">
-        <p className="truncate text-sm font-black text-white">
+        <p className="truncate text-[15px] font-black text-white sm:text-base">
           {match.homeTeam} vs {match.awayTeam ?? "TBD"}
         </p>
-        <p className="truncate text-xs font-semibold text-gray-400">
+        <p className="truncate text-xs font-semibold text-gray-400 sm:text-[13px]">
           {match.city} · {match.venue}
         </p>
       </div>
-      <div className="flex items-center gap-2 sm:justify-end">
+      <div className="flex items-center gap-1.5 sm:justify-end sm:gap-2">
         <span
-          className={`rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${
+          className={`rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] sm:px-2.5 ${
             isKnockout ? "border border-purple-300/45 bg-purple-500/15 text-purple-200" : "border border-lime-300/40 bg-lime-400/10 text-lime-200"
           }`}
         >
@@ -159,7 +159,7 @@ function MatchRow({ match }: { match: WorldCupMatch }) {
         {!isKnockout ? (
           <Link
             href={`/schedule/${match.id}/make-call`}
-            className="rounded-md border border-white/15 bg-white/[0.04] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-white hover:border-lime-300/40 hover:text-lime-200"
+            className="rounded-md border border-white/15 bg-white/[0.04] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-white hover:border-lime-300/40 hover:text-lime-200 sm:px-3"
           >
             Make Call
           </Link>
