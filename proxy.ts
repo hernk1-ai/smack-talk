@@ -9,7 +9,7 @@ const protectedRoutes = ["/app", "/arena", "/receipts", "/top-talkers", "/profil
 const onboardingRoutes = ["/username", "/onboarding/profile-pic", "/onboarding/teams", "/onboarding/enter-arena"];
 const authRoutes = ["/login", "/signup", "/forgot-password", "/verify-email"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const isDevelopment = process.env.NODE_ENV === "development";
 
   if (!isSupabaseConfigured || !supabaseUrl || !supabaseAnonKey) {
