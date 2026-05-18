@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LocktLogo } from "@/components/LocktLogo";
 import { createClient } from "@/lib/supabase/client";
+import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 
 const reminders = [
   { icon: "◉", label: "The Arena", value: "Is Watching", tone: "green" },
@@ -64,7 +65,11 @@ export function UsernamePage() {
     setIsLoading(false);
 
     if (error) {
-      setMessage(error.code === "23505" ? "That username is already taken." : error.message);
+      setMessage(
+        error.code === "23505"
+          ? "That username is already taken."
+          : getUserFacingErrorMessage(error, "Unable to save your username right now."),
+      );
       return;
     }
 

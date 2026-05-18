@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { LocktLogo } from "@/components/LocktLogo";
 import { buildSiteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/client";
+import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 
 export function ForgotPasswordPage() {
   const router = useRouter();
@@ -38,7 +39,7 @@ export function ForgotPasswordPage() {
     setIsLoading(false);
 
     if (error) {
-      setMessage(error.message);
+      setMessage(getUserFacingErrorMessage(error, "Unable to send reset link right now."));
       return;
     }
 
@@ -161,7 +162,7 @@ export function ResetPasswordPage() {
     setIsLoading(false);
 
     if (error) {
-      setMessage(error.message);
+      setMessage(getUserFacingErrorMessage(error, "Unable to update password right now."));
       return;
     }
 

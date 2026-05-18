@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { RouteBottomNav } from "@/components/BottomNav";
 import { UserAvatar } from "@/components/UserAvatar";
 import { getFollowersList } from "@/lib/supabase/follows";
+import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type FollowerCard = {
   id: string;
@@ -24,7 +25,7 @@ export function FollowersPage() {
       const { users, error: loadError } = await getFollowersList();
       if (!mounted) return;
       setFollowers(users as FollowerCard[]);
-      setError(loadError?.message ?? "");
+      setError(loadError ? getUserFacingErrorMessage(loadError, "Could not load followers right now.") : "");
       setLoading(false);
     }
     load();

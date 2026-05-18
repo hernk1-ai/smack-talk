@@ -17,6 +17,7 @@ import type { Profile, ProfileCard, Receipt } from "@/lib/supabase/types";
 import { ReportModal } from "@/components/moderation/ReportModal";
 import { muteUser, blockUser } from "@/lib/supabase/moderation";
 import { shareWithFallback, type ShareOutcome } from "@/lib/share";
+import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type ReceiptView = {
   id: string;
@@ -97,7 +98,7 @@ export function ReceiptDetailScreen({ receiptId, profile }: { receiptId: string;
       }
 
       if (error || !realReceipt) {
-        setMessage(error?.message || "Receipt not found.");
+        setMessage(error ? getUserFacingErrorMessage(error, "Receipt not found.") : "Receipt not found.");
         setLoading(false);
         return;
       }
@@ -156,7 +157,7 @@ export function ReceiptDetailScreen({ receiptId, profile }: { receiptId: string;
     if (!receipt) return;
     const { error } = await muteUser(receipt.userId);
     if (error) {
-      setMessage(error.message);
+      setMessage(getUserFacingErrorMessage(error, "Unable to mute this user right now."));
       return;
     }
     setMessage("User muted. Their content is hidden from your feed.");
@@ -166,7 +167,7 @@ export function ReceiptDetailScreen({ receiptId, profile }: { receiptId: string;
     if (!receipt) return;
     const { error } = await blockUser(receipt.userId);
     if (error) {
-      setMessage(error.message);
+      setMessage(getUserFacingErrorMessage(error, "Unable to block this user right now."));
       return;
     }
     setMessage("User blocked. Their content is now hidden.");

@@ -13,6 +13,7 @@ import { getInAppNotificationsEnabled, getSoundMutedPreference, setInAppNotifica
 import { createClient } from "@/lib/supabase/client";
 import { getMyNotificationPreferences, updateMyNotificationPreferences, type NotificationPreferences } from "@/lib/supabase/notificationPreferences";
 import type { Profile } from "@/lib/supabase/types";
+import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 
 export function SettingsPage({ email, profile }: { email?: string | null; profile?: Profile | null }) {
   const router = useRouter();
@@ -73,7 +74,7 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
     }
     const { error } = await supabase.from("profiles").update({ account_visibility: nextVisibility }).eq("id", user.id);
     if (error) {
-      setPrivacyMessage(error.message);
+      setPrivacyMessage(getUserFacingErrorMessage(error, "Unable to update privacy right now."));
       return;
     }
     setPrivacyMessage("Privacy updated.");
@@ -117,7 +118,7 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
 
     if (error) {
       setAvatarUrl(previousAvatarUrl);
-      setAvatarMessage(error.message);
+      setAvatarMessage(getUserFacingErrorMessage(error, "Unable to update your profile picture right now."));
       setIsAvatarSaving(false);
       return;
     }

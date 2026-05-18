@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { LocktLogo } from "@/components/LocktLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { createClient } from "@/lib/supabase/client";
+import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 
 const fallbackTeams = ["USA", "Mexico", "Canada", "Argentina", "Brazil"];
 
@@ -127,7 +128,7 @@ export function EnterArenaPage({
     setIsLoading(false);
 
     if (error) {
-      setMessage(error.message);
+      setMessage(getUserFacingErrorMessage(error, "Unable to enter arena right now. Try again."));
       return;
     }
 

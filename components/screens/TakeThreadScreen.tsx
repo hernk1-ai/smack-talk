@@ -16,6 +16,7 @@ import { createReply, getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/
 import { buildSiteUrl } from "@/lib/site-url";
 import type { Profile, TakeReaction } from "@/lib/supabase/types";
 import { shareWithFallback, type ShareOutcome } from "@/lib/share";
+import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type Side = "ride" | "fade";
 
@@ -52,7 +53,7 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
       }
 
       if (takeError) {
-        setMessage(takeError.message);
+        setMessage(getUserFacingErrorMessage(takeError, "Unable to load this take thread right now."));
       }
 
       setTake(loadedTake);
@@ -98,7 +99,7 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
     const { reaction: savedReaction, take: updatedTake, error } = await reactToTake({ takeId, reaction: side });
 
     if (error) {
-      setMessage(error.message);
+      setMessage(getUserFacingErrorMessage(error, "Could not save your reaction. Try again."));
       setReactionLoading(false);
       return;
     }
@@ -171,7 +172,7 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
 
     if (error) {
       setReplyStatus("error");
-      setMessage(error.message);
+      setMessage(getUserFacingErrorMessage(error, "Could not post reply. Try again."));
       return;
     }
 
@@ -239,7 +240,7 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
     const { error } = await muteUser(userId);
 
     if (error) {
-      setMessage(error.message);
+      setMessage(getUserFacingErrorMessage(error, "Unable to mute this user right now."));
       return;
     }
 
@@ -252,7 +253,7 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
     const { error } = await blockUser(userId);
 
     if (error) {
-      setMessage(error.message);
+      setMessage(getUserFacingErrorMessage(error, "Unable to block this user right now."));
       return;
     }
 
