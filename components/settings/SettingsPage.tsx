@@ -374,6 +374,13 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
             </button>
           </SettingsCard>
         </section>
+
+        <p className="px-1 text-center text-xs font-semibold text-gray-400 sm:text-left">
+          Need help?{" "}
+          <a className="font-black text-purple-300 transition hover:text-lime-300" href="mailto:support@getlockt.com">
+            Contact support
+          </a>
+        </p>
         </div>
       </main>
       <RouteBottomNav activeView="settings" />

@@ -32,9 +32,15 @@ export function WorldCupSchedule({ limit, showHeader = true, showViewFullLink = 
   const [selectedCity, setSelectedCity] = useState("All Cities");
   const [selectedTeam, setSelectedTeam] = useState("All Teams");
 
-  const cities = useMemo(() => ["All Cities", ...new Set(worldCupSchedule.map((match) => match.city))], []);
+  const cities = useMemo(
+    () => ["All Cities", ...new Set(worldCupSchedule.map((match) => match.city))].sort((a, b) => (a === "All Cities" ? -1 : b === "All Cities" ? 1 : a.localeCompare(b))),
+    [],
+  );
   const teams = useMemo(
-    () => ["All Teams", ...new Set(worldCupSchedule.flatMap((match) => [match.homeTeam, match.awayTeam].filter(Boolean) as string[]))],
+    () =>
+      ["All Teams", ...new Set(worldCupSchedule.flatMap((match) => [match.homeTeam, match.awayTeam].filter(Boolean) as string[]))].sort((a, b) =>
+        a === "All Teams" ? -1 : b === "All Teams" ? 1 : a.localeCompare(b),
+      ),
     [],
   );
 
