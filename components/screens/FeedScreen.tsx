@@ -232,6 +232,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   const [lockTakeStatus, setLockTakeStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [lockTakeMessage, setLockTakeMessage] = useState("");
   const [starterRepUnlocked, setStarterRepUnlocked] = useState(false);
+  const [lastLockedTakeId, setLastLockedTakeId] = useState<string | null>(null);
   const [myCallCount, setMyCallCount] = useState(profile?.created_takes_count ?? 0);
   const [activeGame, setActiveGame] = useState<Game | null>(null);
   const [liveGames, setLiveGames] = useState<Game[]>([]);
@@ -328,6 +329,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
     if (take) {
       const arenaTake = attachAuthorToTake(take, profile);
       setGameTakes((currentTakes) => [arenaTake, ...currentTakes]);
+      setLastLockedTakeId(arenaTake.id);
       setMyCallCount((currentCount) => currentCount + 1);
       setRecentActivity((currentActivity) =>
         [`${formatTakeForUI(arenaTake).handle} locked a take`, ...currentActivity].slice(0, 4),
@@ -460,6 +462,33 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
     setReplyLoadingTakeId(null);
   }
 
+  async function shareLatestLockedCall() {
+    const url = lastLockedTakeId ? buildSiteUrl(`/take/${lastLockedTakeId}`) : buildSiteUrl("/receipts");
+    const payload = {
+      title: "LOCKT Receipt",
+      text: "I locked my take on LOCKT. Check the receipt.",
+      url,
+    };
+
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share(payload);
+        showToast("Shared.", "success");
+        return;
+      }
+
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        showToast("Receipt link copied.", "success");
+        return;
+      }
+
+      showToast("Unable to share right now.", "error");
+    } catch {
+      showToast("Unable to share right now.", "error");
+    }
+  }
+
   if (preTournamentMode) {
     return (
       <div className="page-rhythm">
@@ -499,6 +528,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
             }
           }}
           onLock={lockTake}
+          onShare={shareLatestLockedCall}
         />
         <PreTournamentStorylines />
         <PreTournamentNews />
@@ -545,6 +575,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
           }
         }}
         onLock={lockTake}
+        onShare={shareLatestLockedCall}
       />
       <LiveLockedTakes
         takes={visibleTakes}
@@ -1191,6 +1222,7 @@ function LockTakeComposer({
   lockedCount,
   onChange,
   onLock,
+  onShare,
 }: {
   value: string;
   status: "idle" | "loading" | "success" | "error";
@@ -1200,6 +1232,7 @@ function LockTakeComposer({
   lockedCount: number;
   onChange: (value: string) => void;
   onLock: () => void;
+  onShare: () => Promise<void>;
 }) {
   const isLockedDisabled = status === "loading" || value.trim().length === 0;
 
@@ -1275,16 +1308,15 @@ function LockTakeComposer({
           <p className="text-xs font-semibold text-gray-200">🏆 First Lock Trophy unlocked</p>
           <p className="text-xs font-semibold text-gray-200">Rookie → Player</p>
           <p className="mt-2 text-xs font-semibold text-gray-300">Your call is pending until the match is played.</p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
             <Link href="/receipts" className="rounded-lg border border-purple-300/35 bg-purple-500/10 px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.1em] text-purple-100">
-              View My Receipt Board
-            </Link>
-            <Link href="/app" className="rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-center text-[10px] font-black uppercase tracking-[0.1em] text-white">
-              Enter the Arena
+              See My Receipt
             </Link>
             <button
               type="button"
-              onClick={() => onChange("Called it. Check the receipt.")}
+              onClick={() => {
+                void onShare();
+              }}
               className="rounded-lg border border-lime-300/35 bg-lime-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.1em] text-lime-100"
             >
               Share My Call

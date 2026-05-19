@@ -365,6 +365,14 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
             <p className="text-sm font-semibold leading-6 text-gray-400">
               Signing out clears this browser session and returns you to the public side of LOCKT.
             </p>
+            <div className="rounded-2xl border border-white/10 bg-black/35 p-3">
+              <p className="text-sm font-black uppercase tracking-[0.1em] text-white">Add LOCKT to your phone</p>
+              <p className="mt-1 text-xs font-semibold leading-5 text-gray-400">
+                Save LOCKT to your home screen for faster access during the World Cup.
+              </p>
+              <p className="mt-2 text-xs font-semibold text-gray-400">iPhone: Tap Share, then Add to Home Screen.</p>
+              <p className="mt-1 text-xs font-semibold text-gray-400">Android: Tap Install App or Add to Home Screen.</p>
+            </div>
             <button
               type="button"
               onClick={handleLogout}

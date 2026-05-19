@@ -37,15 +37,18 @@ export const metadata: Metadata = {
     images: ["/brand/lockt-wordmark.svg"],
   },
   icons: {
-    icon: "/brand/lockt-icon.svg",
-    shortcut: "/brand/lockt-icon.svg",
-    apple: "/brand/lockt-icon.svg",
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/icons/icon-192.png",
+    apple: "/apple-touch-icon.png",
   },
   manifest: "/manifest.webmanifest",
 };
 
 export const viewport = {
-  themeColor: "#020202",
+  themeColor: "#000000",
 };
 
 export default function RootLayout({

@@ -47,6 +47,33 @@ export function MakeCallPage({ match, initialPick, profile }: MakeCallPageProps)
     }).format(new Date(kickoffIso));
   }, [kickoffIso, match.date, match.kickoffET]);
 
+  async function shareLockedCall() {
+    const url = typeof window !== "undefined" ? window.location.href : "/receipts";
+    const payload = {
+      title: "LOCKT Receipt",
+      text: "I locked my take on LOCKT. Check the receipt.",
+      url,
+    };
+
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share(payload);
+        showToast("Shared.", "success");
+        return;
+      }
+
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        showToast("Receipt link copied.", "success");
+        return;
+      }
+
+      showToast("Unable to share right now.", "error");
+    } catch {
+      showToast("Unable to share right now.", "error");
+    }
+  }
+
   async function lockWinner() {
     if (lockClosed || winnerLockedAt) {
       setWinnerStatus("error");
@@ -245,7 +272,9 @@ export function MakeCallPage({ match, initialPick, profile }: MakeCallPageProps)
                 </Link>
                 <button
                   type="button"
-                  onClick={() => navigator.clipboard?.writeText(window.location.href)}
+                  onClick={() => {
+                    void shareLockedCall();
+                  }}
                   className="rounded-lg border border-lime-300/35 bg-lime-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.1em] text-lime-100"
                 >
                   Share My Call
