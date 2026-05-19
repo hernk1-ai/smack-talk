@@ -36,9 +36,25 @@ export function AppShellPolish({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const timeout = window.setTimeout(() => {
       setShowLaunch(false);
-    }, reduceMotion ? 120 : 480);
+    }, reduceMotion ? 120 : 360);
     return () => window.clearTimeout(timeout);
   }, [reduceMotion]);
+
+  useEffect(() => {
+    const isStandalone =
+      (typeof window !== "undefined" && window.matchMedia?.("(display-mode: standalone)").matches) ||
+      (typeof navigator !== "undefined" && Boolean((navigator as Navigator & { standalone?: boolean }).standalone));
+
+    if (isStandalone) {
+      document.documentElement.setAttribute("data-standalone", "true");
+    } else {
+      document.documentElement.removeAttribute("data-standalone");
+    }
+
+    return () => {
+      document.documentElement.removeAttribute("data-standalone");
+    };
+  }, []);
 
   useEffect(() => {
     if (!hasMounted.current) {

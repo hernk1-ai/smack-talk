@@ -372,6 +372,18 @@ textarea {
   padding-bottom: calc(8.5rem + env(safe-area-inset-bottom));
 }
 
+.app-header-shell {
+  padding-top: max(0px, env(safe-area-inset-top));
+}
+
+html[data-standalone="true"] .screen-safe-bottom {
+  padding-bottom: calc(8.1rem + env(safe-area-inset-bottom));
+}
+
+html[data-standalone="true"] .bottom-nav-shell {
+  width: min(calc(100% - 18px), 1120px);
+}
+
 .page-rhythm {
   display: grid;
   gap: 0.875rem;

@@ -65,7 +65,7 @@ export function AppHeader({
   }, [profile]);
 
   return (
-    <header className="rounded-[1.75rem] border border-white/10 bg-black/35 px-3 py-2.5 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur sm:px-3.5 sm:py-3">
+    <header className="app-header-shell rounded-[1.75rem] border border-white/10 bg-black/35 px-3 py-2.5 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur sm:px-3.5 sm:py-3">
       <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2.5 sm:gap-3">
         <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
           <LocktLogo size={54} />
