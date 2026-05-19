@@ -45,6 +45,11 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "LOCKT",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export const viewport = {
