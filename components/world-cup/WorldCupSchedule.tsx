@@ -31,17 +31,23 @@ export function WorldCupSchedule({ limit, showHeader = true, showViewFullLink = 
   const [selectedGroup, setSelectedGroup] = useState<"ALL" | WorldCupGroup>("ALL");
   const [selectedCity, setSelectedCity] = useState("All Cities");
   const [selectedTeam, setSelectedTeam] = useState("All Teams");
+  const collator = useMemo(() => new Intl.Collator("en", { sensitivity: "base" }), []);
 
   const cities = useMemo(
     () => ["All Cities", ...new Set(worldCupSchedule.map((match) => match.city))].sort((a, b) => (a === "All Cities" ? -1 : b === "All Cities" ? 1 : a.localeCompare(b))),
     [],
   );
   const teams = useMemo(
-    () =>
-      ["All Teams", ...new Set(worldCupSchedule.flatMap((match) => [match.homeTeam, match.awayTeam].filter(Boolean) as string[]))].sort((a, b) =>
-        a === "All Teams" ? -1 : b === "All Teams" ? 1 : a.localeCompare(b),
-      ),
-    [],
+    () => {
+      const teamNames = new Set(
+        worldCupSchedule
+          .flatMap((match) => [match.homeTeam, match.awayTeam].filter(Boolean) as string[])
+          .filter(isCountryTeamName),
+      );
+
+      return ["All Teams", ...[...teamNames].sort((a, b) => collator.compare(a, b))];
+    },
+    [collator],
   );
 
   const filteredMatches = useMemo(() => {
@@ -109,6 +115,18 @@ export function WorldCupSchedule({ limit, showHeader = true, showViewFullLink = 
       </p>
     </section>
   );
+}
+
+function isCountryTeamName(name: string) {
+  const normalized = name.trim().toLowerCase();
+  if (!normalized) return false;
+  if (normalized === "tbd") return false;
+  if (normalized.includes("winner")) return false;
+  if (normalized.includes("runner-up")) return false;
+  if (normalized.includes("runner up")) return false;
+  if (normalized.includes("group")) return false;
+  if (/\d/.test(normalized)) return false;
+  return true;
 }
 
 function FilterSelect<T extends string>({
