@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { GoogleProviderButton } from "@/components/auth/GoogleProviderButton";
 import { LocktLogo } from "@/components/LocktLogo";
 import { buildSiteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/client";
@@ -51,6 +52,7 @@ export function CreateAccountPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -102,6 +104,36 @@ export function CreateAccountPage() {
     router.push(`/verify-email?email=${encodeURIComponent(email.trim())}`);
   }
 
+  async function handleGoogleSignIn() {
+    if (!termsAccepted) {
+      setMessage("Please confirm age and agree to Terms and Privacy Policy.");
+      return;
+    }
+
+    const supabase = createClient();
+
+    if (!supabase) {
+      setMessage("Supabase is not configured yet. Add the public URL and anon key.");
+      return;
+    }
+
+    setIsGoogleLoading(true);
+    setMessage("");
+
+    const redirectTo = buildSiteUrl("/auth/callback?source=oauth");
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo,
+      },
+    });
+
+    if (error) {
+      setIsGoogleLoading(false);
+      setMessage(getUserFacingErrorMessage(error, "Unable to continue with Google right now. Try again."));
+    }
+  }
+
   return (
     <main className="relative min-h-dvh overflow-hidden bg-[#02040a] text-white">
       <SignupAtmosphere />
@@ -135,7 +167,9 @@ export function CreateAccountPage() {
             showPassword={showPassword}
             termsAccepted={termsAccepted}
             isLoading={isLoading}
+            isGoogleLoading={isGoogleLoading}
             onSubmit={handleSubmit}
+            onGoogleSignIn={handleGoogleSignIn}
           />
         </section>
 
@@ -232,7 +266,9 @@ function SignupCard({
   showPassword,
   termsAccepted,
   isLoading,
+  isGoogleLoading,
   onSubmit,
+  onGoogleSignIn,
 }: {
   email: string;
   message: string;
@@ -246,6 +282,8 @@ function SignupCard({
   termsAccepted: boolean;
   isLoading: boolean;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onGoogleSignIn: () => Promise<void>;
+  isGoogleLoading: boolean;
 }) {
   return (
     <form
@@ -324,12 +362,26 @@ function SignupCard({
       )}
 
       <button
-        disabled={isLoading}
+        disabled={isLoading || isGoogleLoading}
         type="submit"
         className="mt-6 min-h-14 w-full rounded-xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-base font-black uppercase italic tracking-[0.12em] text-black shadow-[0_0_34px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_46px_rgba(168,85,247,0.34)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-65"
       >
         {isLoading ? "Creating Account..." : "Enter LOCKT"}
       </button>
+
+      <div className="my-5 grid grid-cols-[1fr_auto_1fr] items-center gap-4 text-xs font-black uppercase tracking-[0.16em] text-gray-500">
+        <span className="h-px bg-white/10" />
+        Or
+        <span className="h-px bg-white/10" />
+      </div>
+
+      <GoogleProviderButton
+        loading={isGoogleLoading}
+        disabled={isLoading || isGoogleLoading}
+        onClick={() => {
+          void onGoogleSignIn();
+        }}
+      />
 
       <p className="mt-5 text-center text-xs font-black uppercase tracking-[0.14em] text-gray-400">
         Lock it in before kickoff. Your receipt is pending until match end.
