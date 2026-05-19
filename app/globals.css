@@ -322,21 +322,18 @@ textarea {
 
 .app-route-ready {
   opacity: 1;
-  transform: translateY(0);
-  transition: opacity 180ms ease, transform 180ms ease;
+  transition: opacity 180ms ease;
 }
 
 .app-route-transitioning {
   opacity: 0.98;
-  transform: translateY(2px);
-  transition: opacity 180ms ease, transform 180ms ease;
+  transition: opacity 180ms ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .app-route-ready,
   .app-route-transitioning {
     opacity: 1;
-    transform: none;
     transition: none;
   }
 }
