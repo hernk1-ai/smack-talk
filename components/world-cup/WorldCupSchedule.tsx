@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { worldCupSchedule, type WorldCupGroup, type WorldCupMatch } from "@/data/worldCupSchedule";
+import { getWorldCupFixtureSourceUrls, worldCupSchedule, type WorldCupGroup, type WorldCupMatch } from "@/data/worldCupSchedule";
 
 const groupFilters: Array<{ value: "ALL" | WorldCupGroup; label: string }> = [
   { value: "ALL", label: "All Groups" },
@@ -97,6 +97,10 @@ export function WorldCupSchedule({ limit, showHeader = true, showViewFullLink = 
           </article>
         ))}
       </div>
+
+      <p className="mt-3 text-[11px] font-semibold text-gray-500">
+        Fixture data based on FIFA&apos;s official World Cup 2026 schedule. <a className="underline underline-offset-2" href={sourceUrls.page} target="_blank" rel="noopener noreferrer">Source</a>
+      </p>
     </section>
   );
 }
@@ -177,3 +181,4 @@ function formatDateLabel(date: string) {
     year: "numeric",
   }).format(new Date(`${date}T12:00:00Z`));
 }
+  const sourceUrls = getWorldCupFixtureSourceUrls();

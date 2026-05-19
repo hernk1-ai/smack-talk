@@ -2,46 +2,91 @@ export type WorldCupGroup = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" 
 
 export type WorldCupMatch = {
   id: number;
+  matchNumber: number;
   date: string;
+  kickoffTime: string;
   kickoffET: string;
+  timezone: "ET";
   group: WorldCupGroup;
   homeTeam: string;
   awayTeam?: string;
   city: string;
   venue: string;
+  country: string;
   stage: "Group Stage" | "Round of 32" | "Round of 16" | "Quarterfinal" | "Semifinal" | "Third Place" | "Final";
   status: "upcoming";
+  sourceUrl: string;
 };
 
 const EASTERN_TIME_OFFSET = "-04:00";
+const OFFICIAL_SOURCE_URL = "https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/scores-fixtures?country=US&wtw-filter=ALL";
+const OFFICIAL_PDF_SOURCE_URL = "https://digitalhub.fifa.com/asset/4b5d4417-3343-4732-9cdf-14b6662af407/FWC26-Match-Schedule_English.pdf";
 
-// Schedule data should be verified against current official sources before launch.
+// Fixture data is sourced from FIFA's official World Cup 2026 schedule pages.
+// Keep "TBD" placeholders when FIFA has not finalized details.
 export const worldCupSchedule: WorldCupMatch[] = [
-  { id: 1, date: "2026-06-11", kickoffET: "3:00 PM ET", group: "A", homeTeam: "Mexico", awayTeam: "South Africa", city: "Mexico City", venue: "Estadio Azteca", stage: "Group Stage", status: "upcoming" },
-  { id: 2, date: "2026-06-12", kickoffET: "12:00 PM ET", group: "D", homeTeam: "United States", awayTeam: "Paraguay", city: "Los Angeles", venue: "SoFi Stadium", stage: "Group Stage", status: "upcoming" },
-  { id: 3, date: "2026-06-12", kickoffET: "6:00 PM ET", group: "B", homeTeam: "Canada", awayTeam: "Switzerland", city: "Toronto", venue: "BMO Field", stage: "Group Stage", status: "upcoming" },
-  { id: 4, date: "2026-06-13", kickoffET: "2:00 PM ET", group: "C", homeTeam: "Brazil", awayTeam: "Scotland", city: "New York", venue: "MetLife Stadium", stage: "Group Stage", status: "upcoming" },
-  { id: 5, date: "2026-06-13", kickoffET: "9:00 PM ET", group: "E", homeTeam: "Germany", awayTeam: "Ecuador", city: "Dallas", venue: "AT&T Stadium", stage: "Group Stage", status: "upcoming" },
-  { id: 6, date: "2026-06-14", kickoffET: "1:00 PM ET", group: "F", homeTeam: "Netherlands", awayTeam: "Japan", city: "Seattle", venue: "Lumen Field", stage: "Group Stage", status: "upcoming" },
-  { id: 7, date: "2026-06-14", kickoffET: "4:00 PM ET", group: "G", homeTeam: "Belgium", awayTeam: "Iran", city: "Vancouver", venue: "BC Place", stage: "Group Stage", status: "upcoming" },
-  { id: 8, date: "2026-06-14", kickoffET: "8:00 PM ET", group: "H", homeTeam: "Spain", awayTeam: "Uruguay", city: "Miami", venue: "Hard Rock Stadium", stage: "Group Stage", status: "upcoming" },
-  { id: 9, date: "2026-06-15", kickoffET: "12:00 PM ET", group: "I", homeTeam: "France", awayTeam: "Senegal", city: "Boston", venue: "Gillette Stadium", stage: "Group Stage", status: "upcoming" },
-  { id: 10, date: "2026-06-15", kickoffET: "3:00 PM ET", group: "J", homeTeam: "Argentina", awayTeam: "Austria", city: "Houston", venue: "NRG Stadium", stage: "Group Stage", status: "upcoming" },
-  { id: 11, date: "2026-06-15", kickoffET: "6:00 PM ET", group: "K", homeTeam: "Portugal", awayTeam: "Colombia", city: "Atlanta", venue: "Mercedes-Benz Stadium", stage: "Group Stage", status: "upcoming" },
-  { id: 12, date: "2026-06-15", kickoffET: "9:00 PM ET", group: "L", homeTeam: "England", awayTeam: "Croatia", city: "Philadelphia", venue: "Lincoln Financial Field", stage: "Group Stage", status: "upcoming" },
-  { id: 13, date: "2026-06-16", kickoffET: "12:00 PM ET", group: "A", homeTeam: "South Korea", awayTeam: "Czechia", city: "Monterrey", venue: "Estadio BBVA", stage: "Group Stage", status: "upcoming" },
-  { id: 14, date: "2026-06-16", kickoffET: "4:00 PM ET", group: "B", homeTeam: "Qatar", awayTeam: "Bosnia and Herzegovina", city: "Guadalajara", venue: "Estadio Akron", stage: "Group Stage", status: "upcoming" },
-  { id: 15, date: "2026-06-17", kickoffET: "2:00 PM ET", group: "E", homeTeam: "Côte d'Ivoire", awayTeam: "Curaçao", city: "San Francisco", venue: "Levi's Stadium", stage: "Group Stage", status: "upcoming" },
-  { id: 16, date: "2026-06-17", kickoffET: "8:00 PM ET", group: "D", homeTeam: "Australia", awayTeam: "Türkiye", city: "Kansas City", venue: "Arrowhead Stadium", stage: "Group Stage", status: "upcoming" },
-  { id: 17, date: "2026-06-18", kickoffET: "1:00 PM ET", group: "G", homeTeam: "Egypt", awayTeam: "New Zealand", city: "Mexico City", venue: "Estadio Azteca", stage: "Group Stage", status: "upcoming" },
-  { id: 18, date: "2026-06-18", kickoffET: "6:00 PM ET", group: "H", homeTeam: "Saudi Arabia", awayTeam: "Cabo Verde", city: "Los Angeles", venue: "SoFi Stadium", stage: "Group Stage", status: "upcoming" },
-  { id: 19, date: "2026-06-19", kickoffET: "3:00 PM ET", group: "I", homeTeam: "Iraq", awayTeam: "Norway", city: "Dallas", venue: "AT&T Stadium", stage: "Group Stage", status: "upcoming" },
-  { id: 20, date: "2026-06-19", kickoffET: "9:00 PM ET", group: "J", homeTeam: "Algeria", awayTeam: "Jordan", city: "Seattle", venue: "Lumen Field", stage: "Group Stage", status: "upcoming" },
-  { id: 21, date: "2026-06-30", kickoffET: "2:00 PM ET", group: "KO", homeTeam: "Group A Winner", awayTeam: "Group B Runner-up", city: "Toronto", venue: "BMO Field", stage: "Round of 32", status: "upcoming" },
-  { id: 22, date: "2026-07-03", kickoffET: "4:00 PM ET", group: "KO", homeTeam: "Round of 32 Winner", awayTeam: "Round of 32 Winner", city: "New York", venue: "MetLife Stadium", stage: "Round of 16", status: "upcoming" },
-  { id: 23, date: "2026-07-08", kickoffET: "7:00 PM ET", group: "KO", homeTeam: "Quarterfinalist", awayTeam: "Quarterfinalist", city: "Miami", venue: "Hard Rock Stadium", stage: "Quarterfinal", status: "upcoming" },
-  { id: 24, date: "2026-07-14", kickoffET: "8:00 PM ET", group: "KO", homeTeam: "Semifinal Winner", awayTeam: "Semifinal Winner", city: "New York", venue: "MetLife Stadium", stage: "Final", status: "upcoming" },
+  fixture(1, "2026-06-11", "3:00 PM ET", "A", "Mexico", "South Africa", "Mexico City", "Mexico City Stadium", "Mexico"),
+  fixture(2, "2026-06-11", "10:00 PM ET", "A", "Korea Republic", "Czechia", "Guadalajara", "Estadio Guadalajara", "Mexico"),
+  fixture(3, "2026-06-12", "3:00 PM ET", "B", "Canada", "Bosnia and Herzegovina", "Toronto", "Toronto Stadium", "Canada"),
+  fixture(4, "2026-06-12", "9:00 PM ET", "D", "USA", "Paraguay", "Los Angeles", "Los Angeles Stadium", "United States"),
+  fixture(5, "2026-06-13", "9:00 PM ET", "B", "Qatar", "Switzerland", "San Francisco Bay Area", "San Francisco Bay Area Stadium", "United States"),
+  fixture(6, "2026-06-13", "12:00 AM ET", "D", "Australia", "Türkiye", "Vancouver", "BC Place Vancouver", "Canada"),
+  fixture(7, "2026-06-13", "6:00 PM ET", "C", "Brazil", "Morocco", "New York New Jersey", "New York New Jersey Stadium", "United States"),
+  fixture(8, "2026-06-13", "3:00 PM ET", "C", "Haiti", "Scotland", "Boston", "Boston Stadium", "United States"),
+  fixture(9, "2026-06-14", "7:00 PM ET", "E", "Côte d'Ivoire", "Ecuador", "Philadelphia", "Philadelphia Stadium", "United States"),
+  fixture(10, "2026-06-14", "1:00 PM ET", "E", "Germany", "Curaçao", "Houston", "Houston Stadium", "United States"),
+  fixture(11, "2026-06-14", "4:00 PM ET", "F", "Netherlands", "Japan", "Dallas", "Dallas Stadium", "United States"),
+  fixture(12, "2026-06-14", "10:00 PM ET", "F", "Sweden", "Tunisia", "Monterrey", "Estadio Monterrey", "Mexico"),
+  fixture(13, "2026-06-15", "6:00 PM ET", "H", "Saudi Arabia", "Uruguay", "Miami", "Miami Stadium", "United States"),
+  fixture(14, "2026-06-15", "12:00 PM ET", "H", "Spain", "Cabo Verde", "Atlanta", "Atlanta Stadium", "United States"),
+  fixture(15, "2026-06-15", "9:00 PM ET", "G", "IR Iran", "New Zealand", "Los Angeles", "Los Angeles Stadium", "United States"),
+  fixture(16, "2026-06-15", "3:00 PM ET", "G", "Belgium", "Egypt", "Seattle", "Seattle Stadium", "United States"),
+  fixture(17, "2026-06-16", "3:00 PM ET", "I", "France", "Senegal", "New York New Jersey", "New York New Jersey Stadium", "United States"),
+  fixture(18, "2026-06-16", "6:00 PM ET", "I", "Iraq", "Norway", "Boston", "Boston Stadium", "United States"),
+  fixture(19, "2026-06-16", "9:00 PM ET", "J", "Argentina", "Algeria", "Kansas City", "Kansas City Stadium", "United States"),
+  fixture(20, "2026-06-16", "12:00 AM ET", "J", "Austria", "Jordan", "San Francisco Bay Area", "San Francisco Bay Area Stadium", "United States"),
+  fixture(21, "2026-06-17", "3:00 PM ET", "L", "Ghana", "Panama", "Toronto", "Toronto Stadium", "Canada"),
+  fixture(22, "2026-06-17", "4:00 PM ET", "L", "England", "Croatia", "Dallas", "Dallas Stadium", "United States"),
+  fixture(23, "2026-06-17", "1:00 PM ET", "K", "Portugal", "DR Congo", "Houston", "Houston Stadium", "United States"),
+  fixture(24, "2026-06-17", "10:00 PM ET", "K", "Uzbekistan", "Colombia", "Mexico City", "Mexico City Stadium", "Mexico"),
 ];
+
+function fixture(
+  matchNumber: number,
+  date: string,
+  kickoffET: string,
+  group: WorldCupGroup,
+  homeTeam: string,
+  awayTeam: string,
+  city: string,
+  venue: string,
+  country: string,
+): WorldCupMatch {
+  return {
+    id: matchNumber,
+    matchNumber,
+    date,
+    kickoffTime: kickoffET,
+    kickoffET,
+    timezone: "ET",
+    group,
+    homeTeam,
+    awayTeam,
+    city,
+    venue,
+    country,
+    stage: "Group Stage",
+    status: "upcoming",
+    sourceUrl: OFFICIAL_SOURCE_URL,
+  };
+}
+
+export function getWorldCupFixtureSourceUrls() {
+  return {
+    page: OFFICIAL_SOURCE_URL,
+    pdf: OFFICIAL_PDF_SOURCE_URL,
+  };
+}
 
 export function getWorldCupMatchById(matchId: number | string) {
   const normalizedId = typeof matchId === "string" ? Number.parseInt(matchId, 10) : matchId;
@@ -64,7 +109,6 @@ export function getWorldCupKickoffIso(match: WorldCupMatch) {
 
   const hours = String(parsed.hours24).padStart(2, "0");
   const minutes = String(parsed.minutes).padStart(2, "0");
-  // Assumption: schedule ET times are EDT (UTC-04:00) for pre-tournament dates.
   return `${match.date}T${hours}:${minutes}:00${EASTERN_TIME_OFFSET}`;
 }
 
