@@ -5,7 +5,7 @@ import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from "@/lib/supaba
 import { getPostLoginRedirect } from "@/lib/supabase/profiles";
 import type { Profile } from "@/lib/supabase/types";
 
-const protectedRoutes = ["/app", "/arena", "/receipts", "/top-talkers", "/profile", "/settings", "/followers", "/following"];
+const protectedRoutes = ["/receipts", "/top-talkers", "/profile", "/settings", "/followers", "/following"];
 const onboardingRoutes = ["/username", "/onboarding/profile-pic", "/onboarding/teams", "/onboarding/enter-arena"];
 const authRoutes = ["/login", "/signup", "/forgot-password", "/verify-email"];
 
@@ -67,18 +67,8 @@ export async function proxy(request: NextRequest) {
     return redirectTo(request, onboardingDestination);
   }
 
-  if (isProtectedRoute && onboardingDestination !== "/app") {
-    return redirectTo(request, onboardingDestination);
-  }
-
   if (isOnboardingRoute) {
-    if (onboardingDestination === "/app") {
-      return redirectTo(request, "/app");
-    }
-
-    if (!profile?.username && pathname !== "/username") {
-      return redirectTo(request, "/username");
-    }
+    return response;
   }
 
   return response;

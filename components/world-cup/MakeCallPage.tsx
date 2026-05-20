@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AppHeader } from "@/components/AppHeader";
 import { RouteBottomNav } from "@/components/BottomNav";
 import { useToast } from "@/components/providers/ToastProvider";
 import { getWorldCupKickoffIso, isWorldCupMatchLocked, type WorldCupMatch } from "@/data/worldCupSchedule";
 import { playSound } from "@/lib/sound";
+import { buildSiteUrl } from "@/lib/site-url";
+import { createClient } from "@/lib/supabase/client";
 import { lockCurrentUserExactScorePick, lockCurrentUserWinnerPick } from "@/lib/supabase/matchPicks";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 import type { MatchPick, Profile } from "@/lib/supabase/types";
@@ -15,9 +17,21 @@ type MakeCallPageProps = {
   match: WorldCupMatch;
   initialPick: MatchPick | null;
   profile?: Profile | null;
+  isAuthenticated: boolean;
 };
 
-export function MakeCallPage({ match, initialPick, profile }: MakeCallPageProps) {
+type PendingCallDraft = {
+  matchId: number;
+  selectedWinner: string;
+  homeScore: string;
+  awayScore: string;
+  autoLockType?: "winner" | "exact";
+  receiptName?: string;
+};
+
+const pendingCallKey = "lockt_pending_match_call";
+
+export function MakeCallPage({ match, initialPick, profile, isAuthenticated }: MakeCallPageProps) {
   const { showToast } = useToast();
   const isGroupStage = match.stage === "Group Stage";
   const lockClosed = isWorldCupMatchLocked(match);
@@ -31,6 +45,13 @@ export function MakeCallPage({ match, initialPick, profile }: MakeCallPageProps)
   const [winnerMessage, setWinnerMessage] = useState("");
   const [exactMessage, setExactMessage] = useState("");
   const [starterRepUnlocked, setStarterRepUnlocked] = useState(false);
+  const [showAuthGate, setShowAuthGate] = useState(false);
+  const [receiptName, setReceiptName] = useState(profile?.username ?? "");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [authMessage, setAuthMessage] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
 
   const kickoffIso = getWorldCupKickoffIso(match);
   const kickoffLabel = useMemo(() => {
@@ -46,6 +67,58 @@ export function MakeCallPage({ match, initialPick, profile }: MakeCallPageProps)
       timeZoneName: "short",
     }).format(new Date(kickoffIso));
   }, [kickoffIso, match.date, match.kickoffET]);
+
+  function getCurrentPathWithQuery() {
+    if (typeof window === "undefined") {
+      return `/schedule/${encodeURIComponent(match.id)}/make-call`;
+    }
+
+    return `${window.location.pathname}${window.location.search}`;
+  }
+
+  function cachePendingDraft(draft: PendingCallDraft) {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(pendingCallKey, JSON.stringify(draft));
+  }
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const rawDraft = window.localStorage.getItem(pendingCallKey);
+    if (!rawDraft) {
+      return;
+    }
+
+    try {
+      const draft = JSON.parse(rawDraft) as PendingCallDraft;
+      if (draft.matchId !== match.id) {
+        return;
+      }
+
+      const hydrateTimer = window.setTimeout(() => {
+        if (draft.selectedWinner) setSelectedWinner(draft.selectedWinner);
+        if (draft.homeScore) setHomeScore(draft.homeScore);
+        if (draft.awayScore) setAwayScore(draft.awayScore);
+        if (draft.receiptName && !profile?.username) setReceiptName(draft.receiptName);
+
+        if (isAuthenticated && draft.autoLockType) {
+          setShowAuthGate(false);
+          setWinnerMessage("Signed in. Your call selections are restored. Lock your call to save the receipt.");
+        } else if (!isAuthenticated) {
+          setShowAuthGate(true);
+        }
+      }, 0);
+
+      return () => window.clearTimeout(hydrateTimer);
+    } catch {
+      window.localStorage.removeItem(pendingCallKey);
+    }
+  }, [isAuthenticated, match.id, profile?.username]);
 
   async function shareLockedCall() {
     const url = typeof window !== "undefined" ? window.location.href : "/receipts";
@@ -75,6 +148,19 @@ export function MakeCallPage({ match, initialPick, profile }: MakeCallPageProps)
   }
 
   async function lockWinner() {
+    if (!isAuthenticated) {
+      cachePendingDraft({
+        matchId: match.id,
+        selectedWinner,
+        homeScore,
+        awayScore,
+        autoLockType: "winner",
+        receiptName: receiptName.trim() || undefined,
+      });
+      setShowAuthGate(true);
+      return;
+    }
+
     if (lockClosed || winnerLockedAt) {
       setWinnerStatus("error");
       setWinnerMessage(lockClosed ? "This match is already locked." : "Your call is already locked.");
@@ -107,11 +193,27 @@ export function MakeCallPage({ match, initialPick, profile }: MakeCallPageProps)
     setStarterRepUnlocked(Boolean(starterRepAwarded));
     setWinnerStatus("saved");
     setWinnerMessage(starterRepAwarded ? "You’re on the board." : "Your call is locked. Receipt pending until match ends.");
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(pendingCallKey);
+    }
     playSound("pick_locked");
     showToast("Pick locked.", "success");
   }
 
   async function lockExactScore() {
+    if (!isAuthenticated) {
+      cachePendingDraft({
+        matchId: match.id,
+        selectedWinner,
+        homeScore,
+        awayScore,
+        autoLockType: "exact",
+        receiptName: receiptName.trim() || undefined,
+      });
+      setShowAuthGate(true);
+      return;
+    }
+
     if (lockClosed || exactLockedAt) {
       setExactStatus("error");
       setExactMessage(lockClosed ? "This match is already locked." : "Your call is already locked.");
@@ -147,8 +249,84 @@ export function MakeCallPage({ match, initialPick, profile }: MakeCallPageProps)
     setStarterRepUnlocked(Boolean(starterRepAwarded));
     setExactStatus("saved");
     setExactMessage(starterRepAwarded ? "You’re on the board." : "Your call is locked. Receipt pending until match ends.");
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(pendingCallKey);
+    }
     playSound("pick_locked");
     showToast("Pick locked.", "success");
+  }
+
+  async function handleLightweightSignup() {
+    if (isAuthenticated) return;
+    if (!receiptName.trim()) {
+      setAuthMessage("Pick a name for your receipt.");
+      return;
+    }
+    if (!authEmail.trim() || !authPassword.trim()) {
+      setAuthMessage("Email and password are required.");
+      return;
+    }
+    if (!termsAccepted) {
+      setAuthMessage("Please confirm you are 13+ and agree to Terms and Privacy Policy.");
+      return;
+    }
+
+    const supabase = createClient();
+    if (!supabase) {
+      setAuthMessage("Unable to save your call right now.");
+      return;
+    }
+
+    setAuthLoading(true);
+    setAuthMessage("");
+
+    const nextPath = `${getCurrentPathWithQuery().includes("?") ? `${getCurrentPathWithQuery()}&` : `${getCurrentPathWithQuery()}?`}resume=1`;
+    const { error } = await supabase.auth.signUp({
+      email: authEmail.trim(),
+      password: authPassword,
+      options: {
+        emailRedirectTo: buildSiteUrl(`/auth/callback?next=${encodeURIComponent(nextPath)}`),
+      },
+    });
+
+    setAuthLoading(false);
+
+    if (error) {
+      setAuthMessage(getUserFacingErrorMessage(error, "Unable to save your call right now."));
+      return;
+    }
+
+    setAuthMessage("Account created. Check your inbox to verify and resume saving your call.");
+  }
+
+  async function handleLightweightGoogle() {
+    if (isAuthenticated) return;
+    if (!termsAccepted) {
+      setAuthMessage("Please confirm you are 13+ and agree to Terms and Privacy Policy.");
+      return;
+    }
+
+    const supabase = createClient();
+    if (!supabase) {
+      setAuthMessage("Unable to continue with Google right now.");
+      return;
+    }
+
+    setAuthLoading(true);
+    setAuthMessage("");
+    const currentPath = getCurrentPathWithQuery();
+    const nextPath = `${currentPath.includes("?") ? `${currentPath}&` : `${currentPath}?`}resume=1`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: buildSiteUrl(`/auth/callback?source=oauth&next=${encodeURIComponent(nextPath)}`),
+      },
+    });
+
+    if (error) {
+      setAuthLoading(false);
+      setAuthMessage(getUserFacingErrorMessage(error, "Unable to continue with Google right now."));
+    }
   }
 
   return (
@@ -177,6 +355,79 @@ export function MakeCallPage({ match, initialPick, profile }: MakeCallPageProps)
           <p className="mt-1 text-xs font-semibold text-gray-400">Venue: {match.city} · {match.venue}</p>
           <p className="mt-1 text-xs font-semibold text-gray-400">Kickoff: {kickoffLabel}</p>
         </section>
+
+        {showAuthGate && !isAuthenticated ? (
+          <section className="rounded-[1.75rem] border border-lime-300/35 bg-black/45 p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-lime-300">Save Your Call</p>
+            <h2 className="sports-display mt-2 text-3xl italic leading-none text-white">Pick a name for your receipt</h2>
+            <p className="mt-2 text-sm font-semibold text-gray-300">
+              Your call needs a name so we can save it to your receipt board.
+            </p>
+            <div className="mt-3 grid gap-2">
+              <input
+                value={receiptName}
+                onChange={(event) => setReceiptName(event.target.value)}
+                placeholder="Receipt name"
+                className="min-h-11 rounded-xl border border-white/15 bg-black/60 px-3 text-sm font-semibold text-white outline-none"
+              />
+              <input
+                value={authEmail}
+                onChange={(event) => setAuthEmail(event.target.value)}
+                placeholder="Email"
+                type="email"
+                className="min-h-11 rounded-xl border border-white/15 bg-black/60 px-3 text-sm font-semibold text-white outline-none"
+              />
+              <input
+                value={authPassword}
+                onChange={(event) => setAuthPassword(event.target.value)}
+                placeholder="Password"
+                type="password"
+                className="min-h-11 rounded-xl border border-white/15 bg-black/60 px-3 text-sm font-semibold text-white outline-none"
+              />
+            </div>
+            <label className="mt-3 flex items-start gap-2 text-xs font-semibold text-gray-300">
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(event) => setTermsAccepted(event.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black accent-lime-300"
+              />
+              <span>
+                By creating an account, you confirm you are at least 13 years old and agree to Lockt&apos;s Terms and Privacy Policy.
+              </span>
+            </label>
+            {authMessage ? <p className="mt-3 text-xs font-semibold text-gray-200">{authMessage}</p> : null}
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => {
+                  void handleLightweightSignup();
+                }}
+                disabled={authLoading}
+                className="min-h-11 rounded-xl border border-lime-300/55 bg-lime-400/10 px-4 text-xs font-black uppercase tracking-[0.1em] text-lime-100 disabled:opacity-50"
+              >
+                {authLoading ? "Saving..." : "Save My Call"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void handleLightweightGoogle();
+                }}
+                disabled={authLoading}
+                className="min-h-11 rounded-xl border border-purple-300/55 bg-purple-500/10 px-4 text-xs font-black uppercase tracking-[0.1em] text-purple-100 disabled:opacity-50"
+              >
+                Continue with Google
+              </button>
+            </div>
+            <p className="mt-3 text-xs font-semibold text-gray-400">
+              Already have an account?{" "}
+              <Link href={`/login?next=${encodeURIComponent(getCurrentPathWithQuery())}`} className="font-black text-lime-300">
+                Log in
+              </Link>
+            </p>
+            <p className="mt-1 text-xs font-semibold text-gray-400">We&apos;ll save this call to your Lockt profile.</p>
+          </section>
+        ) : null}
 
         <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4">
           <div className="mb-3 rounded-xl border border-white/10 bg-black/55 p-3 text-xs font-semibold text-gray-300">

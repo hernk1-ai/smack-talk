@@ -2,7 +2,7 @@
 
 import { FormEvent, ReactNode, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { GoogleProviderButton } from "@/components/auth/GoogleProviderButton";
 import { LocktLogo } from "@/components/LocktLogo";
 import { buildSiteUrl } from "@/lib/site-url";
@@ -12,6 +12,7 @@ import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 
 export function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [keepSignedIn, setKeepSignedIn] = useState(false);
@@ -55,8 +56,10 @@ export function LoginPage() {
     }
 
     const { profile } = await getCurrentProfile(supabase);
+    const nextParam = searchParams.get("next");
+    const nextRoute = nextParam && nextParam.startsWith("/") ? nextParam : null;
     setIsLoading(false);
-    router.push(getPostLoginRedirect(profile));
+    router.push(nextRoute ?? getPostLoginRedirect(profile));
   }
 
   async function handleGoogleSignIn() {
@@ -70,7 +73,9 @@ export function LoginPage() {
     setIsGoogleLoading(true);
     setMessage("");
 
-    const redirectTo = buildSiteUrl("/auth/callback?source=oauth");
+    const nextParam = searchParams.get("next");
+    const safeNext = nextParam && nextParam.startsWith("/") ? nextParam : "/app";
+    const redirectTo = buildSiteUrl(`/auth/callback?source=oauth&next=${encodeURIComponent(safeNext)}`);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {

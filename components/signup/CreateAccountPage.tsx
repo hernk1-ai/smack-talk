@@ -82,7 +82,7 @@ export function CreateAccountPage() {
     setIsLoading(true);
     setMessage("");
 
-    const emailRedirectTo = buildSiteUrl("/auth/callback?next=/username");
+    const emailRedirectTo = buildSiteUrl("/auth/callback?next=/app");
     const { error } = await supabase.auth.signUp({
       email: email.trim(),
       password,

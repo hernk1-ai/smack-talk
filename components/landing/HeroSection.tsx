@@ -20,11 +20,17 @@ export function HeroSection() {
 
           <div className="mt-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-center">
             <Link
-              href="/signup"
+              href="/app"
               className="neon-cta inline-flex min-h-14 items-center justify-center rounded-sm px-8 text-base font-black uppercase italic tracking-[0.12em] text-black shadow-[0_0_34px_rgba(132,204,22,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_0_38px_rgba(132,204,22,0.3)] active:translate-y-0 active:scale-[0.99]"
             >
               Join the Fun
               <span className="ml-4 text-xl leading-none">›</span>
+            </Link>
+            <Link
+              href="/schedule"
+              className="inline-flex min-h-14 items-center justify-center rounded-sm border border-white/20 bg-white/[0.03] px-8 text-base font-black uppercase italic tracking-[0.12em] text-white transition hover:-translate-y-0.5 hover:border-purple-300/40 hover:bg-purple-500/10"
+            >
+              View Schedule
             </Link>
           </div>
         </div>

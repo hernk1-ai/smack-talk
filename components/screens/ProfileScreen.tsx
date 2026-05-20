@@ -101,10 +101,29 @@ export function ProfileScreen({ profile }: { profile?: Profile | null }) {
     <div className="page-rhythm">
       <ProfileHeader profile={profile} />
       <ProfileIdentityCard profile={profile} />
+      {!profile?.onboarding_completed ? <CompleteProfilePrompt /> : null}
       <SocialSection socialItems={socialItems} />
       <TrophyCase trophies={trophies} />
       <RecentActivity />
     </div>
+  );
+}
+
+function CompleteProfilePrompt() {
+  return (
+    <section className="rounded-[1.75rem] border border-lime-300/25 bg-lime-400/[0.06] p-4 shadow-[0_18px_52px_rgba(0,0,0,0.28)]">
+      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">Complete Profile</p>
+      <h2 className="sports-display mt-2 text-3xl italic leading-none text-white">Make it yours.</h2>
+      <p className="mt-2 text-sm font-semibold text-gray-300">
+        Choose your avatar, pick your countries, and customize your Lockt profile.
+      </p>
+      <Link
+        href="/onboarding/profile-pic"
+        className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl border border-lime-300/40 bg-lime-400/10 px-3 text-[11px] font-black uppercase tracking-[0.1em] text-lime-100 transition hover:bg-lime-400/20"
+      >
+        Complete Profile
+      </Link>
+    </section>
   );
 }
 

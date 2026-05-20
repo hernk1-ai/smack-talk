@@ -39,7 +39,7 @@ export default async function MatchMakeCallPage({ params }: { params: Promise<{ 
 
   const supabase = await createClient();
   if (!supabase) {
-    redirect("/login");
+    return <MakeCallPage match={match} initialPick={null} profile={null} isAuthenticated={false} />;
   }
 
   const {
@@ -47,7 +47,7 @@ export default async function MatchMakeCallPage({ params }: { params: Promise<{ 
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    return <MakeCallPage match={match} initialPick={null} profile={null} isAuthenticated={false} />;
   }
 
   const { data: pick } = await supabase
@@ -59,5 +59,5 @@ export default async function MatchMakeCallPage({ params }: { params: Promise<{ 
 
   const { profile } = await ensureProfile(supabase, user);
 
-  return <MakeCallPage match={match} initialPick={pick as MatchPick | null} profile={profile} />;
+  return <MakeCallPage match={match} initialPick={pick as MatchPick | null} profile={profile} isAuthenticated />;
 }

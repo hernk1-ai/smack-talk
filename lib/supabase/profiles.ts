@@ -5,25 +5,8 @@ import type { Database, Profile } from "@/lib/supabase/types";
 export type AppSupabaseClient = SupabaseClient<Database>;
 
 export function getPostLoginRedirect(profile: Profile | null) {
-  if (!profile) {
-    return "/username";
-  }
-
-  if (profile.onboarding_completed) {
-    return "/app";
-  }
-
-  if (!profile.username) {
-    return "/username";
-  }
-
-  if (!profile.favorite_teams || profile.favorite_teams.length === 0) {
-    return `/onboarding/profile-pic?username=${encodeURIComponent(profile.username)}`;
-  }
-
-  return `/onboarding/enter-arena?username=${encodeURIComponent(profile.username)}&teams=${encodeURIComponent(
-    profile.favorite_teams.join(","),
-  )}`;
+  void profile;
+  return "/app";
 }
 
 export async function getCurrentProfile(supabase: AppSupabaseClient) {
