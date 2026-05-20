@@ -12,7 +12,7 @@ export function AppHeader({
   subtitle,
   profile,
   rightHref = "/receipts",
-  rightAriaLabel = "Receipts",
+  rightAriaLabel = "Profile",
 }: {
   subtitle: string;
   profile?: Profile | null;

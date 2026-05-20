@@ -8,22 +8,22 @@ import { createClient } from "@/lib/supabase/server";
 const BASE_URL = getSiteUrl();
 
 export const metadata: Metadata = {
-  title: "LOCKT Receipts",
+  title: "LOCKT Profile",
   description: "LOCKT is a sports reputation platform where fans lock takes, ride or fade calls, and build receipts.",
   alternates: {
     canonical: `${BASE_URL}/receipts`,
   },
   openGraph: {
-    title: "LOCKT Receipts",
-    description: "Public takes. Permanent receipts. Check the receipt.",
+    title: "LOCKT Profile",
+    description: "Your profile, trophies, and receipt board.",
     url: `${BASE_URL}/receipts`,
     siteName: "LOCKT",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "LOCKT Receipts",
-    description: "Public takes. Permanent receipts. Check the receipt.",
+    title: "LOCKT Profile",
+    description: "Your profile, trophies, and receipt board.",
   },
 };
 

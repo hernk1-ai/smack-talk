@@ -82,7 +82,7 @@ export function TeamsPage({ avatar, username }: { avatar?: string; username?: st
       return;
     }
 
-    router.push(`/onboarding/enter-arena?${params.toString()}`);
+    router.push(`/onboarding/join-fun?${params.toString()}`);
   }
 
   return (
@@ -102,7 +102,7 @@ export function TeamsPage({ avatar, username }: { avatar?: string; username?: st
             Follow the nations you want on your Lockt feed.
           </p>
           <p className="mt-2 text-sm font-semibold text-gray-400">
-            Choose up to three teams. You&apos;ll make match calls later.
+            Choose up to three teams. You&apos;ll make match calls later. Get ready for World Cup 2026.
           </p>
 
           <div className="mt-5 sm:hidden">

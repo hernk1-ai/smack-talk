@@ -90,7 +90,7 @@ export function EnterArenaPage({
     };
   }, []);
 
-  async function handleEnterArena() {
+  async function handleGoToMatchHub() {
     const supabase = createClient();
 
     if (!supabase) {
@@ -128,7 +128,7 @@ export function EnterArenaPage({
     setIsLoading(false);
 
     if (error) {
-      setMessage(getUserFacingErrorMessage(error, "Unable to enter arena right now. Try again."));
+      setMessage(getUserFacingErrorMessage(error, "Unable to continue right now. Try again."));
       return;
     }
 
@@ -143,24 +143,28 @@ export function EnterArenaPage({
 
         <section className="mx-auto flex w-full flex-1 flex-col justify-center py-7 text-center sm:py-9">
           <h1 className="sports-display text-[4.2rem] italic leading-[0.82] tracking-tight text-white drop-shadow-[0_10px_28px_rgba(255,255,255,0.15)] min-[390px]:text-[5.1rem] sm:text-[8rem]">
-            The World Cup
+            You&apos;re
             <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-500 bg-clip-text text-transparent">
-              Is Calling.
+              In.
             </span>
           </h1>
           <p className="mt-5 text-base font-black uppercase tracking-[0.18em] text-gray-300 sm:text-xl">
-            Your tournament receipts <span className="text-lime-300">start now.</span>
+            World Cup 2026 is coming.
           </p>
+          <p className="mt-2 text-sm font-semibold text-gray-300 sm:text-base">
+            Pick a match, make a call, and come back when the game kicks off.
+          </p>
+          <p className="mt-2 text-sm font-semibold text-lime-300">Your first call starts your trophy case.</p>
 
           <ProfileSummaryCard avatarUrl={avatarUrl} teams={selectedTeams} username={cleanUsername} />
 
           <button
             type="button"
-            onClick={handleEnterArena}
+            onClick={handleGoToMatchHub}
             disabled={isLoading}
             className="mt-8 min-h-16 w-full rounded-2xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-xl font-black uppercase italic tracking-[0.18em] text-black shadow-[0_0_42px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_54px_rgba(168,85,247,0.36)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-65 sm:min-h-20 sm:text-2xl"
           >
-            {isLoading ? "Saving..." : "Enter The World Cup Arena →"}
+            {isLoading ? "Saving..." : "Go to Match Hub →"}
           </button>
           {message && (
             <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-gray-200">
@@ -170,7 +174,7 @@ export function EnterArenaPage({
 
           <p className="mt-7 flex items-center justify-center gap-3 text-sm font-black uppercase tracking-[0.16em] text-gray-400 sm:text-base">
             <span className="text-purple-400">▱</span>
-            On record from kickoff <span className="text-lime-300">to final whistle.</span>
+            Your World Cup board <span className="text-lime-300">starts here.</span>
           </p>
         </section>
       </div>
@@ -195,7 +199,7 @@ function EnterArenaHeader() {
         </div>
       </Link>
       <div className="justify-self-end text-right">
-        <p className="text-xs font-black uppercase tracking-[0.22em] text-white">Step 4 of 4</p>
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-white">Join the Fun</p>
         <div className="mt-3 flex items-center justify-end gap-2">
           {[0, 1, 2, 3].map((step) => (
             <span key={step} className="flex items-center gap-2">

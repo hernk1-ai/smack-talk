@@ -189,7 +189,7 @@ function MatchRow({ match }: { match: WorldCupMatch }) {
             href={`/schedule/${match.id}/make-call`}
             className="rounded-md border border-white/15 bg-white/[0.04] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-white hover:border-lime-300/40 hover:text-lime-200 sm:px-3"
           >
-            Make Call
+            Make Early Call
           </Link>
         ) : null}
       </div>

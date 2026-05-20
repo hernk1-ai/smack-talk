@@ -154,13 +154,13 @@ export function ProfilePicPage({ username }: { username?: string }) {
           <ProgressStepper />
 
           <h1 className="sports-display mt-8 text-[4.6rem] italic leading-[0.84] tracking-tight text-white drop-shadow-[0_10px_28px_rgba(255,255,255,0.15)] min-[390px]:text-[5.6rem] sm:text-[8rem]">
-            Add Your
+            Pick Your
             <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-500 bg-clip-text text-transparent">
-              Profile Pic
+              Avatar
             </span>
           </h1>
           <p className="mt-5 text-base font-black uppercase tracking-[0.16em] text-gray-300 sm:text-xl">
-            Put a <span className="text-lime-300">face</span> on the receipts.
+            Create your <span className="text-lime-300">Lockt profile.</span>
           </p>
 
           <div className="mt-7 flex items-center justify-center gap-3 text-3xl font-black text-white sm:text-4xl">

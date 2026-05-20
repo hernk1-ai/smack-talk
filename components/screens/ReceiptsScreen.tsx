@@ -553,7 +553,7 @@ export function ReceiptsScreen({
 }
 
 function ReceiptsHeader({ profile }: { profile?: Profile | null }) {
-  return <AppHeader profile={profile} subtitle="Receipts don&apos;t lie." rightHref="/receipts" rightAriaLabel="Receipts" />;
+  return <AppHeader profile={profile} subtitle="Profile · Trophies · Receipts" rightHref="/receipts" rightAriaLabel="Profile" />;
 }
 
 function ReceiptIdentityCard({

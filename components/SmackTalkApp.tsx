@@ -41,14 +41,14 @@ export function LocktApp({
     setAppView("live-arena");
     router.push(`/game/${gameId}`);
   };
-  const selectBottomNav = (view: "arena" | "receipts" | "schedule" | "settings") => {
-    if (view === "arena") {
+  const selectBottomNav = (view: "match-hub" | "schedule" | "game-room" | "calls" | "profile") => {
+    if (view === "match-hub") {
       router.push("/app");
       setAppView("arena");
       return;
     }
 
-    if (view === "receipts") {
+    if (view === "profile") {
       router.push("/receipts");
       setAppView("receipts");
       return;
@@ -59,8 +59,15 @@ export function LocktApp({
       return;
     }
 
-    if (view === "settings") {
-      router.push("/settings");
+    if (view === "calls") {
+      router.push("/calls");
+      return;
+    }
+
+    if (view === "game-room") {
+      setActiveGameRoomId(ACTIVE_GAME_ID);
+      setAppView("live-arena");
+      router.push(`/game/${ACTIVE_GAME_ID}`);
       return;
     }
   };
