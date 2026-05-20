@@ -2,24 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { LocktLogo } from "@/components/LocktLogo";
+import { AppHeader } from "@/components/AppHeader";
 import { formatRepSwing, QUICK_PICK_LOSS, QUICK_PICK_WIN } from "@/lib/engagement";
 import { ACTIVE_GAME_ID, getGameById } from "@/lib/supabase/games";
 import { createQuickPick, getMyQuickPicks } from "@/lib/supabase/quickPicks";
 import type { Game } from "@/lib/supabase/types";
 
-type ArenaTab = "chat" | "calls" | "control-room";
+type ArenaTab = "calls" | "control-room";
 type Side = "ride" | "fade";
-
-type ChatTake = {
-  id: string;
-  handle: string;
-  avatar: string;
-  timestamp: string;
-  text: string;
-  heat: number;
-  tag?: Side;
-};
 
 type LiveCall = {
   handle: string;
@@ -47,54 +37,9 @@ type QuickPickQuestion = {
   }>;
 };
 
-const chatTakes: ChatTake[] = [
-  {
-    id: "talk-heavy",
-    handle: "@TalkHeavy23",
-    avatar: "TH",
-    timestamp: "1m ago",
-    text: "Mexico controls midfield early.",
-    heat: 128,
-  },
-  {
-    id: "mid-range",
-    handle: "@MidRange",
-    avatar: "MR",
-    timestamp: "1m ago",
-    text: "This group just got wide open.",
-    heat: 96,
-  },
-  {
-    id: "fade-king",
-    handle: "@FadeKing",
-    avatar: "FK",
-    timestamp: "just now",
-    text: "Paraguay can steal this one.",
-    heat: 212,
-    tag: "fade",
-  },
-  {
-    id: "hoop-dreams",
-    handle: "@HoopDreams",
-    avatar: "HD",
-    timestamp: "just now",
-    text: "Brazil is cooking down the wing.",
-    heat: 74,
-    tag: "ride",
-  },
-  {
-    id: "no-mercy",
-    handle: "@NoMercy",
-    avatar: "NM",
-    timestamp: "just now",
-    text: "No way they hold this lead after halftime.",
-    heat: 52,
-  },
-];
-
 const liveCalls: LiveCall[] = [
   {
-    handle: "@BucketsOnly",
+    handle: "@BootsOnly",
     text: "United States starts fast and wins this.",
     rides: "2.1K",
     fades: "842",
@@ -108,7 +53,7 @@ const liveCalls: LiveCall[] = [
     status: "Fade",
   },
   {
-    handle: "@HoopDreams",
+    handle: "@GoalRush",
     text: "France takes over in the second half.",
     rides: "912",
     fades: "215",
@@ -118,14 +63,14 @@ const liveCalls: LiveCall[] = [
 
 const topTalkers: TopTalker[] = [
   { rank: 1, handle: "@TalkHeavy23", heat: "3.6K", avatar: "TH" },
-  { rank: 2, handle: "@BucketsOnly", heat: "3.1K", avatar: "BO" },
+  { rank: 2, handle: "@BootsOnly", heat: "3.1K", avatar: "BO" },
   { rank: 3, handle: "@FadeKing", heat: "2.7K", avatar: "FK" },
-  { rank: 4, handle: "@MidRange", heat: "2.4K", avatar: "MR" },
-  { rank: 5, handle: "@HoopDreams", heat: "2.1K", avatar: "HD" },
+  { rank: 4, handle: "@MidfieldBoss", heat: "2.4K", avatar: "MR" },
+  { rank: 5, handle: "@GoalRush", heat: "2.1K", avatar: "HD" },
 ];
 
 export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string; onBack: () => void }) {
-  const [activeTab, setActiveTab] = useState<ArenaTab>("chat");
+  const [activeTab, setActiveTab] = useState<ArenaTab>("calls");
   const [game, setGame] = useState<Game | null>(null);
   const [quickPickSelections, setQuickPickSelections] = useState<Record<string, string>>({});
   const [quickPickResults, setQuickPickResults] = useState<Record<string, "pending" | "hit" | "miss">>({});
@@ -276,7 +221,14 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
   return (
     <main className="min-h-dvh overflow-x-hidden bg-transparent pb-4 pt-[calc(1rem+env(safe-area-inset-top))] text-white sm:pb-5 sm:pt-5">
       <div className="arena-shell screen-safe-bottom space-y-5">
-        <ArenaHeader onBack={onBack} game={game} />
+        <AppHeader subtitle="Game Room · World Cup calls and control room." rightHref="/receipts" rightAriaLabel="Profile" />
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex min-h-10 items-center rounded-xl border border-white/10 bg-black/35 px-3 text-xs font-black uppercase tracking-[0.12em] text-gray-300 transition hover:text-lime-200"
+        >
+          ← Back to Match Hub
+        </button>
         <ArenaScoreboard
           game={game}
           quickPickQuestions={quickPickQueue}
@@ -291,7 +243,6 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
           <section className="space-y-4">
-            {activeTab === "chat" && <ChatPanel />}
             {activeTab === "calls" && (
               <CallsPanel
                 choices={callChoices}
@@ -311,67 +262,6 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
         </div>
       </div>
     </main>
-  );
-}
-
-function ArenaHeader({ onBack, game }: { onBack: () => void; game: Game | null }) {
-  return (
-    <header className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-[1.5rem] border border-white/10 bg-black/30 p-2 shadow-[0_18px_48px_rgba(0,0,0,0.3)] backdrop-blur sm:gap-3 sm:p-3">
-      <button
-        type="button"
-        onClick={onBack}
-        className="grid h-12 w-12 place-items-center rounded-2xl border border-white/10 bg-black/45 text-2xl font-black text-white shadow-[0_14px_34px_rgba(0,0,0,0.34)] transition active:scale-95"
-        aria-label="Back to feed"
-      >
-        ‹
-      </button>
-
-      <div className="flex min-w-0 items-center gap-3">
-        <LocktLogo size={54} />
-        <div className="min-w-0">
-          <h1 className="brand-lockup text-[2rem] leading-[0.82] sm:text-4xl">
-            <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>
-          </h1>
-          <p className="mt-1 hidden items-center gap-2 text-xs font-black uppercase tracking-[0.1em] text-gray-300 sm:flex">
-            <span className="h-2.5 w-2.5 rounded-full bg-lime-400 shadow-[0_0_16px_rgba(132,204,22,0.75)]" />
-            {formatCompact(game?.watching_count ?? 0)} <span className="text-gray-500">{game?.status === "live" ? "Fans Live" : game?.status === "final" ? "Final whistle" : "Pregame room"}</span>
-          </p>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-end gap-1.5 sm:gap-2">
-        <HeaderIcon label="Notifications" badge="3">
-          ♧
-        </HeaderIcon>
-        <HeaderIcon label="Share">⇧</HeaderIcon>
-        <HeaderIcon label="More">•••</HeaderIcon>
-      </div>
-    </header>
-  );
-}
-
-function HeaderIcon({
-  label,
-  badge,
-  children,
-}: {
-  label: string;
-  badge?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      className="relative grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-black/45 text-lg text-white shadow-[0_14px_34px_rgba(0,0,0,0.28)] transition active:scale-95 sm:h-12 sm:w-12 sm:text-xl"
-      aria-label={label}
-    >
-      {children}
-      {badge && (
-        <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-purple-500 text-[10px] font-black text-white">
-          {badge}
-        </span>
-      )}
-    </button>
   );
 }
 
@@ -759,13 +649,12 @@ function ScoreTeam({
 
 function ArenaTabs({ activeTab, onSelect }: { activeTab: ArenaTab; onSelect: (tab: ArenaTab) => void }) {
   const tabs: { id: ArenaTab; label: string; count?: string }[] = [
-    { id: "chat", label: "Early Call Feed" },
-    { id: "calls", label: "Match Calls", count: "132" },
-    { id: "control-room", label: "Lock Your Take" },
+    { id: "calls", label: "Early Call Feed", count: "132" },
+    { id: "control-room", label: "Control Room" },
   ];
 
   return (
-    <nav className="grid grid-cols-3 gap-1 rounded-[1.5rem] border border-white/10 bg-black/35 p-1.5 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur">
+    <nav className="grid grid-cols-2 gap-1 rounded-[1.5rem] border border-white/10 bg-black/35 p-1.5 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur">
       {tabs.map((tab) => (
         <button
           key={tab.id}
@@ -789,10 +678,10 @@ function ArenaTabs({ activeTab, onSelect }: { activeTab: ArenaTab; onSelect: (ta
   );
 }
 
-function ChatPanel() {
+function CallsPanel({ choices, onChoose }: { choices: Record<string, Side>; onChoose: (callId: string, side: Side) => void }) {
   return (
-    <section className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/30 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
-      <div className="border-b border-white/10 bg-black/40 p-4">
+    <section className="space-y-3 rounded-[1.5rem] border border-white/10 bg-black/30 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
+      <div className="rounded-xl border border-white/10 bg-black/40 p-3">
         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime-300">Lock Your Take</p>
         <p className="mt-1 text-sm font-semibold text-gray-300">Make your World Cup call before kickoff.</p>
         <Link
@@ -802,89 +691,6 @@ function ChatPanel() {
           Make Call
         </Link>
       </div>
-      <PinnedCall />
-
-      <div className="divide-y divide-white/10">
-        {chatTakes.map((take) => (
-          <ChatRow key={take.id} take={take} />
-        ))}
-      </div>
-
-      <div className="border-t border-white/10 p-4">
-      <p className="text-sm font-black text-gray-400">⌛ Cooldown is On</p>
-        <p className="mt-1 text-xs font-semibold text-gray-500">You can send a message every 10 seconds.</p>
-      </div>
-    </section>
-  );
-}
-
-function PinnedCall() {
-  return (
-    <article className="border-b border-purple-400/35 bg-purple-500/10 p-4 shadow-[0_0_34px_rgba(168,85,247,0.12)]">
-      <div className="flex items-center justify-between gap-3">
-        <p className="sports-display text-xl italic leading-none text-purple-200">📌 Featured Call</p>
-        <p className="min-w-0 truncate text-xs font-bold text-gray-300">
-          @BucketsOnly <span className="text-purple-300">◆</span> <span className="text-gray-500">7m ago</span>
-        </p>
-      </div>
-      <div className="mt-3 grid grid-cols-[1fr_auto] items-center gap-3">
-        <h2 className="sports-display text-2xl italic leading-tight text-white sm:text-3xl">
-          United States finds the opener.
-        </h2>
-        <span className="text-3xl text-gray-300">›</span>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-3 text-sm font-black uppercase">
-        <span className="rounded-md border border-purple-300/35 bg-purple-500/10 px-2 py-1 text-purple-200">Locked</span>
-        <span className="text-lime-300">👍 2.1K Riding</span>
-        <span className="text-purple-300">👎 842 Fading</span>
-      </div>
-    </article>
-  );
-}
-
-function ChatRow({ take }: { take: ChatTake }) {
-  return (
-    <article className="grid grid-cols-[auto_1fr_auto] gap-3 p-4">
-      <Link href={getReceiptHref(take.handle)} className="rounded-full transition hover:scale-105 active:scale-95" aria-label={` receipts`}>
-        <span className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-gradient-to-br from-lime-300 via-purple-500 to-black text-xs font-black text-white">
-          {take.avatar}
-        </span>
-      </Link>
-      <div className="min-w-0">
-        <p className="truncate text-sm font-black text-white">
-          <Link href={getReceiptHref(take.handle)} className="transition hover:text-lime-200">{take.handle}</Link> <span className="text-purple-300">◆</span>{" "}
-          <span className="font-semibold text-gray-500">{take.timestamp}</span>
-        </p>
-        <p className="mt-1 text-sm font-semibold leading-6 text-gray-200">{take.text}</p>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-black text-lime-300">🔥 {take.heat}</span>
-          {take.tag && (
-            <span
-              className={`rounded-md border px-2 py-0.5 text-[10px] font-black uppercase ${
-                take.tag === "ride"
-                  ? "border-lime-300/50 bg-lime-400/10 text-lime-300"
-                  : "border-purple-300/50 bg-purple-500/10 text-purple-300"
-              }`}
-            >
-              {take.tag}
-            </span>
-          )}
-        </div>
-      </div>
-      <button
-        type="button"
-        className="grid h-10 w-10 place-items-center self-center rounded-full border border-white/10 bg-white/[0.03] text-xl text-gray-500 transition active:scale-95"
-        aria-label={`React to ${take.handle}`}
-      >
-        ☺+
-      </button>
-    </article>
-  );
-}
-
-function CallsPanel({ choices, onChoose }: { choices: Record<string, Side>; onChoose: (callId: string, side: Side) => void }) {
-  return (
-    <section className="space-y-3 rounded-[1.5rem] border border-white/10 bg-black/30 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
       {liveCalls.map((call) => (
         <article key={call.handle} className="rounded-2xl border border-white/10 bg-black/40 p-4">
           <div className="flex items-center justify-between gap-3">
@@ -928,7 +734,7 @@ function ControlRoomPanel({ game }: { game: Game | null }) {
 
   return (
     <section className="rounded-[1.5rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
-      <PanelHeader title="Lock Your Take" />
+      <PanelHeader title="Control Room" />
       <p className="mt-4 text-[10px] font-black uppercase text-gray-400">Crowd Sentiment</p>
       <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
         <div>
