@@ -11,12 +11,10 @@ import type { Profile } from "@/lib/supabase/types";
 export function AppHeader({
   subtitle,
   profile,
-  rightHref = "/receipts",
   rightAriaLabel = "Profile",
 }: {
   subtitle: string;
   profile?: Profile | null;
-  rightHref?: string;
   rightAriaLabel?: string;
 }) {
   const [resolvedProfile, setResolvedProfile] = useState<Profile | null>(null);
@@ -87,7 +85,7 @@ export function AppHeader({
         <div className="flex items-center gap-1.5 sm:gap-2">
           <NotificationBell />
           <Link
-            href={rightHref}
+            href="/profile"
             className="relative grid h-11 w-11 place-items-center rounded-2xl border border-white/15 bg-white/[0.04] text-xl text-white shadow-[0_0_22px_rgba(255,255,255,0.06)] transition hover:-translate-y-0.5 hover:border-purple-300/35 hover:bg-white/[0.07] active:scale-95 sm:h-12 sm:w-12"
             aria-label={rightAriaLabel}
           >
