@@ -1,23 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AppHeader } from "@/components/AppHeader";
+import { useToast } from "@/components/providers/ToastProvider";
 import { formatRepSwing, QUICK_PICK_LOSS, QUICK_PICK_WIN } from "@/lib/engagement";
+import { formatTakeForUI, getArenaFeed, getCurrentUserReactionMap, type ArenaTake } from "@/lib/supabase/arena";
 import { ACTIVE_GAME_ID, getGameById } from "@/lib/supabase/games";
 import { createQuickPick, getMyQuickPicks } from "@/lib/supabase/quickPicks";
-import type { Game } from "@/lib/supabase/types";
+import { reactToTake } from "@/lib/supabase/reactions";
+import { createReply, getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/replies";
+import { createClient } from "@/lib/supabase/client";
+import { createLockedTake } from "@/lib/supabase/takes";
+import { getUserFacingErrorMessage } from "@/lib/userFacingError";
+import type { Game, TakeReaction } from "@/lib/supabase/types";
 
 type ArenaTab = "calls" | "control-room";
 type Side = "ride" | "fade";
-
-type LiveCall = {
-  handle: string;
-  text: string;
-  rides: string;
-  fades: string;
-  status: string;
-};
 
 type TopTalker = {
   rank: number;
@@ -37,30 +36,6 @@ type QuickPickQuestion = {
   }>;
 };
 
-const liveCalls: LiveCall[] = [
-  {
-    handle: "@BootsOnly",
-    text: "United States starts fast and wins this.",
-    rides: "2.1K",
-    fades: "842",
-    status: "Locked",
-  },
-  {
-    handle: "@FadeKing",
-    text: "Canada is too organized to drop points here.",
-    rides: "488",
-    fades: "1.4K",
-    status: "Fade",
-  },
-  {
-    handle: "@GoalRush",
-    text: "France takes over in the second half.",
-    rides: "912",
-    fades: "215",
-    status: "Ride",
-  },
-];
-
 const topTalkers: TopTalker[] = [
   { rank: 1, handle: "@TalkHeavy23", heat: "3.6K", avatar: "TH" },
   { rank: 2, handle: "@BootsOnly", heat: "3.1K", avatar: "BO" },
@@ -70,6 +45,8 @@ const topTalkers: TopTalker[] = [
 ];
 
 export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string; onBack: () => void }) {
+  const { showToast } = useToast();
+  const supabase = createClient();
   const [activeTab, setActiveTab] = useState<ArenaTab>("calls");
   const [game, setGame] = useState<Game | null>(null);
   const [quickPickSelections, setQuickPickSelections] = useState<Record<string, string>>({});
@@ -77,17 +54,36 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
   const [quickPickMessage, setQuickPickMessage] = useState("");
   const [quickPickCrowdLine, setQuickPickCrowdLine] = useState("");
   const [savingQuickPickKey, setSavingQuickPickKey] = useState<string | null>(null);
-  const [callChoices, setCallChoices] = useState<Record<string, Side>>({});
   const [quickPickQueue, setQuickPickQueue] = useState<QuickPickQuestion[]>([]);
   const [quickPickRecentKeys, setQuickPickRecentKeys] = useState<string[]>([]);
+  const [feedTakes, setFeedTakes] = useState<ArenaTake[]>([]);
+  const [takeReactions, setTakeReactions] = useState<Record<string, TakeReaction["reaction"]>>({});
+  const [reactionLoadingTakeId, setReactionLoadingTakeId] = useState<string | null>(null);
+  const [replyLoadingTakeId, setReplyLoadingTakeId] = useState<string | null>(null);
+  const [repliesByTake, setRepliesByTake] = useState<Record<string, TakeReplyWithAuthor[]>>({});
+  const [expandedReplyTakeIds, setExpandedReplyTakeIds] = useState<Record<string, boolean>>({});
+  const [replyDraftByTake, setReplyDraftByTake] = useState<Record<string, string>>({});
+  const [replyingToReplyByTake, setReplyingToReplyByTake] = useState<Record<string, string | null>>({});
+  const [newTakeText, setNewTakeText] = useState("");
+  const [isLockingTake, setIsLockingTake] = useState(false);
+  const [takesMessage, setTakesMessage] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const awayTeam = game?.away_team ?? "AWAY";
   const homeTeam = game?.home_team ?? "HOME";
+
+  const totalFeedCount = feedTakes.length;
+  const visibleTakes = useMemo(() => feedTakes.slice(0, 30), [feedTakes]);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadGameAndQuickPicks() {
-      const [{ game: loadedGame }, { quickPicks }] = await Promise.all([getGameById(gameId), getMyQuickPicks(gameId)]);
+      const [{ game: loadedGame }, { quickPicks }, { takes }, { data: authState }] = await Promise.all([
+        getGameById(gameId),
+        getMyQuickPicks(gameId),
+        getArenaFeed(gameId),
+        supabase?.auth.getSession() ?? Promise.resolve({ data: { session: null } }),
+      ]);
 
       if (!isMounted) {
         return;
@@ -113,6 +109,10 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
       setQuickPickQueue(initialQueue);
       setQuickPickRecentKeys(initialQueue.map((question) => question.key));
       setQuickPickCrowdLine(getQuickPickCrowdLine(loadedGame, initialQueue[0]));
+      setFeedTakes(takes ?? []);
+      const { reactionMap } = await getCurrentUserReactionMap((takes ?? []).map((take) => take.id));
+      setTakeReactions(reactionMap ?? {});
+      setIsAuthenticated(Boolean(authState?.session?.user));
     }
 
     loadGameAndQuickPicks();
@@ -120,7 +120,130 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
     return () => {
       isMounted = false;
     };
-  }, [gameId]);
+  }, [gameId, supabase]);
+
+  async function lockIt() {
+    if (!newTakeText.trim()) {
+      setTakesMessage("Write your call before locking it.");
+      return;
+    }
+
+    if (!isAuthenticated) {
+      setTakesMessage("Save this call by signing in first. You can browse freely, but locking needs an account.");
+      return;
+    }
+
+    setIsLockingTake(true);
+    setTakesMessage("");
+    const { take, error } = await createLockedTake({
+      gameId,
+      takeText: newTakeText.trim(),
+    });
+    setIsLockingTake(false);
+
+    if (error || !take) {
+      setTakesMessage(getUserFacingErrorMessage(error, "Unable to lock your take right now. Try again."));
+      showToast("Unable to lock your take right now. Try again.", "error");
+      return;
+    }
+
+    const { takes, error: refreshError } = await getArenaFeed(gameId);
+    if (!refreshError) {
+      setFeedTakes(takes);
+      const { reactionMap } = await getCurrentUserReactionMap(takes.map((row) => row.id));
+      setTakeReactions(reactionMap);
+    }
+    setNewTakeText("");
+    setTakesMessage("Locked, no take backs.");
+    showToast("Take locked.", "success");
+  }
+
+  async function reactToLockedTake(takeId: string, reaction: Side) {
+    if (!isAuthenticated) {
+      setTakesMessage("Log in to ride or fade takes.");
+      return;
+    }
+
+    setReactionLoadingTakeId(takeId);
+    const { reaction: savedReaction, take, error } = await reactToTake({ takeId, reaction });
+    setReactionLoadingTakeId(null);
+
+    if (error) {
+      setTakesMessage(getUserFacingErrorMessage(error, "Could not save your reaction."));
+      showToast("Could not save your reaction.", "error");
+      return;
+    }
+
+    if (savedReaction) {
+      setTakeReactions((current) => ({ ...current, [takeId]: savedReaction.reaction }));
+    }
+
+    if (take) {
+      setFeedTakes((current) =>
+        current.map((item) =>
+          item.id === take.id
+            ? {
+                ...item,
+                ride_count: take.ride_count,
+                fade_count: take.fade_count,
+                heat: take.heat,
+              }
+            : item,
+        ),
+      );
+    }
+    showToast(reaction === "ride" ? "You rode this take." : "You faded this take.", "success");
+  }
+
+  async function toggleReplies(takeId: string) {
+    const nextOpen = !expandedReplyTakeIds[takeId];
+    setExpandedReplyTakeIds((current) => ({ ...current, [takeId]: nextOpen }));
+    if (!nextOpen || repliesByTake[takeId]) {
+      return;
+    }
+
+    const { replies, error } = await getRepliesForTake(takeId);
+    if (error) {
+      setTakesMessage(getUserFacingErrorMessage(error, "Unable to load replies."));
+      return;
+    }
+    setRepliesByTake((current) => ({ ...current, [takeId]: replies }));
+  }
+
+  async function submitReply(takeId: string) {
+    const replyText = (replyDraftByTake[takeId] ?? "").trim();
+    if (!replyText) {
+      return;
+    }
+    if (!isAuthenticated) {
+      setTakesMessage("Log in to reply.");
+      return;
+    }
+
+    setReplyLoadingTakeId(takeId);
+    const { reply, error } = await createReply({
+      takeId,
+      replyText,
+      parentReplyId: replyingToReplyByTake[takeId] ?? null,
+    });
+    setReplyLoadingTakeId(null);
+
+    if (error || !reply) {
+      setTakesMessage(getUserFacingErrorMessage(error, "Could not post reply."));
+      showToast("Could not post reply.", "error");
+      return;
+    }
+
+    const { replies } = await getRepliesForTake(takeId);
+    setRepliesByTake((current) => ({ ...current, [takeId]: replies }));
+    setExpandedReplyTakeIds((current) => ({ ...current, [takeId]: true }));
+    setReplyDraftByTake((current) => ({ ...current, [takeId]: "" }));
+    setReplyingToReplyByTake((current) => ({ ...current, [takeId]: null }));
+    setFeedTakes((current) =>
+      current.map((item) => (item.id === takeId ? { ...item, reply_count: (item.reply_count ?? 0) + 1 } : item)),
+    );
+    showToast("Reply posted.", "success");
+  }
 
   const rotateQuickPick = useCallback((reason: "timer" | "interaction") => {
     if (!quickPickQueue.length) {
@@ -239,16 +362,39 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
           quickPickCrowdLine={quickPickCrowdLine}
           onQuickPick={lockQuickPick}
         />
-        <ArenaTabs activeTab={activeTab} onSelect={setActiveTab} />
+        <ArenaTabs activeTab={activeTab} onSelect={setActiveTab} earlyCallCount={totalFeedCount} />
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
           <section className="space-y-4">
             {activeTab === "calls" && (
               <CallsPanel
-                choices={callChoices}
-                onChoose={(callId, side) => {
-                  setCallChoices((current) => ({ ...current, [callId]: side }));
-                  setQuickPickMessage(side === "ride" ? "You rode that call." : "You faded that call.");
+                gameId={gameId}
+                isAuthenticated={isAuthenticated}
+                takes={visibleTakes}
+                totalCount={totalFeedCount}
+                reactionLoadingTakeId={reactionLoadingTakeId}
+                reactions={takeReactions}
+                replyLoadingTakeId={replyLoadingTakeId}
+                repliesByTake={repliesByTake}
+                expandedReplyTakeIds={expandedReplyTakeIds}
+                replyDraftByTake={replyDraftByTake}
+                replyingToReplyByTake={replyingToReplyByTake}
+                newTakeText={newTakeText}
+                isLockingTake={isLockingTake}
+                takesMessage={takesMessage}
+                onNewTakeTextChange={setNewTakeText}
+                onLockIt={lockIt}
+                onReact={reactToLockedTake}
+                onToggleReplies={toggleReplies}
+                onReplyDraftChange={(takeId, text) => {
+                  setReplyDraftByTake((current) => ({ ...current, [takeId]: text }));
+                }}
+                onSubmitReply={submitReply}
+                onReplyToReply={(takeId, replyId) => {
+                  setReplyingToReplyByTake((current) => ({
+                    ...current,
+                    [takeId]: current[takeId] === replyId ? null : replyId,
+                  }));
                 }}
               />
             )}
@@ -647,9 +793,17 @@ function ScoreTeam({
   );
 }
 
-function ArenaTabs({ activeTab, onSelect }: { activeTab: ArenaTab; onSelect: (tab: ArenaTab) => void }) {
+function ArenaTabs({
+  activeTab,
+  onSelect,
+  earlyCallCount,
+}: {
+  activeTab: ArenaTab;
+  onSelect: (tab: ArenaTab) => void;
+  earlyCallCount: number;
+}) {
   const tabs: { id: ArenaTab; label: string; count?: string }[] = [
-    { id: "calls", label: "Early Call Feed", count: "132" },
+    { id: "calls", label: "Early Call Feed", count: String(earlyCallCount) },
     { id: "control-room", label: "Control Room" },
   ];
 
@@ -678,48 +832,192 @@ function ArenaTabs({ activeTab, onSelect }: { activeTab: ArenaTab; onSelect: (ta
   );
 }
 
-function CallsPanel({ choices, onChoose }: { choices: Record<string, Side>; onChoose: (callId: string, side: Side) => void }) {
+function CallsPanel({
+  gameId,
+  isAuthenticated,
+  takes,
+  totalCount,
+  reactionLoadingTakeId,
+  reactions,
+  replyLoadingTakeId,
+  repliesByTake,
+  expandedReplyTakeIds,
+  replyDraftByTake,
+  replyingToReplyByTake,
+  newTakeText,
+  isLockingTake,
+  takesMessage,
+  onNewTakeTextChange,
+  onLockIt,
+  onReact,
+  onToggleReplies,
+  onReplyDraftChange,
+  onSubmitReply,
+  onReplyToReply,
+}: {
+  gameId: string;
+  isAuthenticated: boolean;
+  takes: ArenaTake[];
+  totalCount: number;
+  reactionLoadingTakeId: string | null;
+  reactions: Record<string, TakeReaction["reaction"]>;
+  replyLoadingTakeId: string | null;
+  repliesByTake: Record<string, TakeReplyWithAuthor[]>;
+  expandedReplyTakeIds: Record<string, boolean>;
+  replyDraftByTake: Record<string, string>;
+  replyingToReplyByTake: Record<string, string | null>;
+  newTakeText: string;
+  isLockingTake: boolean;
+  takesMessage: string;
+  onNewTakeTextChange: (text: string) => void;
+  onLockIt: () => void;
+  onReact: (takeId: string, reaction: Side) => void;
+  onToggleReplies: (takeId: string) => void;
+  onReplyDraftChange: (takeId: string, text: string) => void;
+  onSubmitReply: (takeId: string) => void;
+  onReplyToReply: (takeId: string, replyId: string) => void;
+}) {
   return (
     <section className="space-y-3 rounded-[1.5rem] border border-white/10 bg-black/30 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
       <div className="rounded-xl border border-white/10 bg-black/40 p-3">
         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime-300">Lock Your Take</p>
         <p className="mt-1 text-sm font-semibold text-gray-300">Make your World Cup call before kickoff.</p>
-        <Link
-          href="/schedule"
-          className="mt-3 inline-flex min-h-10 items-center justify-center rounded-lg border border-lime-300/50 bg-lime-400/10 px-3 text-[11px] font-black uppercase tracking-[0.12em] text-lime-200 transition hover:bg-lime-400/20"
-        >
-          Make Call
-        </Link>
+        <textarea
+          value={newTakeText}
+          onChange={(event) => onNewTakeTextChange(event.target.value)}
+          placeholder="Drop your match call..."
+          maxLength={160}
+          className="mt-3 min-h-24 w-full rounded-xl border border-white/10 bg-black/55 px-3 py-2 text-sm font-semibold text-white outline-none"
+        />
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <p className="text-[11px] font-semibold text-gray-400">{newTakeText.length}/160</p>
+          <button
+            type="button"
+            onClick={onLockIt}
+            disabled={isLockingTake}
+            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-lime-300/50 bg-lime-400/10 px-3 text-[11px] font-black uppercase tracking-[0.12em] text-lime-200 transition hover:bg-lime-400/20 disabled:opacity-60"
+          >
+            {isLockingTake ? "Locking..." : "Lock It"}
+          </button>
+        </div>
+        {!isAuthenticated ? (
+          <p className="mt-2 text-xs font-semibold text-gray-400">
+            Save your call with a quick profile when you lock.{" "}
+            <Link href={`/signup?next=${encodeURIComponent(`/game/${gameId}`)}`} className="font-black text-lime-300">
+              Sign up
+            </Link>{" "}
+            or{" "}
+            <Link href={`/login?next=${encodeURIComponent(`/game/${gameId}`)}`} className="font-black text-purple-300">
+              log in
+            </Link>
+            .
+          </p>
+        ) : null}
+        {takesMessage ? <p className="mt-2 text-xs font-semibold text-gray-300">{takesMessage}</p> : null}
       </div>
-      {liveCalls.map((call) => (
-        <article key={call.handle} className="rounded-2xl border border-white/10 bg-black/40 p-4">
+
+      <div className="rounded-xl border border-white/10 bg-black/40 px-3 py-2">
+        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">
+          Early Call Feed <span className="text-gray-400">{totalCount}</span>
+        </p>
+      </div>
+
+      {!takes.length ? (
+        <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
+          <p className="text-sm font-semibold text-gray-300">No locked calls yet. Be first to lock one.</p>
+        </div>
+      ) : null}
+
+      {takes.map((take) => {
+        const ui = formatTakeForUI(take);
+        const activeReaction = reactions[take.id];
+        const replies = repliesByTake[take.id] ?? [];
+        const isRepliesOpen = Boolean(expandedReplyTakeIds[take.id]);
+        const replyDraft = replyDraftByTake[take.id] ?? "";
+        const replyingToReplyId = replyingToReplyByTake[take.id] ?? null;
+
+        return (
+        <article key={take.id} className="rounded-2xl border border-white/10 bg-black/40 p-4">
           <div className="flex items-center justify-between gap-3">
-            <Link href={getReceiptHref(call.handle)} className="text-sm font-black text-white transition hover:text-lime-200">
-              {call.handle}
+            <Link href={getReceiptHref(ui.handle)} className="text-sm font-black text-white transition hover:text-lime-200">
+              {ui.handle}
             </Link>
             <span className="rounded-md border border-purple-300/35 bg-purple-500/10 px-2 py-1 text-[10px] font-black uppercase text-purple-200">
-              {call.status}
+              Locked
             </span>
           </div>
-          <p className="mt-3 text-lg font-black leading-tight text-gray-100">{call.text}</p>
+          <p className="mt-3 text-lg font-black leading-tight text-gray-100">{take.take_text}</p>
           <div className="mt-4 flex items-center justify-between text-sm font-black">
-            <span className="text-lime-300">👍 {call.rides}</span>
-            <span className="text-purple-300">👎 {call.fades}</span>
+            <span className="text-lime-300">👍 {take.ride_count}</span>
+            <span className="text-purple-300">👎 {take.fade_count}</span>
           </div>
           <div className="mt-4">
-            {choices[call.handle] ? (
-              <p className="rounded-xl border border-lime-300/35 bg-lime-400/10 px-3 py-2 text-center text-[11px] font-black uppercase tracking-[0.12em] text-lime-300">
-                Choice locked: {choices[call.handle]}
-              </p>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                <ArenaChoiceButton label="Ride" tone="ride" onClick={() => onChoose(call.handle, "ride")} />
-                <ArenaChoiceButton label="Fade" tone="fade" onClick={() => onChoose(call.handle, "fade")} />
+            <div className="grid grid-cols-2 gap-2">
+              <ArenaChoiceButton
+                label={activeReaction === "ride" ? "Riding" : "Ride"}
+                tone="ride"
+                disabled={reactionLoadingTakeId === take.id}
+                onClick={() => onReact(take.id, "ride")}
+              />
+              <ArenaChoiceButton
+                label={activeReaction === "fade" ? "Fading" : "Fade"}
+                tone="fade"
+                disabled={reactionLoadingTakeId === take.id}
+                onClick={() => onReact(take.id, "fade")}
+              />
+            </div>
+          </div>
+
+          <div className="mt-3 border-t border-white/10 pt-3">
+            <button
+              type="button"
+              onClick={() => onToggleReplies(take.id)}
+              className="text-xs font-black uppercase tracking-[0.1em] text-purple-300"
+            >
+              {isRepliesOpen ? "Hide replies" : "View replies"} {take.reply_count ? `${take.reply_count}` : ""}
+            </button>
+            {isRepliesOpen ? (
+              <div className="mt-3 space-y-2">
+                {replies.map((reply) => {
+                  const replyHandle = reply.author?.username ? `@${reply.author.username.replace(/^@/, "")}` : "@Talker";
+                  return (
+                    <div key={reply.id} className="rounded-lg border border-white/10 bg-black/45 p-2">
+                      <p className="text-xs font-black text-white">{replyHandle}</p>
+                      <p className="mt-1 text-sm font-semibold text-gray-200">{reply.reply_text}</p>
+                      <button
+                        type="button"
+                        onClick={() => onReplyToReply(take.id, reply.id)}
+                        className={`mt-1 text-[10px] font-black uppercase tracking-[0.1em] ${
+                          replyingToReplyId === reply.id ? "text-lime-300" : "text-gray-400"
+                        }`}
+                      >
+                        Reply
+                      </button>
+                    </div>
+                  );
+                })}
+                <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                  <input
+                    value={replyDraft}
+                    onChange={(event) => onReplyDraftChange(take.id, event.target.value)}
+                    placeholder={replyingToReplyId ? "Replying to comment..." : "Reply"}
+                    className="min-h-10 rounded-lg border border-white/10 bg-black/55 px-3 text-sm font-semibold text-white outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onSubmitReply(take.id)}
+                    disabled={replyLoadingTakeId === take.id}
+                    className="min-h-10 rounded-lg border border-purple-300/45 bg-purple-500/10 px-3 text-[10px] font-black uppercase tracking-[0.12em] text-purple-100 disabled:opacity-60"
+                  >
+                    {replyLoadingTakeId === take.id ? "Posting..." : "Reply"}
+                  </button>
+                </div>
               </div>
-            )}
+            ) : null}
           </div>
         </article>
-      ))}
+        );
+      })}
     </section>
   );
 }
@@ -863,12 +1161,23 @@ function SignalRow({
   );
 }
 
-function ArenaChoiceButton({ label, tone, onClick }: { label: string; tone: Side; onClick: () => void }) {
+function ArenaChoiceButton({
+  label,
+  tone,
+  disabled = false,
+  onClick,
+}: {
+  label: string;
+  tone: Side;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-11 rounded-xl border text-sm font-black uppercase transition active:scale-95 ${
+      disabled={disabled}
+      className={`min-h-11 rounded-xl border text-sm font-black uppercase transition active:scale-95 disabled:opacity-60 ${
         tone === "ride"
           ? "border-lime-300/45 bg-lime-400/5 text-lime-300"
           : "border-purple-300/55 bg-purple-500/10 text-purple-300"
