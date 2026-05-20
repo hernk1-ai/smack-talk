@@ -14,10 +14,7 @@ export function AppShellPolish({ children }: { children: React.ReactNode }) {
   const hasMounted = useRef(false);
   const [showLaunch, setShowLaunch] = useState(true);
   const [showRouteTransition, setShowRouteTransition] = useState(false);
-  const [isOffline, setIsOffline] = useState(() => {
-    if (typeof navigator === "undefined") return false;
-    return !navigator.onLine;
-  });
+  const [isOffline, setIsOffline] = useState(false);
 
   const reduceMotion = useMemo(() => prefersReducedMotion(), []);
 

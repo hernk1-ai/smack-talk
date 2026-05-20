@@ -611,15 +611,28 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
 const WORLD_CUP_KICKOFF_TARGET = "2026-06-11T15:00:00-04:00";
 
 function PreTournamentCountdown() {
-  const [countdown, setCountdown] = useState(getCountdownLabel());
+  const [mounted, setMounted] = useState(false);
+  const [countdown, setCountdown] = useState("Loading countdown...");
 
   useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setMounted(true);
+      setCountdown(getCountdownLabel());
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) {
+      return;
+    }
+
     const timer = window.setInterval(() => {
       setCountdown(getCountdownLabel());
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, []);
+  }, [mounted]);
 
   return (
     <FeedSection title="Countdown to Kickoff" icon="◷" action="">
