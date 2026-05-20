@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AppHeader } from "@/components/AppHeader";
 import { RouteBottomNav } from "@/components/BottomNav";
@@ -52,6 +52,8 @@ export function MakeCallPage({ match, initialPick, profile, isAuthenticated }: M
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [authMessage, setAuthMessage] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
+  const pendingDraftRef = useRef<PendingCallDraft | null>(null);
+  const autoLockQueuedRef = useRef(false);
 
   const kickoffIso = getWorldCupKickoffIso(match);
   const kickoffLabel = useMemo(() => {
@@ -99,6 +101,7 @@ export function MakeCallPage({ match, initialPick, profile, isAuthenticated }: M
       if (draft.matchId !== match.id) {
         return;
       }
+      pendingDraftRef.current = draft;
 
       const hydrateTimer = window.setTimeout(() => {
         if (draft.selectedWinner) setSelectedWinner(draft.selectedWinner);
@@ -108,7 +111,7 @@ export function MakeCallPage({ match, initialPick, profile, isAuthenticated }: M
 
         if (isAuthenticated && draft.autoLockType) {
           setShowAuthGate(false);
-          setWinnerMessage("Signed in. Your call selections are restored. Lock your call to save the receipt.");
+          setWinnerMessage("Signed in. Restoring your call and locking it now.");
         } else if (!isAuthenticated) {
           setShowAuthGate(true);
         }
@@ -119,6 +122,39 @@ export function MakeCallPage({ match, initialPick, profile, isAuthenticated }: M
       window.localStorage.removeItem(pendingCallKey);
     }
   }, [isAuthenticated, match.id, profile?.username]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!isAuthenticated || lockClosed || autoLockQueuedRef.current) {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const shouldResume = params.get("resume") === "1";
+    const draft = pendingDraftRef.current;
+
+    if (!shouldResume || !draft?.autoLockType || draft.matchId !== match.id) {
+      return;
+    }
+
+    autoLockQueuedRef.current = true;
+
+    const autoLockTimer = window.setTimeout(() => {
+      if (draft.autoLockType === "winner" && !winnerLockedAt) {
+        void lockWinner();
+        return;
+      }
+
+      if (draft.autoLockType === "exact" && !exactLockedAt) {
+        void lockExactScore();
+      }
+    }, 220);
+
+    return () => window.clearTimeout(autoLockTimer);
+  }, [isAuthenticated, lockClosed, match.id, winnerLockedAt, exactLockedAt, lockWinner, lockExactScore]);
 
   async function shareLockedCall() {
     const url = typeof window !== "undefined" ? window.location.href : "/receipts";
