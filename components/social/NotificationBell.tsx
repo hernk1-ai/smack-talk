@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getMyNotifications, getMyUnreadNotificationCount, markNotificationRead, type LocktNotification } from "@/lib/supabase/notifications";
 
 export function NotificationBell() {
@@ -8,6 +8,7 @@ export function NotificationBell() {
   const [notifications, setNotifications] = useState<LocktNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -21,6 +22,34 @@ export function NotificationBell() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handlePointerDown(event: MouseEvent | TouchEvent) {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (!panelRef.current?.contains(target)) {
+        setOpen(false);
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [open]);
 
   async function openPanel() {
     const nextOpen = !open;
@@ -42,7 +71,7 @@ export function NotificationBell() {
   }
 
   return (
-    <div className="relative">
+    <div ref={panelRef} className="relative z-[170]">
       <button
         type="button"
         className="relative grid h-12 w-12 place-items-center rounded-2xl border border-white/15 bg-white/[0.04] text-xl text-white shadow-[0_0_22px_rgba(255,255,255,0.06)] transition active:scale-95"
@@ -57,7 +86,7 @@ export function NotificationBell() {
         ) : null}
       </button>
       {open ? (
-        <section className="absolute right-0 z-30 mt-2 w-80 rounded-2xl border border-white/10 bg-[#090b12] p-3 shadow-[0_20px_40px_rgba(0,0,0,0.55)]">
+        <section className="absolute right-0 z-[180] mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-white/10 bg-[#090b12] p-3 shadow-[0_20px_40px_rgba(0,0,0,0.55)]">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-xs font-black uppercase tracking-[0.12em] text-lime-300">Notifications</p>
             <span className="text-[10px] font-black uppercase text-gray-400">{unreadCount} unread</span>
