@@ -7,7 +7,58 @@ type StarterRewardResult = {
   newRep: number | null;
 };
 
-const STARTER_REP_BONUS = 200;
+const TROPHY_REP_BONUS = 1000;
+
+type TrophyAwardInput = {
+  trophyKey: string;
+  trophyName: string;
+  description: string;
+};
+
+export async function awardTrophyWithRep(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  trophy: TrophyAwardInput,
+) {
+  const { error: trophyError } = await supabase.from("user_trophies").insert({
+    user_id: userId,
+    trophy_key: trophy.trophyKey,
+    trophy_name: trophy.trophyName,
+    description: trophy.description,
+  });
+
+  if (trophyError) {
+    if (trophyError.code === "23505") {
+      return { awarded: false, newRep: null };
+    }
+
+    return { awarded: false, newRep: null };
+  }
+
+  const { data: currentProfile, error: profileError } = await supabase
+    .from("profiles")
+    .select("reputation_score")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (profileError) {
+    return { awarded: false, newRep: null };
+  }
+
+  const nextRep = (currentProfile?.reputation_score ?? 0) + TROPHY_REP_BONUS;
+  const { data: finalProfile, error: repUpdateError } = await supabase
+    .from("profiles")
+    .update({ reputation_score: nextRep })
+    .eq("id", userId)
+    .select("reputation_score")
+    .single();
+
+  if (repUpdateError) {
+    return { awarded: false, newRep: null };
+  }
+
+  return { awarded: true, newRep: finalProfile?.reputation_score ?? nextRep };
+}
 
 export async function awardStarterRepAndFirstLockTrophy(
   supabase: SupabaseClient<Database>,
@@ -23,14 +74,11 @@ export async function awardStarterRepAndFirstLockTrophy(
     return { awarded: false, newRep: null };
   }
 
-  const nextRep = (profileBefore.reputation_score ?? 0) + STARTER_REP_BONUS;
-
   const { data: updatedProfiles, error: updateError } = await supabase
     .from("profiles")
     .update({
       starter_rep_awarded: true,
       level: "Player",
-      reputation_score: nextRep,
     })
     .eq("id", userId)
     .eq("starter_rep_awarded", false)
@@ -45,17 +93,17 @@ export async function awardStarterRepAndFirstLockTrophy(
     return { awarded: false, newRep: null };
   }
 
-  await supabase.from("user_trophies").upsert(
-    {
-      user_id: userId,
-      trophy_key: "first_lock",
-      trophy_name: "First Lock",
-      description: "You made your first World Cup call.",
-    },
-    { onConflict: "user_id,trophy_key", ignoreDuplicates: true },
-  );
+  const trophyAward = await awardTrophyWithRep(supabase, userId, {
+    trophyKey: "first_lock",
+    trophyName: "First Lock",
+    description: "You made your first World Cup call.",
+  });
 
-  return { awarded: true, newRep: updatedProfiles?.[0]?.reputation_score ?? nextRep };
+  if (!trophyAward.awarded) {
+    return { awarded: false, newRep: updatedProfiles?.[0]?.reputation_score ?? null };
+  }
+
+  return { awarded: true, newRep: trophyAward.newRep };
 }
 
 export async function getCurrentUserTrophies() {

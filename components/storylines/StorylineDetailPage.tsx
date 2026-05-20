@@ -76,7 +76,7 @@ export function StorylineDetailPage({ storyline, profile }: { storyline: WorldCu
 
     setTakeText("");
     setTakeStatus("success");
-    setTakeMessage(starterRepAwarded ? "You’re on the board. +200 Starter Rep and First Lock Trophy unlocked." : "Locked before kickoff.");
+    setTakeMessage(starterRepAwarded ? "You’re on the board. +1,000 Starter Rep and First Lock Trophy unlocked." : "Locked before kickoff.");
     if (take) {
       setRelatedTakes((current) => [take as ArenaTake, ...current].slice(0, 12));
     }

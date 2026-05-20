@@ -1053,7 +1053,7 @@ function LockTakeComposer({
             Every receipt starts with a call. Pick a match, choose a side, or call your tournament winner.
           </p>
           <p className="mt-2 text-[11px] font-black uppercase tracking-[0.1em] text-lime-200">
-            Make your first call to unlock: +200 Starter Rep · First Lock Trophy · Player status
+            Make your first call to unlock: +1,000 Starter Rep · First Lock Trophy · Player status
           </p>
         </div>
       ) : null}
@@ -1102,7 +1102,7 @@ function LockTakeComposer({
       {starterRepUnlocked ? (
         <div className="mt-3 rounded-xl border border-lime-300/35 bg-lime-400/10 p-3">
           <p className="text-sm font-black text-lime-100">You&apos;re on the board.</p>
-          <p className="mt-1 text-xs font-semibold text-gray-200">+200 Starter Rep</p>
+          <p className="mt-1 text-xs font-semibold text-gray-200">+1,000 Starter Rep</p>
           <p className="text-xs font-semibold text-gray-200">🏆 First Lock Trophy unlocked</p>
           <p className="text-xs font-semibold text-gray-200">Rookie → Player</p>
           <p className="mt-2 text-xs font-semibold text-gray-300">Your call is pending until the match is played.</p>

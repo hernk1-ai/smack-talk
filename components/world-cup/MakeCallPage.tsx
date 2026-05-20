@@ -564,7 +564,7 @@ export function MakeCallPage({ match, initialPick, profile, isAuthenticated }: M
           {starterRepUnlocked ? (
             <div className="mt-3 rounded-xl border border-lime-300/35 bg-lime-400/10 p-3">
               <p className="text-sm font-black text-lime-100">You&apos;re on the board.</p>
-              <p className="mt-1 text-xs font-semibold text-gray-200">+200 Starter Rep</p>
+              <p className="mt-1 text-xs font-semibold text-gray-200">+1,000 Starter Rep</p>
               <p className="text-xs font-semibold text-gray-200">🏆 First Lock Trophy unlocked</p>
               <p className="text-xs font-semibold text-gray-200">Rookie → Player</p>
               <p className="mt-2 text-xs font-semibold text-gray-300">Your receipt is pending until the match ends.</p>

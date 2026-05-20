@@ -552,7 +552,7 @@ export function ReceiptsScreen({
           <ReceiptSection title="Your receipt board is empty." icon="▤" action="Make My First Call">
             <div className="rounded-2xl border border-white/10 bg-black/45 p-4">
               <p className="text-sm font-semibold text-gray-300">
-                Make your first World Cup call to unlock 200 Starter Rep and your First Lock Trophy.
+                Make your first World Cup call to unlock 1,000 Starter Rep and your First Lock Trophy.
               </p>
             </div>
           </ReceiptSection>
