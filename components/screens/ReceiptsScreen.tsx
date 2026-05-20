@@ -21,6 +21,7 @@ import { getCurrentUserReceipts, getReceiptsByUser } from "@/lib/supabase/receip
 import { getCurrentUserMatchPicks } from "@/lib/supabase/matchPicks";
 import { getFollowingUserIds } from "@/lib/supabase/follows";
 import { getCurrentUserTakes } from "@/lib/supabase/takes";
+import { getCurrentUserQuickPicks } from "@/lib/supabase/quickPicks";
 import type { Profile, Receipt } from "@/lib/supabase/types";
 import { ReportModal } from "@/components/moderation/ReportModal";
 import { buildSiteUrl } from "@/lib/site-url";
@@ -255,6 +256,18 @@ export function ReceiptsScreen({
       status: "locked" | "settled";
     }>
   >([]);
+  const [myQuickPicks, setMyQuickPicks] = useState<
+    Array<{
+      id: string;
+      question_text: string;
+      selected_side: string;
+      pick_type: "momentum" | "scoring" | "tempo" | "clutch" | "outcome";
+      result: "pending" | "hit" | "miss";
+      rep_delta: number;
+      game_id: string;
+      created_at: string;
+    }>
+  >([]);
   const [receiptError, setReceiptError] = useState("");
   const [reportProfileOpen, setReportProfileOpen] = useState(false);
   const preTournamentMode = isPreTournamentMode();
@@ -284,7 +297,12 @@ export function ReceiptsScreen({
       setReceiptError(error ? getUserFacingErrorMessage(error, "Could not load receipts right now.") : "");
 
       if (owner.isCurrentUser) {
-        const [{ takes }, { picks }, { userIds }] = await Promise.all([getCurrentUserTakes(), getCurrentUserMatchPicks(), getFollowingUserIds()]);
+        const [{ takes }, { picks }, { quickPicks }, { userIds }] = await Promise.all([
+          getCurrentUserTakes(),
+          getCurrentUserMatchPicks(),
+          getCurrentUserQuickPicks(),
+          getFollowingUserIds(),
+        ]);
         setMyLockedTakes(
           takes.map((take) => ({
             id: take.id,
@@ -312,6 +330,18 @@ export function ReceiptsScreen({
             winner_rep_delta: pick.winner_rep_delta,
             exact_score_rep_delta: pick.exact_score_rep_delta,
             status: pick.status,
+          })),
+        );
+        setMyQuickPicks(
+          quickPicks.map((pick) => ({
+            id: pick.id,
+            question_text: pick.question_text,
+            selected_side: pick.selected_side,
+            pick_type: pick.pick_type,
+            result: pick.result,
+            rep_delta: pick.rep_delta,
+            game_id: pick.game_id,
+            created_at: pick.created_at,
           })),
         );
 
@@ -434,8 +464,31 @@ export function ReceiptsScreen({
           )}
         </ReceiptSection>
       ) : owner.canViewReceipts && preTournamentMode ? (
-        myLockedTakes.length || myMatchPicks.length ? (
+        myLockedTakes.length || myMatchPicks.length || myQuickPicks.length ? (
           <>
+            {myQuickPicks.length ? (
+              <ReceiptSection title="Quick Picks" icon="◉" action="">
+                <div className="space-y-2">
+                  {myQuickPicks.slice(0, 12).map((pick) => (
+                    <article key={pick.id} className="rounded-2xl border border-white/10 bg-black/45 p-3">
+                      <p className="text-sm font-black text-white">{pick.question_text}</p>
+                      <p className="mt-1 text-xs font-semibold text-gray-300">
+                        Pick: {pick.selected_side} · Type: {pick.pick_type}
+                      </p>
+                      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.1em] text-lime-300">
+                        {pick.result === "pending" ? "Receipt pending" : "Settled"}
+                      </p>
+                      <p className="mt-1 text-xs font-semibold text-gray-400">
+                        Result: {pick.result} · REP {formatSignedRep(pick.rep_delta)}
+                      </p>
+                      <p className="mt-1 text-[11px] font-semibold text-gray-500">
+                        Quick Pick · {formatReceiptAge(pick.created_at)} · {pick.game_id.replaceAll("-", " ")}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              </ReceiptSection>
+            ) : null}
             {myMatchPicks.length ? (
               <ReceiptSection title="Match Picks" icon="◷" action="">
                 <div className="space-y-2">
