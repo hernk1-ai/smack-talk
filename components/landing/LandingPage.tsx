@@ -6,7 +6,6 @@ import { Footer } from "@/components/landing/Footer";
 import { Header } from "@/components/landing/Header";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { PostHogPageView } from "@/components/landing/PostHogPageView";
-import { SocialLinks } from "@/components/landing/SocialLinks";
 
 export function LandingPage() {
   return (
@@ -21,7 +20,6 @@ export function LandingPage() {
         <FeatureCards />
       </div>
       <FAQSection />
-      <SocialLinks />
       <Footer />
     </main>
   );

@@ -27,10 +27,6 @@ export default function SignedOutPage() {
             </span>
           </h1>
           <div className="mx-auto mt-5 h-1.5 w-56 rounded-full bg-gradient-to-r from-lime-300 via-white/50 to-purple-500 shadow-[0_0_24px_rgba(168,85,247,0.34)]" />
-          <p className="mx-auto mt-6 max-w-md text-base font-black uppercase tracking-[0.12em] text-gray-300 sm:text-xl">
-            The Arena will be waiting.
-          </p>
-
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
             <Link
               href="/login"

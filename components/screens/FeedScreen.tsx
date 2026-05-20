@@ -706,7 +706,7 @@ function SportSelector({
 }
 
 function FeedHeader({ profile }: { profile?: Profile | null }) {
-  return <AppHeader profile={profile} subtitle="Match Hub · World Cup 2026" rightHref="/receipts" rightAriaLabel="Profile" />;
+  return <AppHeader profile={profile} subtitle="Match Hub · World Cup 2026" rightAriaLabel="Profile" />;
 }
 
 function getReceiptHref(handle: string) {

@@ -25,7 +25,6 @@ export default async function SchedulePage() {
         <AppHeader
           subtitle="Browse World Cup matches and lock your calls."
           profile={profile}
-          rightHref="/schedule"
           rightAriaLabel="Schedule"
         />
         <WorldCupSchedule />

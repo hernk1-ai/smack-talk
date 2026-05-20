@@ -38,7 +38,7 @@ export function FollowersPage() {
     <>
       <main className="min-h-dvh bg-black px-4 py-6 pb-28 text-white">
         <div className="page-rhythm mx-auto w-full max-w-2xl screen-safe-bottom">
-          <AppHeader subtitle="People following your World Cup calls." rightHref="/receipts" rightAriaLabel="Receipts" />
+          <AppHeader subtitle="People following your World Cup calls." rightAriaLabel="Receipts" />
 
           <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4">
             <h1 className="sports-display text-3xl italic leading-none text-white">Followers</h1>

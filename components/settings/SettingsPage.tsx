@@ -400,7 +400,7 @@ function SettingsHeader({ profile, avatarUrl }: { profile?: Profile | null; avat
   const username = profile?.username || "LOCKT";
   void avatarUrl;
 
-  return <AppHeader profile={profile} subtitle="Account settings. Keep your identity clean." rightHref="/settings" rightAriaLabel={`${username} settings`} />;
+  return <AppHeader profile={profile} subtitle="Account settings. Keep your identity clean." rightAriaLabel={`${username} settings`} />;
 }
 
 function ProfilePictureSettings({

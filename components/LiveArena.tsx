@@ -221,7 +221,7 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
   return (
     <main className="min-h-dvh overflow-x-hidden bg-transparent pb-4 pt-[calc(1rem+env(safe-area-inset-top))] text-white sm:pb-5 sm:pt-5">
       <div className="arena-shell screen-safe-bottom space-y-5">
-        <AppHeader subtitle="Game Room · World Cup calls and control room." rightHref="/receipts" rightAriaLabel="Profile" />
+        <AppHeader subtitle="Game Room · World Cup calls and control room." rightAriaLabel="Profile" />
         <button
           type="button"
           onClick={onBack}

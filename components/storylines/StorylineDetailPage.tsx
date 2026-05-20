@@ -132,7 +132,7 @@ export function StorylineDetailPage({ storyline, profile }: { storyline: WorldCu
   return (
     <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white sm:py-6">
       <div className="feed-shell screen-safe-bottom space-y-4 pb-24">
-        <AppHeader subtitle="Storyline detail and discussion." profile={profile} rightHref="/app" rightAriaLabel="Arena" />
+        <AppHeader subtitle="Storyline detail and discussion." profile={profile} rightAriaLabel="Arena" />
         <div className="px-1">
           <Link href="/app" className="text-xs font-black uppercase tracking-[0.1em] text-lime-300">← Back to Arena</Link>
         </div>

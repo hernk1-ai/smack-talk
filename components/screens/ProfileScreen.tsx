@@ -128,7 +128,7 @@ function CompleteProfilePrompt() {
 }
 
 function ProfileHeader({ profile }: { profile?: Profile | null }) {
-  return <AppHeader profile={profile} subtitle="Your World Cup reputation profile." rightHref="/receipts" rightAriaLabel="Receipts" />;
+  return <AppHeader profile={profile} subtitle="Your World Cup reputation profile." rightAriaLabel="Receipts" />;
 }
 
 function ProfileIdentityCard({ profile }: { profile?: Profile | null }) {

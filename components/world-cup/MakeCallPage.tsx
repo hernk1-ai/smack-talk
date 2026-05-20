@@ -384,7 +384,6 @@ export function MakeCallPage({ match, initialPick, profile, isAuthenticated }: M
         <AppHeader
           subtitle="Make your World Cup call before kickoff."
           profile={profile}
-          rightHref="/schedule"
           rightAriaLabel="Schedule"
         />
 

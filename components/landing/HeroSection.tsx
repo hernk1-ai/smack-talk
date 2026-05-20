@@ -3,7 +3,7 @@ import Link from "next/link";
 export function HeroSection() {
   return (
     <section id="about" className="relative overflow-hidden border-b border-white/10">
-      <div className="landing-shell grid min-h-[calc(100dvh-4.5rem)] items-start gap-6 py-6 sm:py-10 lg:pb-14 lg:pt-10">
+      <div className="landing-shell grid items-start gap-6 py-8 sm:py-10 lg:pb-12 lg:pt-10">
         <div className="hero-copy relative mx-auto w-full max-w-4xl text-center">
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-lime-300 sm:text-xs">World Cup 2026</p>
 
