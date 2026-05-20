@@ -1,6 +1,5 @@
 "use client";
 
-import { WaitlistForm } from "@/components/landing/WaitlistForm";
 import { useEffect, useState } from "react";
 
 const WORLD_CUP_KICKOFF_DATE = "2026-06-11T15:00:00-04:00";
@@ -54,20 +53,19 @@ export function CountdownSection() {
   ];
 
   return (
-    <section id="waitlist" className="scroll-mt-24 border-b border-white/10 py-12 sm:py-20">
+    <section id="countdown" className="scroll-mt-24 border-b border-white/10 py-10 sm:py-14">
       <div className="landing-shell">
-        <div className="grid gap-8 lg:grid-cols-[0.85fr_1fr] lg:items-center">
-          <div>
+        <div className="mx-auto max-w-4xl text-center">
             <p className="text-lg font-black uppercase italic tracking-[0.12em] text-purple-300">World Cup Kickoff Countdown</p>
             <h2 className="sports-display mt-2 text-6xl leading-none text-white sm:text-8xl">Countdown to World Cup 2026</h2>
-            <div className="mt-4 h-1.5 w-64 max-w-full rounded-full bg-gradient-to-r from-lime-300 to-purple-500" />
+            <div className="mx-auto mt-4 h-1.5 w-64 max-w-full rounded-full bg-gradient-to-r from-lime-300 to-purple-500" />
 
             <p className="mt-7 text-2xl font-black text-white">Mexico vs South Africa · June 11, 2026</p>
-            <p className="mt-4 max-w-xl text-base font-semibold leading-7 text-gray-300">
+            <p className="mx-auto mt-4 max-w-xl text-base font-semibold leading-7 text-gray-300">
               Study the groups, track the schedule, and lock your World Cup calls before kickoff.
             </p>
 
-            <div className="mt-8 grid grid-cols-4 gap-2 sm:max-w-md sm:gap-4">
+            <div className="mx-auto mt-8 grid max-w-md grid-cols-4 gap-2 sm:gap-4">
               {units.map((unit) => (
                 <div key={unit.label}>
                   <p className="scoreboard-number text-4xl text-lime-300 sm:text-5xl">
@@ -79,11 +77,6 @@ export function CountdownSection() {
                 </div>
               ))}
             </div>
-          </div>
-
-          <div className="arena-surface rounded-[2rem] border border-purple-400/35 p-4 shadow-[0_30px_90px_rgba(0,0,0,0.52),0_0_44px_rgba(168,85,247,0.08)] sm:p-6">
-            <WaitlistForm />
-          </div>
         </div>
       </div>
     </section>

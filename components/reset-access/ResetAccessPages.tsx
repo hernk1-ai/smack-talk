@@ -52,7 +52,6 @@ export function ForgotPasswordPage() {
         <BackToLogin />
         <ResetLogo />
         <ResetHeadline first="Reset Your" second="Access" />
-        <p className="mt-6 text-center text-base font-semibold text-gray-300">The Arena isn&apos;t going anywhere.</p>
         <MailMark />
 
         <form onSubmit={handleSubmit} className="mt-9 text-left">
@@ -392,7 +391,7 @@ function PasswordResetEmailPreview() {
           Reset Your
           <span className="bg-gradient-to-r from-white to-purple-400 bg-clip-text text-transparent"> Access.</span>
         </h2>
-        <p className="mt-4 text-xl font-black text-white">The Arena is waiting.</p>
+        <p className="mt-4 text-xl font-black text-white">Thank you,</p>
         <p className="mt-6 max-w-md text-sm font-semibold leading-6 text-gray-400">
           We received a request to reset your LOCKT password. Click the button below to create a new password and
           get back in the game.

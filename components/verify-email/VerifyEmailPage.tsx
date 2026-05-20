@@ -120,9 +120,6 @@ function VerifyCard({ canResend, email }: { canResend: boolean; email: string })
       </h1>
       <div className="mx-auto mt-4 h-1.5 w-56 rounded-full bg-gradient-to-r from-lime-300 via-white/45 to-purple-500 shadow-[0_0_24px_rgba(132,204,22,0.3)]" />
 
-      <p className="mt-7 text-sm font-black uppercase tracking-[0.18em] text-gray-200 sm:text-lg">
-        Your Arena access is waiting.
-      </p>
       <p className="mx-auto mt-5 max-w-md text-base font-semibold leading-7 text-gray-300">
         We sent a verification link to
         <span className="block font-black text-lime-300">{email}</span>

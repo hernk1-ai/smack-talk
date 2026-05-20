@@ -4,14 +4,13 @@ import Link from "next/link";
 import { ACTIVE_GAME_ID } from "@/lib/supabase/games";
 
 export type AppView = "arena" | "live-arena" | "receipts" | "top-talkers" | "profile" | "schedule";
-type PrimaryNavView = "match-hub" | "schedule" | "game-room" | "calls" | "profile";
+type PrimaryNavView = "match-hub" | "schedule" | "game-room" | "profile";
 type NavView = PrimaryNavView | "arena" | "receipts" | "settings";
 
 const navItems: { id: PrimaryNavView; label: string; icon: string }[] = [
   { id: "match-hub", label: "Match Hub", icon: "◉" },
   { id: "schedule", label: "Schedule", icon: "◷" },
   { id: "game-room", label: "Game Room", icon: "▦" },
-  { id: "calls", label: "Calls", icon: "✎" },
   { id: "profile", label: "Profile", icon: "▤" },
 ];
 
@@ -19,7 +18,6 @@ function toPrimaryNav(view: NavView | AppView): PrimaryNavView {
   if (view === "live-arena" || view === "game-room") return "game-room";
   if (view === "receipts" || view === "profile" || view === "settings") return "profile";
   if (view === "arena") return "match-hub";
-  if (view === "calls") return "calls";
   return "schedule";
 }
 
@@ -28,7 +26,7 @@ export function BottomNav({ activeView, onSelect }: { activeView: AppView; onSel
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-[#02040a]/95 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-18px_50px_rgba(0,0,0,0.45)] backdrop-blur">
-      <div className="bottom-nav-shell grid grid-cols-5 gap-1 rounded-[1.4rem] border border-white/10 bg-white/5 p-2">
+      <div className="bottom-nav-shell grid grid-cols-4 gap-1 rounded-[1.4rem] border border-white/10 bg-white/5 p-2">
         {navItems.map((item) => (
           <button
             key={item.id}
@@ -51,7 +49,6 @@ const routeByView: Record<NavView, string> = {
   "match-hub": "/app",
   schedule: "/schedule",
   "game-room": `/game/${ACTIVE_GAME_ID}`,
-  calls: "/calls",
   profile: "/receipts",
   arena: "/app",
   receipts: "/receipts",
@@ -63,7 +60,7 @@ export function RouteBottomNav({ activeView }: { activeView: NavView }) {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-[#02040a]/95 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-18px_50px_rgba(0,0,0,0.45)] backdrop-blur">
-      <div className="bottom-nav-shell grid grid-cols-5 gap-1 rounded-[1.4rem] border border-white/10 bg-white/5 p-2">
+      <div className="bottom-nav-shell grid grid-cols-4 gap-1 rounded-[1.4rem] border border-white/10 bg-white/5 p-2">
         {navItems.map((item) => (
           <Link
             key={item.id}

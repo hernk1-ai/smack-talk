@@ -10,29 +10,6 @@ import { createClient } from "@/lib/supabase/client";
 import { getCurrentProfile, getPostLoginRedirect } from "@/lib/supabase/profiles";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 
-const featureCards = [
-  {
-    title: "Back Your Takes",
-    body: "No cap. Just you.",
-    icon: "♜",
-  },
-  {
-    title: "Build Your Rep",
-    body: "Earn respect. Lose it fast.",
-    icon: "☷",
-  },
-  {
-    title: "Compete Daily",
-    body: "Real matchups. Real receipts.",
-    icon: "♕",
-  },
-  {
-    title: "Receipts Never Lie",
-    body: "The tape doesn't forget.",
-    icon: "▤",
-  },
-];
-
 export function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -124,10 +101,6 @@ export function LoginPage() {
             </span>
           </h1>
           <div className="mx-auto mt-4 h-1.5 w-56 rounded-full bg-gradient-to-r from-lime-300 via-white/50 to-purple-500 shadow-[0_0_24px_rgba(168,85,247,0.34)]" />
-          <p className="mt-5 text-base font-black uppercase tracking-[0.14em] text-gray-300 sm:text-xl">
-            The Arena&apos;s still talking.
-          </p>
-
           <LoginCard
             email={email}
             keepSignedIn={keepSignedIn}
@@ -145,10 +118,6 @@ export function LoginPage() {
             onGoogleSignIn={handleGoogleSignIn}
           />
         </section>
-
-        <FeatureRow />
-        <ProofSection />
-        <LoginFooter />
       </div>
     </main>
   );
@@ -284,12 +253,12 @@ function LoginCard({
         <span className="grid h-12 w-12 place-items-center rounded-full border border-purple-300/35 bg-purple-500/15 text-3xl text-purple-300">
           ⚽
         </span>
-        <span>
-          <span className="block text-sm font-black uppercase tracking-[0.12em] text-lime-300">New Here?</span>
-          <span className="mt-1 block text-sm font-semibold text-gray-300">Claim your spot in the Arena.</span>
-        </span>
-        <span className="text-3xl text-gray-300">›</span>
-      </Link>
+          <span>
+            <span className="block text-sm font-black uppercase tracking-[0.12em] text-lime-300">New Here?</span>
+            <span className="mt-1 block text-sm font-semibold text-gray-300">Start your World Cup board.</span>
+          </span>
+          <span className="text-3xl text-gray-300">›</span>
+        </Link>
     </form>
   );
 }
@@ -301,60 +270,6 @@ function SectionTitle({ children }: { children: ReactNode }) {
       <h2 className="text-center text-sm font-black uppercase tracking-[0.22em] text-purple-300">{children}</h2>
       <div className="h-px flex-1 bg-gradient-to-l from-transparent to-purple-500/70" />
     </div>
-  );
-}
-
-function FeatureRow() {
-  return (
-    <section className="grid gap-3 border-t border-white/10 py-8 sm:grid-cols-2 lg:grid-cols-4">
-      {featureCards.map((card) => (
-        <article
-          key={card.title}
-          className="rounded-2xl border border-white/10 bg-black/35 p-4 text-center transition hover:-translate-y-1 hover:border-purple-300/40 hover:bg-white/[0.035]"
-        >
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-purple-300/40 bg-purple-500/10 text-3xl text-purple-300">
-            {card.icon}
-          </div>
-          <h3 className="mt-4 text-sm font-black uppercase tracking-[0.1em] text-white">{card.title}</h3>
-          <p className="mt-2 text-sm font-semibold leading-5 text-gray-400">{card.body}</p>
-        </article>
-      ))}
-    </section>
-  );
-}
-
-function ProofSection() {
-  return (
-    <section className="rounded-[1.75rem] border border-white/10 bg-black/45 p-6 text-center shadow-[0_22px_70px_rgba(0,0,0,0.42)]">
-      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4">
-        <p className="hidden text-6xl leading-none text-lime-300 sm:block">“</p>
-        <div>
-          <h2 className="sports-display text-4xl italic leading-none text-white sm:text-5xl">The world is watching.</h2>
-          <p className="mt-4 text-sm font-black uppercase tracking-[0.18em] text-gray-400">
-            Your receipts. Your legacy. Your name on the board.
-          </p>
-          <div className="mx-auto mt-5 h-1 w-40 rounded-full bg-gradient-to-r from-lime-300 to-purple-500" />
-        </div>
-        <p className="hidden text-6xl leading-none text-lime-300 sm:block">”</p>
-      </div>
-    </section>
-  );
-}
-
-function LoginFooter() {
-  return (
-    <footer className="grid gap-4 py-7 text-center text-xs font-semibold text-gray-400 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:text-left">
-      <LogoLockup size="small" />
-      <p className="font-black uppercase tracking-[0.18em] text-lime-300">
-        Built on takes. <span className="text-purple-400">Backed by receipts.</span>
-      </p>
-      <p>
-        Need help?{" "}
-        <a className="font-black text-purple-300 transition hover:text-lime-300" href="mailto:support@getlockt.com">
-          Contact support
-        </a>
-      </p>
-    </footer>
   );
 }
 

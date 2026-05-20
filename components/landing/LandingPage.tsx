@@ -17,11 +17,11 @@ export function LandingPage() {
       <div className="relative isolate overflow-hidden">
         <ArenaBackground />
         <HeroSection />
+        <CountdownSection />
         <FeatureCards />
       </div>
-      <CountdownSection />
-      <SocialLinks />
       <FAQSection />
+      <SocialLinks />
       <Footer />
     </main>
   );

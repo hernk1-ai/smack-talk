@@ -53,7 +53,7 @@ const chatTakes: ChatTake[] = [
     handle: "@TalkHeavy23",
     avatar: "TH",
     timestamp: "1m ago",
-    text: "Bro they can't guard anybody.",
+    text: "Mexico controls midfield early.",
     heat: 128,
   },
   {
@@ -61,7 +61,7 @@ const chatTakes: ChatTake[] = [
     handle: "@MidRange",
     avatar: "MR",
     timestamp: "1m ago",
-    text: "Lmao everybody switched sides.",
+    text: "This group just got wide open.",
     heat: 96,
   },
   {
@@ -69,7 +69,7 @@ const chatTakes: ChatTake[] = [
     handle: "@FadeKing",
     avatar: "FK",
     timestamp: "just now",
-    text: "That was a terrible shot.",
+    text: "Paraguay can steal this one.",
     heat: 212,
     tag: "fade",
   },
@@ -78,7 +78,7 @@ const chatTakes: ChatTake[] = [
     handle: "@HoopDreams",
     avatar: "HD",
     timestamp: "just now",
-    text: "He's cooking them right now.",
+    text: "Brazil is cooking down the wing.",
     heat: 74,
     tag: "ride",
   },
@@ -87,7 +87,7 @@ const chatTakes: ChatTake[] = [
     handle: "@NoMercy",
     avatar: "NM",
     timestamp: "just now",
-    text: "No way they hold this lead.",
+    text: "No way they hold this lead after halftime.",
     heat: 52,
   },
 ];
@@ -95,21 +95,21 @@ const chatTakes: ChatTake[] = [
 const liveCalls: LiveCall[] = [
   {
     handle: "@BucketsOnly",
-    text: "This crowd got quiet fast.",
+    text: "United States starts fast and wins this.",
     rides: "2.1K",
     fades: "842",
     status: "Locked",
   },
   {
     handle: "@FadeKing",
-    text: "They're settling for bad looks now.",
+    text: "Canada is too organized to drop points here.",
     rides: "488",
     fades: "1.4K",
     status: "Fade",
   },
   {
     handle: "@HoopDreams",
-    text: "Bench just flipped this game.",
+    text: "France takes over in the second half.",
     rides: "912",
     fades: "215",
     status: "Ride",
@@ -334,7 +334,7 @@ function ArenaHeader({ onBack, game }: { onBack: () => void; game: Game | null }
           </h1>
           <p className="mt-1 hidden items-center gap-2 text-xs font-black uppercase tracking-[0.1em] text-gray-300 sm:flex">
             <span className="h-2.5 w-2.5 rounded-full bg-lime-400 shadow-[0_0_16px_rgba(132,204,22,0.75)]" />
-            {formatCompact(game?.watching_count ?? 0)} <span className="text-gray-500">{game?.status === "live" ? "Talkers Live" : game?.status === "final" ? "Crowd settled" : "Pregame lobby"}</span>
+            {formatCompact(game?.watching_count ?? 0)} <span className="text-gray-500">{game?.status === "live" ? "Fans Live" : game?.status === "final" ? "Final whistle" : "Pregame room"}</span>
           </p>
         </div>
       </div>
@@ -424,7 +424,7 @@ function ArenaScoreboard({
           <p className="mt-3 text-xs font-black uppercase text-purple-300">{period}</p>
           {clock ? <p className="scoreboard-number mt-1 text-4xl text-white">{clock}</p> : null}
           <p className="mt-2 flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-gray-300">
-            <span className="h-2 w-2 rounded-full bg-lime-400" /> {status === "scheduled" ? `Tipoff ${startsAt}` : status === "live" ? `${formatCompact(watching)} Talkers Live` : "Final whistle"}
+            <span className="h-2 w-2 rounded-full bg-lime-400" /> {status === "scheduled" ? `Kickoff ${startsAt}` : status === "live" ? `${formatCompact(watching)} Fans Live` : "Final whistle"}
           </p>
           <p className="text-[10px] font-black uppercase text-gray-500">{status === "scheduled" ? "Pregame" : status === "final" ? "Final" : period}</p>
           <span className="mx-auto mt-3 grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/60 text-[10px] font-black text-gray-300">
@@ -461,7 +461,7 @@ function ArenaScoreboard({
         <div>
           <p className="text-[10px] font-black uppercase text-gray-400">Crowd Split</p>
           <p className="mt-1 text-2xl font-black text-lime-300">{ridePct}% / {fadePct}%</p>
-          <p className="text-[10px] font-black uppercase text-red-300">{status === "scheduled" ? "Arena warming up" : status === "final" ? "Crowd settled" : "Arena heating up"}</p>
+          <p className="text-[10px] font-black uppercase text-red-300">{status === "scheduled" ? "Match room warming up" : status === "final" ? "Crowd settled" : "Match room live"}</p>
         </div>
         <div className="border-y border-white/10 py-3 text-center sm:border-x sm:border-y-0 sm:px-4 sm:py-0">
           <p className="text-[10px] font-black uppercase text-gray-400">Momentum</p>
@@ -507,11 +507,11 @@ function QuickPickPanel({
     <section className="mt-4 rounded-xl border border-white/10 bg-black/45 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-gray-400">Quick Picks</p>
-          <p className="mt-1 text-[11px] font-bold text-gray-300">{formatRepSwing(QUICK_PICK_WIN, QUICK_PICK_LOSS)} REP · fast loop</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-gray-400">Quick Calls</p>
+          <p className="mt-1 text-[11px] font-bold text-gray-300">{formatRepSwing(QUICK_PICK_WIN, QUICK_PICK_LOSS)} REP · match loop</p>
         </div>
         <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-gray-300">
-          Live Queue
+          Match Queue
         </span>
       </div>
 
@@ -559,7 +559,7 @@ function QuickPickPanel({
         {crowdLine || "Crowd flips fast. Keep firing."}
       </p>
       <p className="mt-1 text-center text-[10px] font-bold text-gray-500">
-        {message || "Quick Picks rotate automatically."}
+        {message || "Quick Calls rotate automatically."}
       </p>
     </section>
   );
@@ -623,20 +623,20 @@ function getQuickPickQuestions({
 
   if (status === "scheduled") {
     pool.push(
-      buildPick("pregame-first-score", "scoring", "First bucket team?", awayTeam, homeTeam),
+      buildPick("pregame-first-score", "scoring", "Who scores first?", awayTeam, homeTeam),
       buildPick("pregame-upset", "outcome", "Upset incoming?", "Yes", "No"),
       buildPick("pregame-trap", "tempo", "Trap game tonight?", "Trap", "Safe"),
-      buildPick("pregame-crowd", "momentum", "Crowd switching sides before tip?", "Switching", "Holding"),
+      buildPick("pregame-crowd", "momentum", "Crowd switching sides before kickoff?", "Switching", "Holding"),
       buildPick("pregame-starter", "clutch", "Hot start from " + awayTeam + "?", "Yes", "No"),
     );
   }
 
   if (status === "live") {
     pool.push(
-      buildPick("live-next-score", "scoring", "Next score by?", awayTeam, homeTeam),
-      buildPick("live-turnover", "tempo", "Next turnover?", awayTeam, homeTeam),
-      buildPick("live-run", "momentum", "10-0 run incoming?", "Yes", "No"),
-      buildPick("live-clutch", "clutch", "Clutch shot incoming?", "Yes", "No"),
+      buildPick("live-next-score", "scoring", "Next goal by?", awayTeam, homeTeam),
+      buildPick("live-turnover", "tempo", "Next big chance?", awayTeam, homeTeam),
+      buildPick("live-run", "momentum", "Momentum swing incoming?", "Yes", "No"),
+      buildPick("live-clutch", "clutch", "Clutch moment incoming?", "Yes", "No"),
       buildPick("live-crowd", "momentum", "Crowd switching sides?", "Switch", "Stay"),
     );
 
@@ -644,14 +644,14 @@ function getQuickPickQuestions({
       pool.push(
         buildPick("live-ot", "outcome", "OT incoming?", "Yes", "No"),
         buildPick("live-close", "clutch", "Who closes this?", awayTeam, homeTeam),
-        buildPick("live-last-shot", "clutch", "Last shot incoming?", "Yes", "No"),
+        buildPick("live-last-shot", "clutch", "Late winner incoming?", "Yes", "No"),
       );
     }
 
     if (blowout) {
       pool.push(
         buildPick("live-comeback", "outcome", "Comeback alive?", "Alive", "Cooked"),
-        buildPick("live-bench", "tempo", "Empty the bench?", "Yes", "No"),
+        buildPick("live-bench", "tempo", "Game already decided?", "Yes", "No"),
         buildPick("live-checked-out", "momentum", "Crowd checked out?", "Checked out", "Still loud"),
       );
     }
@@ -659,14 +659,14 @@ function getQuickPickQuestions({
     if (!closeGame && !blowout) {
       pool.push(
         buildPick("live-flip", "momentum", "Game flipped already?", "Flipped", "Still steady"),
-        buildPick("live-winner", "outcome", "Game winner incoming?", "Yes", "No"),
+        buildPick("live-winner", "outcome", "Match winner incoming?", "Yes", "No"),
       );
     }
 
     if (lateGame) {
       pool.push(
         buildPick("live-late-ot", "outcome", "OT incoming late?", "Yes", "No"),
-        buildPick("live-late-shot", "clutch", "Big shot from " + leader + "?", "Yes", "No"),
+        buildPick("live-late-shot", "clutch", "Big moment from " + leader + "?", "Yes", "No"),
       );
     }
   }
@@ -674,7 +674,7 @@ function getQuickPickQuestions({
   if (status === "final") {
     pool.push(
       buildPick("final-lock", "outcome", "" + leader + " closes this clean?", "Yes", "No"),
-      buildPick("final-next", "momentum", "Next game same energy?", "Run it back", "Reset"),
+      buildPick("final-next", "momentum", "Next match same energy?", "Run it back", "Reset"),
       buildPick("final-crowd", "tempo", "Crowd still talking?", "Still loud", "Quiet now"),
     );
   }
@@ -696,7 +696,7 @@ function getQuickPickCrowdLine(game: Game | null, question?: QuickPickQuestion) 
     "Everybody riding " + awayTeam + " now",
     "Bro this game flipped fast",
     "No way they choke this",
-    "This crowd changes every possession",
+    "This crowd changes every attack",
     "" + homeTeam + " fans getting loud again",
   ];
 
@@ -759,9 +759,9 @@ function ScoreTeam({
 
 function ArenaTabs({ activeTab, onSelect }: { activeTab: ArenaTab; onSelect: (tab: ArenaTab) => void }) {
   const tabs: { id: ArenaTab; label: string; count?: string }[] = [
-    { id: "chat", label: "Chat" },
-    { id: "calls", label: "Calls", count: "132" },
-    { id: "control-room", label: "Control Room" },
+    { id: "chat", label: "Early Call Feed" },
+    { id: "calls", label: "Match Calls", count: "132" },
+    { id: "control-room", label: "Lock Your Take" },
   ];
 
   return (
@@ -792,6 +792,16 @@ function ArenaTabs({ activeTab, onSelect }: { activeTab: ArenaTab; onSelect: (ta
 function ChatPanel() {
   return (
     <section className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/30 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
+      <div className="border-b border-white/10 bg-black/40 p-4">
+        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime-300">Lock Your Take</p>
+        <p className="mt-1 text-sm font-semibold text-gray-300">Make your World Cup call before kickoff.</p>
+        <Link
+          href="/schedule"
+          className="mt-3 inline-flex min-h-10 items-center justify-center rounded-lg border border-lime-300/50 bg-lime-400/10 px-3 text-[11px] font-black uppercase tracking-[0.12em] text-lime-200 transition hover:bg-lime-400/20"
+        >
+          Make Call
+        </Link>
+      </div>
       <PinnedCall />
 
       <div className="divide-y divide-white/10">
@@ -801,7 +811,7 @@ function ChatPanel() {
       </div>
 
       <div className="border-t border-white/10 p-4">
-        <p className="text-sm font-black text-gray-400">⌛ Slow Mode is On</p>
+      <p className="text-sm font-black text-gray-400">⌛ Cooldown is On</p>
         <p className="mt-1 text-xs font-semibold text-gray-500">You can send a message every 10 seconds.</p>
       </div>
     </section>
@@ -812,14 +822,14 @@ function PinnedCall() {
   return (
     <article className="border-b border-purple-400/35 bg-purple-500/10 p-4 shadow-[0_0_34px_rgba(168,85,247,0.12)]">
       <div className="flex items-center justify-between gap-3">
-        <p className="sports-display text-xl italic leading-none text-purple-200">📌 Pinned Call</p>
+        <p className="sports-display text-xl italic leading-none text-purple-200">📌 Featured Call</p>
         <p className="min-w-0 truncate text-xs font-bold text-gray-300">
           @BucketsOnly <span className="text-purple-300">◆</span> <span className="text-gray-500">7m ago</span>
         </p>
       </div>
       <div className="mt-3 grid grid-cols-[1fr_auto] items-center gap-3">
         <h2 className="sports-display text-2xl italic leading-tight text-white sm:text-3xl">
-          This crowd got quiet fast.
+          United States finds the opener.
         </h2>
         <span className="text-3xl text-gray-300">›</span>
       </div>
@@ -918,7 +928,7 @@ function ControlRoomPanel({ game }: { game: Game | null }) {
 
   return (
     <section className="rounded-[1.5rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
-      <PanelHeader title="Control Room" />
+      <PanelHeader title="Lock Your Take" />
       <p className="mt-4 text-[10px] font-black uppercase text-gray-400">Crowd Sentiment</p>
       <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
         <div>
@@ -980,9 +990,9 @@ function TopTalkersPanel() {
 function ArenaVibePanel() {
   return (
     <section className="rounded-[1.5rem] border border-purple-300/35 bg-purple-500/10 p-5 text-center shadow-[0_0_34px_rgba(168,85,247,0.16)]">
-      <p className="text-xs font-black uppercase tracking-[0.16em] text-purple-200">Arena Vibe</p>
-      <p className="sports-display mt-2 text-5xl italic leading-none text-purple-300">Toxic ☠</p>
-      <p className="mt-3 text-sm font-semibold text-gray-300">Emotions high. Watch your back.</p>
+      <p className="text-xs font-black uppercase tracking-[0.16em] text-purple-200">Match Room Vibe</p>
+      <p className="sports-display mt-2 text-5xl italic leading-none text-purple-300">Pumped ⚽</p>
+      <p className="mt-3 text-sm font-semibold text-gray-300">World Cup energy is building.</p>
     </section>
   );
 }

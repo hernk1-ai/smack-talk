@@ -641,6 +641,14 @@ function ReceiptIdentityCard({
                 >
                   {shareOpen ? "Hide Share" : "Share"}
                 </button>
+                {owner.isCurrentUser ? (
+                  <Link
+                    href="/settings"
+                    className="rounded-lg border border-white/15 bg-white/[0.03] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-gray-300 transition hover:border-lime-300/35 hover:text-lime-200"
+                  >
+                    Settings
+                  </Link>
+                ) : null}
               </div>
               {shareOpen ? (
                 <div className="mt-3 rounded-xl border border-white/10 bg-black/40 p-2">

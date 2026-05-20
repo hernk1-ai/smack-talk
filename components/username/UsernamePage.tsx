@@ -7,12 +7,6 @@ import { LocktLogo } from "@/components/LocktLogo";
 import { createClient } from "@/lib/supabase/client";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 
-const reminders = [
-  { icon: "◉", label: "The Arena", value: "Is Watching", tone: "green" },
-  { icon: "◆", label: "Talk Gets", value: "Remembered", tone: "purple" },
-  { icon: "▣", label: "No", value: "Take Backs", tone: "green" },
-];
-
 export function UsernamePage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
@@ -152,8 +146,6 @@ export function UsernamePage() {
               </p>
             )}
 
-            <ReminderRow />
-
             <button
               type="submit"
               disabled={isLoading}
@@ -185,34 +177,6 @@ function UsernameHeader() {
       </Link>
       <div aria-hidden="true" />
     </header>
-  );
-}
-
-function ReminderRow() {
-  return (
-    <section className="mt-8 grid gap-3 sm:grid-cols-3">
-      {reminders.map((reminder) => (
-        <article
-          key={reminder.label}
-          className="flex items-center justify-center gap-4 border-white/10 bg-black/20 py-3 text-left sm:border-l sm:first:border-l-0"
-        >
-          <span
-            className={`text-4xl ${
-              reminder.tone === "green"
-                ? "text-lime-300 drop-shadow-[0_0_16px_rgba(132,204,22,0.45)]"
-                : "text-purple-400 drop-shadow-[0_0_16px_rgba(168,85,247,0.45)]"
-            }`}
-            aria-hidden="true"
-          >
-            {reminder.icon}
-          </span>
-          <p className="text-sm font-black uppercase leading-6 tracking-[0.12em] text-white sm:text-base">
-            {reminder.label}
-            <span className="block text-gray-300">{reminder.value}</span>
-          </p>
-        </article>
-      ))}
-    </section>
   );
 }
 

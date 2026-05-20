@@ -8,7 +8,7 @@ import { LocktLogo } from "@/components/LocktLogo";
 const navLinks = [
   { label: "About", href: "#about" },
   { label: "Features", href: "#features" },
-  { label: "The Arena", href: "#waitlist" },
+  { label: "Countdown", href: "#countdown" },
   { label: "FAQ", href: "#faq" },
 ];
 
