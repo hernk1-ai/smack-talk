@@ -67,6 +67,7 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
   const [newTakeText, setNewTakeText] = useState("");
   const [isLockingTake, setIsLockingTake] = useState(false);
   const [takesMessage, setTakesMessage] = useState("");
+  const [postToFeedNotice, setPostToFeedNotice] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const awayTeam = game?.away_team ?? "AWAY";
   const homeTeam = game?.home_team ?? "HOME";
@@ -78,12 +79,13 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
     let isMounted = true;
 
     async function loadGameAndQuickPicks() {
-      const [{ game: loadedGame }, { quickPicks }, { takes }, { data: authState }] = await Promise.all([
+      const [{ game: loadedGame }, { quickPicks }, { data: authState }] = await Promise.all([
         getGameById(gameId),
         getMyQuickPicks(gameId),
-        getArenaFeed(gameId),
         supabase?.auth.getSession() ?? Promise.resolve({ data: { session: null } }),
       ]);
+      const effectiveGameId = loadedGame?.id ?? gameId;
+      const { takes } = await getArenaFeed(effectiveGameId);
 
       if (!isMounted) {
         return;
@@ -147,7 +149,7 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
       return;
     }
 
-    const { takes, error: refreshError } = await getArenaFeed(gameId);
+    const { takes, error: refreshError } = await getArenaFeed(take.game_id);
     if (!refreshError) {
       setFeedTakes(takes);
       const { reactionMap } = await getCurrentUserReactionMap(takes.map((row) => row.id));
@@ -155,6 +157,8 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
     }
     setNewTakeText("");
     setTakesMessage("Locked, no take backs.");
+    setPostToFeedNotice("Posted to Early Call Feed.");
+    window.setTimeout(() => setPostToFeedNotice(""), 2200);
     showToast("Take locked.", "success");
   }
 
@@ -382,6 +386,7 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
                 newTakeText={newTakeText}
                 isLockingTake={isLockingTake}
                 takesMessage={takesMessage}
+                postToFeedNotice={postToFeedNotice}
                 onNewTakeTextChange={setNewTakeText}
                 onLockIt={lockIt}
                 onReact={reactToLockedTake}
@@ -847,6 +852,7 @@ function CallsPanel({
   newTakeText,
   isLockingTake,
   takesMessage,
+  postToFeedNotice,
   onNewTakeTextChange,
   onLockIt,
   onReact,
@@ -869,6 +875,7 @@ function CallsPanel({
   newTakeText: string;
   isLockingTake: boolean;
   takesMessage: string;
+  postToFeedNotice: string;
   onNewTakeTextChange: (text: string) => void;
   onLockIt: () => void;
   onReact: (takeId: string, reaction: Side) => void;
@@ -916,27 +923,33 @@ function CallsPanel({
         {takesMessage ? <p className="mt-2 text-xs font-semibold text-gray-300">{takesMessage}</p> : null}
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-black/40 px-3 py-2">
-        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">
-          Early Call Feed <span className="text-gray-400">{totalCount}</span>
-        </p>
-      </div>
-
-      {!takes.length ? (
-        <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
-          <p className="text-sm font-semibold text-gray-300">No locked calls yet. Be first to lock one.</p>
-        </div>
+      {postToFeedNotice ? (
+        <p className="px-1 text-[11px] font-semibold text-lime-300">{postToFeedNotice}</p>
       ) : null}
 
-      {takes.map((take) => {
-        const ui = formatTakeForUI(take);
-        const activeReaction = reactions[take.id];
-        const replies = repliesByTake[take.id] ?? [];
-        const isRepliesOpen = Boolean(expandedReplyTakeIds[take.id]);
-        const replyDraft = replyDraftByTake[take.id] ?? "";
-        const replyingToReplyId = replyingToReplyByTake[take.id] ?? null;
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/40">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-black/80 px-3 py-2 backdrop-blur">
+          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">
+            Early Call Feed <span className="text-gray-400">{totalCount}</span>
+          </p>
+          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-400">Newest First</p>
+        </div>
+        <div className="max-h-[32rem] space-y-3 overflow-y-auto p-3">
+          {!takes.length ? (
+            <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
+              <p className="text-sm font-semibold text-gray-300">No locked calls yet. Be first to lock one.</p>
+            </div>
+          ) : null}
 
-        return (
+          {takes.map((take) => {
+            const ui = formatTakeForUI(take);
+            const activeReaction = reactions[take.id];
+            const replies = repliesByTake[take.id] ?? [];
+            const isRepliesOpen = Boolean(expandedReplyTakeIds[take.id]);
+            const replyDraft = replyDraftByTake[take.id] ?? "";
+            const replyingToReplyId = replyingToReplyByTake[take.id] ?? null;
+
+            return (
         <article key={take.id} className="rounded-2xl border border-white/10 bg-black/40 p-4">
           <div className="flex items-center justify-between gap-3">
             <Link href={getReceiptHref(ui.handle)} className="text-sm font-black text-white transition hover:text-lime-200">
@@ -1016,8 +1029,10 @@ function CallsPanel({
             ) : null}
           </div>
         </article>
-        );
-      })}
+            );
+          })}
+        </div>
+      </div>
     </section>
   );
 }
