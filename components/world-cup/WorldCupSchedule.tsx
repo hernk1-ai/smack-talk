@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { getWorldCupFixtureSourceUrls, worldCupSchedule, type WorldCupGroup, type WorldCupMatch } from "@/data/worldCupSchedule";
+import { getWorldCupMatchStatus } from "@/lib/worldCupMatchStatus";
 
 const groupFilters: Array<{ value: "ALL" | WorldCupGroup; label: string }> = [
   { value: "ALL", label: "All Groups" },
@@ -28,6 +29,7 @@ type WorldCupScheduleProps = {
 };
 
 export function WorldCupSchedule({ limit, showHeader = true, showViewFullLink = false }: WorldCupScheduleProps) {
+  const sourceUrls = getWorldCupFixtureSourceUrls();
   const [selectedGroup, setSelectedGroup] = useState<"ALL" | WorldCupGroup>("ALL");
   const [selectedCity, setSelectedCity] = useState("All Cities");
   const [selectedTeam, setSelectedTeam] = useState("All Teams");
@@ -160,6 +162,13 @@ function FilterSelect<T extends string>({
 
 function MatchRow({ match }: { match: WorldCupMatch }) {
   const isKnockout = match.group === "KO";
+  const lifecycle = getWorldCupMatchStatus(match);
+  const cta =
+    lifecycle === "upcoming"
+      ? { label: "Make Call", href: `/schedule/${match.id}/make-call` }
+      : lifecycle === "live"
+        ? { label: "Join Live", href: `/matches/${match.id}` }
+        : { label: "View Receipts", href: `/matches/${match.id}?view=receipts` };
 
   return (
     <div
@@ -184,14 +193,12 @@ function MatchRow({ match }: { match: WorldCupMatch }) {
         >
           {isKnockout ? match.stage : `Group ${match.group}`}
         </span>
-        {!isKnockout ? (
-          <Link
-            href={`/schedule/${match.id}/make-call`}
-            className="rounded-md border border-white/15 bg-white/[0.04] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-white hover:border-lime-300/40 hover:text-lime-200 sm:px-3"
-          >
-            Make Early Call
-          </Link>
-        ) : null}
+        <Link
+          href={cta.href}
+          className="rounded-md border border-white/15 bg-white/[0.04] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-white hover:border-lime-300/40 hover:text-lime-200 sm:px-3"
+        >
+          {cta.label}
+        </Link>
       </div>
     </div>
   );
@@ -205,4 +212,3 @@ function formatDateLabel(date: string) {
     year: "numeric",
   }).format(new Date(`${date}T12:00:00Z`));
 }
-  const sourceUrls = getWorldCupFixtureSourceUrls();

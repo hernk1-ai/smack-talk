@@ -28,9 +28,11 @@ import { seededChaosAlerts } from "@/data/seededCrowd";
 import { getGameSport, sportTabs, type SportKey } from "@/data/sportsStructure";
 import { worldCupStorylines } from "@/data/worldCupStorylines";
 import { worldCupChaosAlerts, worldCupFeaturedMatch, worldCupLiveArenas, worldCupTrendingTakes } from "@/data/worldCupMvp";
+import { worldCupSchedule, type WorldCupMatch } from "@/data/worldCupSchedule";
 import { ACTIVE_SPORT, getVisibleSportTabs, isPreTournamentMode, SHOW_MULTI_SPORT } from "@/lib/productConfig";
 import { buildSiteUrl } from "@/lib/site-url";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
+import { getWorldCupMatchStatus } from "@/lib/worldCupMatchStatus";
 import type { Game, Profile, TakeReaction } from "@/lib/supabase/types";
 
 type Side = "ride" | "fade";
@@ -550,6 +552,17 @@ function PreTournamentCountdown() {
     return () => window.clearInterval(timer);
   }, [mounted]);
 
+  const featuredMatch = getFeaturedWorldCupMatch();
+  const featuredStatus = getWorldCupMatchStatus(featuredMatch);
+  const featuredLabel =
+    featuredStatus === "live" ? "Live Now" : featuredStatus === "upcoming" ? "Next Up" : "Latest Final";
+  const featuredCta =
+    featuredStatus === "live"
+      ? { label: "Join Live", href: `/matches/${featuredMatch.id}` }
+      : featuredStatus === "upcoming"
+        ? { label: "Make Call", href: `/schedule/${featuredMatch.id}/make-call` }
+        : { label: "View Receipts", href: `/matches/${featuredMatch.id}?view=receipts` };
+
   return (
     <FeedSection title="World Cup Countdown" icon="◷" action="">
       <div className="rounded-2xl border border-lime-300/20 bg-black/45 p-4">
@@ -560,17 +573,55 @@ function PreTournamentCountdown() {
         <p className="mt-3 inline-block rounded-lg border border-lime-300/40 bg-lime-400/10 px-3 py-2 text-sm font-black uppercase tracking-[0.12em] text-lime-200">
           {countdown}
         </p>
+        <div className="mt-4 rounded-xl border border-white/10 bg-black/40 p-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-purple-300">{featuredLabel}</p>
+          <p className="mt-1 text-base font-black text-white">
+            {featuredMatch.homeTeam} vs {featuredMatch.awayTeam ?? "TBD"}
+          </p>
+          <p className="mt-1 text-xs font-semibold text-gray-400">
+            {formatDateLabel(featuredMatch.date)} · {featuredMatch.kickoffET} · {featuredMatch.city}
+          </p>
+        </div>
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          <Link href="/schedule" className="grid min-h-11 place-items-center rounded-xl border border-purple-300/45 bg-purple-500/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-purple-200">
-            View Schedule
+          <Link href={featuredCta.href} className="grid min-h-11 place-items-center rounded-xl border border-purple-300/45 bg-purple-500/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-purple-200">
+            {featuredCta.label}
           </Link>
           <Link href="/schedule" className="grid min-h-11 place-items-center rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-black uppercase tracking-[0.1em] text-white">
-            Make First Call
+            View Schedule
           </Link>
         </div>
       </div>
     </FeedSection>
   );
+}
+
+function getFeaturedWorldCupMatch(now = new Date()): WorldCupMatch {
+  const liveMatch = worldCupSchedule.find((match) => getWorldCupMatchStatus(match, now) === "live");
+  if (liveMatch) {
+    return liveMatch;
+  }
+
+  const upcomingMatches = worldCupSchedule
+    .filter((match) => getWorldCupMatchStatus(match, now) === "upcoming")
+    .sort((a, b) => {
+      const aTime = new Date(`${a.date}T00:00:00Z`).getTime();
+      const bTime = new Date(`${b.date}T00:00:00Z`).getTime();
+      return aTime - bTime || a.id - b.id;
+    });
+
+  if (upcomingMatches.length > 0) {
+    return upcomingMatches[0];
+  }
+
+  const finishedMatches = worldCupSchedule
+    .filter((match) => getWorldCupMatchStatus(match, now) === "finished")
+    .sort((a, b) => {
+      const aTime = new Date(`${a.date}T00:00:00Z`).getTime();
+      const bTime = new Date(`${b.date}T00:00:00Z`).getTime();
+      return bTime - aTime || b.id - a.id;
+    });
+
+  return finishedMatches[0] ?? worldCupSchedule[0];
 }
 
 function FeaturedPlayers() {
@@ -616,11 +667,7 @@ function HostCityCommentary() {
 }
 
 function PreTournamentStorylines() {
-  const spainSlug = "spain-can-they-control-the-tournament-tempo";
-  const storylines = [
-    ...worldCupStorylines.filter((storyline) => storyline.slug === spainSlug),
-    ...worldCupStorylines.filter((storyline) => storyline.slug !== spainSlug),
-  ].slice(0, 5);
+  const storylines = worldCupStorylines.slice(0, 6);
 
   return (
     <FeedSection title="🔥 Storylines to Watch" icon="" action="">
@@ -675,6 +722,14 @@ function getCountdownLabel() {
   const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
   const seconds = totalSeconds % 60;
   return `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
+}
+
+function formatDateLabel(date: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(`${date}T12:00:00Z`));
 }
 
 function SportSelector({
