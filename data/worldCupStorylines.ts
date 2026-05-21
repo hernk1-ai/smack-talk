@@ -25,7 +25,7 @@ export const worldCupStorylines: WorldCupStoryline[] = [
     category: "Group Stage",
     relatedTeams: ["United States", "Paraguay", "Australia", "Türkiye"],
     relatedGroup: "Group D",
-    videoUrl: "https://www.youtube.com/watch?v=XKAV4qRIvJ8",
+    videoUrl: "https://www.youtube.com/watch?v=TB3d0aQVnCQ",
     createdAt: "2026-05-10",
   },
   {
@@ -38,6 +38,7 @@ export const worldCupStorylines: WorldCupStoryline[] = [
     category: "Title Race",
     relatedTeams: ["Brazil", "Morocco", "Scotland", "Haiti"],
     relatedGroup: "Group C",
+    videoUrl: "https://www.youtube.com/watch?v=fip7y3qPYdI",
     createdAt: "2026-05-11",
   },
   {
@@ -50,6 +51,7 @@ export const worldCupStorylines: WorldCupStoryline[] = [
     category: "Pressure Watch",
     relatedTeams: ["England", "Croatia", "Ghana", "Panama"],
     relatedGroup: "Group L",
+    videoUrl: "https://www.youtube.com/watch?v=GyyWk_DD9Mo",
     createdAt: "2026-05-12",
   },
   {
@@ -62,6 +64,7 @@ export const worldCupStorylines: WorldCupStoryline[] = [
     category: "Pressure Watch",
     relatedTeams: ["France", "Senegal", "Iraq", "Norway"],
     relatedGroup: "Group I",
+    videoUrl: "https://www.youtube.com/watch?v=Cinl_RRAjzc",
     createdAt: "2026-05-13",
   },
   {
@@ -74,7 +77,21 @@ export const worldCupStorylines: WorldCupStoryline[] = [
     category: "Dark Horse",
     relatedTeams: ["Mexico", "South Africa", "South Korea", "Czechia"],
     relatedGroup: "Group A",
+    videoUrl: "https://www.youtube.com/watch?v=tnsYoYM67AE",
     createdAt: "2026-05-14",
+  },
+  {
+    id: "story-spain-balance",
+    slug: "spain-can-they-control-the-tournament-tempo",
+    title: "Spain can they control the tournament tempo?",
+    teaser: "Spain has control and depth, but can they turn possession into decisive moments?",
+    body:
+      "Spain’s identity is still built around controlling matches, but tournament success depends on cutting edge in key moments. Their shape can choke transitions, yet knockout football rewards efficiency and composure in thin-margin games. If Spain balances control with direct threat, they can go deep.",
+    category: "Title Race",
+    relatedTeams: ["Spain", "Uruguay", "Saudi Arabia", "Cabo Verde"],
+    relatedGroup: "Group H",
+    videoUrl: "https://www.youtube.com/watch?v=yUSWmgt0Uzo",
+    createdAt: "2026-05-15",
   },
 ];
 

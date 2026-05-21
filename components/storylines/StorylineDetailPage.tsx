@@ -4,9 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AppHeader } from "@/components/AppHeader";
 import { RouteBottomNav } from "@/components/BottomNav";
-import type { WorldCupStoryline } from "@/data/worldCupStorylines";
-import { getUserFacingErrorMessage } from "@/lib/userFacingError";
-import { createLockedTake } from "@/lib/supabase/takes";
+import { worldCupStorylines, type WorldCupStoryline } from "@/data/worldCupStorylines";
 import { getArenaFeedByStorylineId, getCurrentUserReactionMap, type ArenaTake } from "@/lib/supabase/arena";
 import { reactToTake } from "@/lib/supabase/reactions";
 import { createReply, getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/replies";
@@ -15,9 +13,6 @@ import type { Profile, TakeReaction } from "@/lib/supabase/types";
 type Side = "ride" | "fade";
 
 export function StorylineDetailPage({ storyline, profile }: { storyline: WorldCupStoryline; profile?: Profile | null }) {
-  const [takeText, setTakeText] = useState("");
-  const [takeStatus, setTakeStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [takeMessage, setTakeMessage] = useState("");
   const [relatedTakes, setRelatedTakes] = useState<ArenaTake[]>([]);
   const [reactions, setReactions] = useState<Record<string, TakeReaction["reaction"]>>({});
   const [reactingTakeId, setReactingTakeId] = useState<string | null>(null);
@@ -56,31 +51,10 @@ export function StorylineDetailPage({ storyline, profile }: { storyline: WorldCu
 
   const embedUrl = useMemo(() => toYouTubeEmbedUrl(storyline.videoUrl), [storyline.videoUrl]);
 
-  async function lockStorylineTake() {
-    const text = takeText.trim();
-    if (!text) {
-      setTakeStatus("error");
-      setTakeMessage("Write your take first.");
-      return;
-    }
-
-    setTakeStatus("loading");
-    setTakeMessage("");
-
-    const { take, error, starterRepAwarded } = await createLockedTake({ takeText: text, storylineId: storyline.id });
-    if (error) {
-      setTakeStatus("error");
-      setTakeMessage(getUserFacingErrorMessage(error, "Unable to lock your take right now. Try again."));
-      return;
-    }
-
-    setTakeText("");
-    setTakeStatus("success");
-    setTakeMessage(starterRepAwarded ? "You’re on the board. +1,000 Starter Rep and First Lock Trophy unlocked." : "Locked before kickoff.");
-    if (take) {
-      setRelatedTakes((current) => [take as ArenaTake, ...current].slice(0, 12));
-    }
-  }
+  const relatedVideos = useMemo(
+    () => worldCupStorylines.filter((item) => item.slug !== storyline.slug).slice(0, 5),
+    [storyline.slug],
+  );
 
   async function react(takeId: string, reaction: Side) {
     setReactingTakeId(takeId);
@@ -134,7 +108,7 @@ export function StorylineDetailPage({ storyline, profile }: { storyline: WorldCu
       <div className="feed-shell screen-safe-bottom space-y-4 pb-24">
         <AppHeader subtitle="Storyline detail and discussion." profile={profile} rightAriaLabel="Arena" />
         <div className="px-1">
-          <Link href="/app" className="text-xs font-black uppercase tracking-[0.1em] text-lime-300">← Back to Arena</Link>
+          <Link href="/app" className="text-xs font-black uppercase tracking-[0.1em] text-lime-300">← Back to Match Hub</Link>
         </div>
 
         <article className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4">
@@ -159,26 +133,23 @@ export function StorylineDetailPage({ storyline, profile }: { storyline: WorldCu
         </article>
 
         <section className="rounded-[1.75rem] border border-purple-300/30 bg-purple-500/10 p-4">
-          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-purple-200">Lock Your Take</p>
-          <textarea
-            value={takeText}
-            onChange={(event) => setTakeText(event.target.value)}
-            maxLength={160}
-            placeholder="Lock your take from this storyline..."
-            className="mt-3 min-h-24 w-full resize-none rounded-xl border border-white/10 bg-black/55 px-3 py-3 text-sm font-semibold text-white outline-none"
-          />
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold text-gray-400">{takeText.length}/160</p>
-            <button
-              type="button"
-              onClick={lockStorylineTake}
-              disabled={takeStatus === "loading" || !takeText.trim()}
-              className="min-h-11 rounded-xl border border-purple-300/55 bg-purple-500/10 px-4 text-xs font-black uppercase tracking-[0.1em] text-purple-100 disabled:opacity-50"
-            >
-              {takeStatus === "loading" ? "Locking..." : "Lock Take"}
-            </button>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-lg font-black italic text-white">Watch More</h2>
+            <span className="text-xs font-black uppercase text-gray-300">Storylines</span>
           </div>
-          {takeMessage ? <p className="mt-2 text-xs font-semibold text-lime-300">{takeMessage}</p> : null}
+          <div className="grid gap-3 sm:grid-cols-2">
+            {relatedVideos.map((item) => (
+              <Link
+                key={item.id}
+                href={`/storylines/${encodeURIComponent(item.slug)}`}
+                className="rounded-xl border border-white/10 bg-black/45 p-3 transition hover:border-purple-300/40"
+              >
+                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-purple-200">{item.category}</p>
+                <p className="mt-1 text-sm font-black text-white">{item.title}</p>
+                <p className="mt-2 text-xs font-semibold text-gray-300">Watch video and join the discussion.</p>
+              </Link>
+            ))}
+          </div>
         </section>
 
         <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4">

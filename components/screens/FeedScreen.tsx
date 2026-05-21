@@ -616,7 +616,11 @@ function HostCityCommentary() {
 }
 
 function PreTournamentStorylines() {
-  const storylines = worldCupStorylines.slice(0, 5);
+  const spainSlug = "spain-can-they-control-the-tournament-tempo";
+  const storylines = [
+    ...worldCupStorylines.filter((storyline) => storyline.slug === spainSlug),
+    ...worldCupStorylines.filter((storyline) => storyline.slug !== spainSlug),
+  ].slice(0, 5);
 
   return (
     <FeedSection title="🔥 Storylines to Watch" icon="" action="">
