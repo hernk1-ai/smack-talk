@@ -1,107 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { AppHeader } from "@/components/AppHeader";
 import { RouteBottomNav } from "@/components/BottomNav";
 import { worldCupStorylines, type WorldCupStoryline } from "@/data/worldCupStorylines";
-import { getArenaFeedByStorylineId, getCurrentUserReactionMap, type ArenaTake } from "@/lib/supabase/arena";
-import { reactToTake } from "@/lib/supabase/reactions";
-import { createReply, getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/replies";
-import type { Profile, TakeReaction } from "@/lib/supabase/types";
-
-type Side = "ride" | "fade";
+import type { Profile } from "@/lib/supabase/types";
 
 export function StorylineDetailPage({ storyline, profile }: { storyline: WorldCupStoryline; profile?: Profile | null }) {
-  const [relatedTakes, setRelatedTakes] = useState<ArenaTake[]>([]);
-  const [reactions, setReactions] = useState<Record<string, TakeReaction["reaction"]>>({});
-  const [reactingTakeId, setReactingTakeId] = useState<string | null>(null);
-  const [loadingRelated, setLoadingRelated] = useState(true);
-  const [expandedRepliesByTake, setExpandedRepliesByTake] = useState<Record<string, boolean>>({});
-  const [repliesByTake, setRepliesByTake] = useState<Record<string, TakeReplyWithAuthor[]>>({});
-  const [replyDraftByTake, setReplyDraftByTake] = useState<Record<string, string>>({});
-  const [replyLoadingTakeId, setReplyLoadingTakeId] = useState<string | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadRelatedDiscussion() {
-      const { takes } = await getArenaFeedByStorylineId(storyline.id);
-      const { reactionMap } = await getCurrentUserReactionMap(takes.map((take) => take.id));
-
-      if (!isMounted) {
-        return;
-      }
-
-      setRelatedTakes(takes.slice(0, 12));
-      setReactions(reactionMap);
-      setLoadingRelated(false);
-    }
-
-    loadRelatedDiscussion().catch(() => {
-      if (isMounted) {
-        setLoadingRelated(false);
-      }
-    });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [storyline.id]);
-
   const embedUrl = useMemo(() => toYouTubeEmbedUrl(storyline.videoUrl), [storyline.videoUrl]);
 
   const relatedVideos = useMemo(
     () => worldCupStorylines.filter((item) => item.slug !== storyline.slug).slice(0, 5),
     [storyline.slug],
   );
-
-  async function react(takeId: string, reaction: Side) {
-    setReactingTakeId(takeId);
-    const { take, error, reaction: saved } = await reactToTake({ takeId, reaction });
-
-    if (!error && take) {
-      setRelatedTakes((current) => current.map((item) => (item.id === take.id ? { ...item, ...take } : item)));
-    }
-    if (!error && saved) {
-      setReactions((current) => ({ ...current, [takeId]: saved.reaction }));
-    }
-    setReactingTakeId(null);
-  }
-
-  async function toggleReplies(takeId: string) {
-    const nextOpen = !expandedRepliesByTake[takeId];
-    setExpandedRepliesByTake((current) => ({ ...current, [takeId]: nextOpen }));
-
-    if (!nextOpen || repliesByTake[takeId]) {
-      return;
-    }
-
-    const { replies } = await getRepliesForTake(takeId);
-    setRepliesByTake((current) => ({ ...current, [takeId]: replies }));
-  }
-
-  async function submitReply(takeId: string) {
-    const replyText = (replyDraftByTake[takeId] ?? "").trim();
-    if (!replyText || replyLoadingTakeId) {
-      return;
-    }
-
-    setReplyLoadingTakeId(takeId);
-    const { error } = await createReply({ takeId, replyText });
-    if (error) {
-      setReplyLoadingTakeId(null);
-      return;
-    }
-
-    const { replies } = await getRepliesForTake(takeId);
-    setRepliesByTake((current) => ({ ...current, [takeId]: replies }));
-    setReplyDraftByTake((current) => ({ ...current, [takeId]: "" }));
-    setRelatedTakes((current) =>
-      current.map((take) => (take.id === takeId ? { ...take, reply_count: take.reply_count + 1 } : take)),
-    );
-    setReplyLoadingTakeId(null);
-  }
 
   return (
     <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white sm:py-6">
@@ -152,87 +64,6 @@ export function StorylineDetailPage({ storyline, profile }: { storyline: WorldCu
           </div>
         </section>
 
-        <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-black italic text-white">Related Discussion</h2>
-            <span className="text-xs font-black uppercase text-gray-400">Latest</span>
-          </div>
-          {loadingRelated ? (
-            <p className="text-sm font-semibold text-gray-400">Loading discussion...</p>
-          ) : relatedTakes.length ? (
-            <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
-              {relatedTakes.map((take) => {
-                const total = Math.max(take.ride_count + take.fade_count, 1);
-                const ridePercent = Math.round((take.ride_count / total) * 100);
-                const fadePercent = 100 - ridePercent;
-                return (
-                  <article key={take.id} className="rounded-xl border border-white/10 bg-black/45 p-3">
-                    <p className="text-xs font-black text-lime-300">@{take.author?.username ?? "Talker"}</p>
-                    <p className="mt-1 text-sm font-semibold text-white">{take.take_text}</p>
-                    <div className="mt-2 grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => react(take.id, "ride")}
-                        disabled={reactingTakeId === take.id}
-                        className={`rounded-lg border px-2 py-1 text-xs font-black uppercase ${reactions[take.id] === "ride" ? "border-lime-300 bg-lime-400/20 text-lime-200" : "border-lime-300/35 text-lime-300"}`}
-                      >
-                        Ride {ridePercent}%
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => react(take.id, "fade")}
-                        disabled={reactingTakeId === take.id}
-                        className={`rounded-lg border px-2 py-1 text-xs font-black uppercase ${reactions[take.id] === "fade" ? "border-purple-300 bg-purple-500/20 text-purple-200" : "border-purple-300/35 text-purple-300"}`}
-                      >
-                        Fade {fadePercent}%
-                      </button>
-                    </div>
-                    <p className="mt-2 text-[11px] font-semibold text-gray-400">Replies {take.reply_count}</p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <button type="button" onClick={() => toggleReplies(take.id)} className="text-xs font-black uppercase text-purple-300">
-                        {expandedRepliesByTake[take.id] ? "Hide replies" : "View replies"}
-                      </button>
-                    </div>
-                    <div className="mt-2 grid grid-cols-[1fr_auto] gap-2">
-                      <input
-                        value={replyDraftByTake[take.id] ?? ""}
-                        onChange={(event) =>
-                          setReplyDraftByTake((current) => ({ ...current, [take.id]: event.target.value }))
-                        }
-                        placeholder="Reply"
-                        className="min-h-10 rounded-lg border border-white/10 bg-black/55 px-3 text-xs font-semibold text-white outline-none placeholder:text-gray-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => submitReply(take.id)}
-                        disabled={replyLoadingTakeId === take.id || !(replyDraftByTake[take.id] ?? "").trim()}
-                        className="min-h-10 rounded-lg border border-white/15 bg-white/[0.05] px-3 text-xs font-black uppercase text-white disabled:opacity-50"
-                      >
-                        {replyLoadingTakeId === take.id ? "..." : "Reply"}
-                      </button>
-                    </div>
-                    {expandedRepliesByTake[take.id] ? (
-                      <div className="mt-2 space-y-1 rounded-lg border border-white/10 bg-black/50 p-2">
-                        {(repliesByTake[take.id] ?? []).length ? (
-                          (repliesByTake[take.id] ?? []).slice(0, 8).map((reply) => (
-                            <div key={reply.id} className="border-b border-white/10 pb-1 text-xs last:border-b-0 last:pb-0">
-                              <p className="font-black text-gray-200">@{reply.author?.username ?? "Talker"}</p>
-                              <p className="font-semibold text-gray-300">{reply.reply_text}</p>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-xs font-semibold text-gray-400">No replies yet.</p>
-                        )}
-                      </div>
-                    ) : null}
-                  </article>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-sm font-semibold text-gray-400">No related takes yet. Be first to lock one.</p>
-          )}
-        </section>
       </div>
       <RouteBottomNav activeView="arena" />
     </main>

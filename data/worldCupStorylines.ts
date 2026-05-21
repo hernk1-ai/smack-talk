@@ -83,7 +83,7 @@ export const worldCupStorylines: WorldCupStoryline[] = [
   {
     id: "story-spain-balance",
     slug: "spain-can-they-control-the-tournament-tempo",
-    title: "Spain can they control the tournament tempo?",
+    title: "Can Spain control the tournament tempo?",
     teaser: "Spain has control and depth, but can they turn possession into decisive moments?",
     body:
       "Spain’s identity is still built around controlling matches, but tournament success depends on cutting edge in key moments. Their shape can choke transitions, yet knockout football rewards efficiency and composure in thin-margin games. If Spain balances control with direct threat, they can go deep.",
