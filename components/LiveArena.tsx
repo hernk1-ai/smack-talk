@@ -24,8 +24,8 @@ import {
   SHOW_REP_SYSTEM_PUBLICLY,
 } from "@/lib/productConfig";
 import { buildGameRoomShareText } from "@/lib/worldCupPublicNav";
-import { buildSiteUrl } from "@/lib/site-url";
-import { shareWithFallback } from "@/lib/share";
+import { formatShareClipboardText, shareWithFallback } from "@/lib/share";
+import { getShareUrl } from "@/lib/site-url";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 import { ClaimProfilePrompt } from "@/components/guest/ClaimProfilePrompt";
 import { GuestJoinModal } from "@/components/guest/GuestJoinModal";
@@ -169,11 +169,13 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
       return;
     }
 
-    const url = buildSiteUrl(`/game/${gameId}`);
+    const shareText = buildGameRoomShareText(worldCupMatch);
+    const url = getShareUrl(`/game/${gameId}`);
     const outcome = await shareWithFallback({
-      title: "LOCKT Game Room",
-      text: buildGameRoomShareText(worldCupMatch),
+      title: "Join my Lockt Game Room",
+      text: shareText,
       url,
+      copyText: formatShareClipboardText(shareText, url),
     });
 
     if (outcome !== "cancelled") {

@@ -35,5 +35,5 @@ export function getWorldCupMatchPublicCta(match: WorldCupMatch, now = new Date()
 
 export function buildGameRoomShareText(match: WorldCupMatch) {
   const away = match.awayTeam ?? "TBD";
-  return `Watching ${match.homeTeam} vs ${away}? Join the Lockt Game Room.`;
+  return `Join me in the Lockt Game Room for ${match.homeTeam} vs ${away}.`;
 }
