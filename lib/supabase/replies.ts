@@ -86,7 +86,7 @@ export async function createReply({
   }
 
   if (!user) {
-    return { reply: null, error: new Error("Log in to reply to takes.") };
+    return { reply: null, error: new Error("Join the Game Room to comment.") };
   }
 
   const now = Date.now();

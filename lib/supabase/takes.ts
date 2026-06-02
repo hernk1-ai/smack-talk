@@ -36,7 +36,7 @@ export async function createLockedTake({ gameId, storylineId, takeText }: Create
   }
 
   if (!user) {
-    return { take: null, error: new Error("Log in to lock a take."), starterRepAwarded: false };
+    return { take: null, error: new Error("Join the Game Room to make a call."), starterRepAwarded: false };
   }
 
   const now = Date.now();

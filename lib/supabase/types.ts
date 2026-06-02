@@ -24,6 +24,9 @@ export type Database = {
           onboarding_completed: boolean;
           last_active_at: string;
           is_suspended: boolean;
+          is_guest: boolean;
+          profile_claimed: boolean;
+          display_name: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -47,6 +50,9 @@ export type Database = {
           onboarding_completed?: boolean;
           last_active_at?: string;
           is_suspended?: boolean;
+          is_guest?: boolean;
+          profile_claimed?: boolean;
+          display_name?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -70,6 +76,9 @@ export type Database = {
           onboarding_completed?: boolean;
           last_active_at?: string;
           is_suspended?: boolean;
+          is_guest?: boolean;
+          profile_claimed?: boolean;
+          display_name?: string | null;
           created_at?: string;
           updated_at?: string;
         };

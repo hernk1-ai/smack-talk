@@ -46,6 +46,8 @@ export async function ensureProfile(supabase: AppSupabaseClient, user: User) {
       starter_rep_awarded: false,
       level: "Rookie",
       onboarding_completed: false,
+      is_guest: false,
+      profile_claimed: false,
     })
     .select("*")
     .single();

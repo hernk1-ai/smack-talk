@@ -22,6 +22,11 @@ import { buildGameRoomShareText } from "@/lib/worldCupPublicNav";
 import { buildSiteUrl } from "@/lib/site-url";
 import { shareWithFallback } from "@/lib/share";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
+import { ClaimProfilePrompt } from "@/components/guest/ClaimProfilePrompt";
+import { GuestJoinModal } from "@/components/guest/GuestJoinModal";
+import { GUEST_COMMENT_MAX } from "@/lib/guest/displayName";
+import { shouldShowClaimPrompt } from "@/lib/supabase/guest";
+import { useGuestParticipation } from "@/hooks/useGuestParticipation";
 import type { Game, TakeReaction } from "@/lib/supabase/types";
 
 type ArenaTab = "calls" | "control-room";
@@ -56,6 +61,8 @@ const topTalkers: TopTalker[] = [
 export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string; onBack: () => void }) {
   const { showToast } = useToast();
   const supabase = createClient();
+  const gameRoomPath = `/game/${gameId}`;
+  const guest = useGuestParticipation(gameRoomPath);
   const [activeTab, setActiveTab] = useState<ArenaTab>("calls");
   const [game, setGame] = useState<Game | null>(null);
   const [quickPickSelections, setQuickPickSelections] = useState<Record<string, string>>({});
@@ -77,7 +84,8 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
   const [isLockingTake, setIsLockingTake] = useState(false);
   const [takesMessage, setTakesMessage] = useState("");
   const [postToFeedNotice, setPostToFeedNotice] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [guestActivityCount, setGuestActivityCount] = useState(0);
+  const [showClaimPrompt, setShowClaimPrompt] = useState(false);
   const awayTeam = game?.away_team ?? "AWAY";
   const homeTeam = game?.home_team ?? "HOME";
 
@@ -88,11 +96,7 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
     let isMounted = true;
 
     async function loadGameAndQuickPicks() {
-      const [{ game: loadedGame }, { quickPicks }, { data: authState }] = await Promise.all([
-        getGameById(gameId),
-        getMyQuickPicks(gameId),
-        supabase?.auth.getSession() ?? Promise.resolve({ data: { session: null } }),
-      ]);
+      const [{ game: loadedGame }, { quickPicks }] = await Promise.all([getGameById(gameId), getMyQuickPicks(gameId)]);
       const effectiveGameId = loadedGame?.id ?? gameId;
       const { takes } = await getArenaFeed(effectiveGameId);
 
@@ -123,7 +127,7 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
       setFeedTakes(takes ?? []);
       const { reactionMap } = await getCurrentUserReactionMap((takes ?? []).map((take) => take.id));
       setTakeReactions(reactionMap ?? {});
-      setIsAuthenticated(Boolean(authState?.session?.user));
+      await guest.refreshSession();
     }
 
     loadGameAndQuickPicks();
@@ -131,7 +135,13 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
     return () => {
       isMounted = false;
     };
-  }, [gameId, supabase]);
+  }, [gameId, guest, supabase]);
+
+  useEffect(() => {
+    setShowClaimPrompt(
+      shouldShowClaimPrompt(guest.profile, Math.max(guestActivityCount, guest.profile?.created_takes_count ?? 0)),
+    );
+  }, [guest.profile, guestActivityCount]);
 
   const worldCupMatch = useMemo(() => parseWorldCupMatchFromGameId(gameId), [gameId]);
   const isWorldCupRoom = Boolean(worldCupMatch) || game?.league === "World Cup" || gameId.startsWith("wc-");
@@ -155,17 +165,7 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
     }
   }
 
-  async function lockIt() {
-    if (!newTakeText.trim()) {
-      setTakesMessage("Write your call before locking it.");
-      return;
-    }
-
-    if (!isAuthenticated) {
-      setTakesMessage("Save this call by signing in first. You can browse freely, but locking needs an account.");
-      return;
-    }
-
+  async function performLockIt() {
     setIsLockingTake(true);
     setTakesMessage("");
     const { take, error } = await createLockedTake({
@@ -191,14 +191,22 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
     setPostToFeedNotice("Posted to the match room feed.");
     window.setTimeout(() => setPostToFeedNotice(""), 2200);
     showToast("Take locked.", "success");
+    setGuestActivityCount((count) => count + 1);
+    await guest.refreshSession();
   }
 
-  async function reactToLockedTake(takeId: string, reaction: Side) {
-    if (!isAuthenticated) {
-      setTakesMessage("Log in to ride or fade takes.");
+  async function lockIt() {
+    if (!newTakeText.trim()) {
+      setTakesMessage("Write your call before locking it.");
       return;
     }
 
+    await guest.requireParticipation(async () => {
+      await performLockIt();
+    });
+  }
+
+  async function performReact(takeId: string, reaction: Side) {
     setReactionLoadingTakeId(takeId);
     const { reaction: savedReaction, take, error } = await reactToTake({ takeId, reaction });
     setReactionLoadingTakeId(null);
@@ -228,6 +236,14 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
       );
     }
     showToast(reaction === "ride" ? "You rode this take." : "You faded this take.", "success");
+    setGuestActivityCount((count) => count + 1);
+    await guest.refreshSession();
+  }
+
+  async function reactToLockedTake(takeId: string, reaction: Side) {
+    await guest.requireParticipation(async () => {
+      await performReact(takeId, reaction);
+    });
   }
 
   async function toggleReplies(takeId: string) {
@@ -245,13 +261,9 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
     setRepliesByTake((current) => ({ ...current, [takeId]: replies }));
   }
 
-  async function submitReply(takeId: string) {
+  async function performSubmitReply(takeId: string) {
     const replyText = (replyDraftByTake[takeId] ?? "").trim();
     if (!replyText) {
-      return;
-    }
-    if (!isAuthenticated) {
-      setTakesMessage("Log in to reply.");
       return;
     }
 
@@ -278,6 +290,19 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
       current.map((item) => (item.id === takeId ? { ...item, reply_count: (item.reply_count ?? 0) + 1 } : item)),
     );
     showToast("Reply posted.", "success");
+    setGuestActivityCount((count) => count + 1);
+    await guest.refreshSession();
+  }
+
+  async function submitReply(takeId: string) {
+    const replyText = (replyDraftByTake[takeId] ?? "").trim();
+    if (!replyText) {
+      return;
+    }
+
+    await guest.requireParticipation(async () => {
+      await performSubmitReply(takeId);
+    });
   }
 
   const rotateQuickPick = useCallback((reason: "timer" | "interaction") => {
@@ -378,6 +403,14 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
   }
   return (
     <main className="min-h-dvh overflow-x-hidden bg-transparent pb-4 pt-[calc(1rem+env(safe-area-inset-top))] text-white sm:pb-5 sm:pt-5">
+      <GuestJoinModal
+        open={guest.modalOpen}
+        loading={guest.joinLoading}
+        errorMessage={guest.joinError}
+        loginHref={guest.loginHref}
+        onClose={guest.closeModal}
+        onJoin={guest.joinAsGuest}
+      />
       <div className="arena-shell screen-safe-bottom space-y-5">
         <AppHeader subtitle="Game Room · Watch together and react live." rightAriaLabel="Account" />
         <button
@@ -435,7 +468,8 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
             {(simplifiedRoom || activeTab === "calls") && (
               <CallsPanel
                 gameId={gameId}
-                isAuthenticated={isAuthenticated}
+                hasSession={guest.hasSession}
+                guestLabel={guest.guestLabel}
                 takes={visibleTakes}
                 totalCount={totalFeedCount}
                 showFeedHeader={!simplifiedRoom}
@@ -478,6 +512,13 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
                   Invite your people to this Game Room, or share the match link with friends and family.
                 </p>
               </section>
+            ) : null}
+            {showClaimPrompt && guest.user ? (
+              <ClaimProfilePrompt
+                userId={guest.user.id}
+                claimHref={guest.claimHref}
+                onDismiss={() => setShowClaimPrompt(false)}
+              />
             ) : null}
           </aside>
         </div>
@@ -968,7 +1009,8 @@ function ArenaTabs({
 
 function CallsPanel({
   gameId,
-  isAuthenticated,
+  hasSession,
+  guestLabel,
   takes,
   totalCount,
   showFeedHeader = true,
@@ -992,7 +1034,8 @@ function CallsPanel({
   onReplyToReply,
 }: {
   gameId: string;
-  isAuthenticated: boolean;
+  hasSession: boolean;
+  guestLabel: string | null;
   takes: ArenaTake[];
   totalCount: number;
   showFeedHeader?: boolean;
@@ -1023,8 +1066,8 @@ function CallsPanel({
         <textarea
           value={newTakeText}
           onChange={(event) => onNewTakeTextChange(event.target.value)}
-          placeholder="Drop your match call..."
-          maxLength={160}
+          placeholder={guestLabel ? `Comment as ${guestLabel}...` : "Drop your match call..."}
+          maxLength={GUEST_COMMENT_MAX}
           className="mt-3 min-h-24 w-full rounded-xl border border-white/10 bg-black/55 px-3 py-2 text-sm font-semibold text-white outline-none"
         />
         <div className="mt-2 flex items-center justify-between gap-3">
@@ -1035,21 +1078,13 @@ function CallsPanel({
             disabled={isLockingTake}
             className="inline-flex min-h-10 items-center justify-center rounded-lg border border-lime-300/50 bg-lime-400/10 px-3 text-[11px] font-black uppercase tracking-[0.12em] text-lime-200 transition hover:bg-lime-400/20 disabled:opacity-60"
           >
-            {isLockingTake ? "Locking..." : "Lock It"}
+            {isLockingTake ? "Saving..." : "Make a Call"}
           </button>
         </div>
-        {!isAuthenticated ? (
-          <p className="mt-2 text-xs font-semibold text-gray-400">
-            Save your call with a quick profile when you lock.{" "}
-            <Link href={`/signup?next=${encodeURIComponent(`/game/${gameId}`)}`} className="font-black text-lime-300">
-              Sign up
-            </Link>{" "}
-            or{" "}
-            <Link href={`/login?next=${encodeURIComponent(`/game/${gameId}`)}`} className="font-black text-purple-300">
-              log in
-            </Link>
-            .
-          </p>
+        {!hasSession ? (
+          <p className="mt-2 text-xs font-semibold text-gray-400">Pick a Game Room name when you make a call or comment.</p>
+        ) : guestLabel ? (
+          <p className="mt-2 text-xs font-semibold text-gray-400">Commenting as {guestLabel}.</p>
         ) : null}
         {takesMessage ? <p className="mt-2 text-xs font-semibold text-gray-300">{takesMessage}</p> : null}
       </div>

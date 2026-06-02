@@ -43,7 +43,7 @@ export async function getMyReactionForTake(takeId: string) {
   }
 
   if (!user) {
-    return { reaction: null, error: new Error("Log in to react to takes.") };
+    return { reaction: null, error: new Error("Join the Game Room to react.") };
   }
 
   const { data, error } = await supabase
@@ -102,7 +102,7 @@ export async function reactToTake({ takeId, reaction }: ReactToTakeInput) {
   }
 
   if (!user) {
-    return { reaction: null, take: null, error: new Error("Log in to ride or fade takes.") };
+    return { reaction: null, take: null, error: new Error("Join the Game Room to ride or fade.") };
   }
 
   const { data: existingReaction, error: existingError } = await supabase
