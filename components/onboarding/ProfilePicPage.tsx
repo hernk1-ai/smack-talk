@@ -160,7 +160,7 @@ export function ProfilePicPage({ username }: { username?: string }) {
             </span>
           </h1>
           <p className="mt-5 text-base font-black uppercase tracking-[0.16em] text-gray-300 sm:text-xl">
-            Create your <span className="text-lime-300">Lockt profile.</span>
+            Choose how you&apos;ll show up in the <span className="text-lime-300">Game Room.</span>
           </p>
 
           <div className="mt-7 flex items-center justify-center gap-3 text-3xl font-black text-white sm:text-4xl">

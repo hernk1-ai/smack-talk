@@ -99,10 +99,10 @@ export function TeamsPage({ avatar, username }: { avatar?: string; username?: st
             </span>
           </h1>
           <p className="mt-5 text-base font-black uppercase tracking-[0.18em] text-gray-300 sm:text-xl">
-            Follow the nations you want on your Lockt feed.
+            Pick teams you want to follow in Match Hub.
           </p>
           <p className="mt-2 text-sm font-semibold text-gray-400">
-            Choose up to three teams. You&apos;ll make match calls later. Get ready for World Cup 2026.
+            Choose up to three teams (optional). You can always join any Game Room when a match kicks off.
           </p>
 
           <div className="mt-5 sm:hidden">
@@ -190,7 +190,7 @@ export function TeamsPage({ avatar, username }: { avatar?: string; username?: st
             disabled={isLoading}
             className="mt-8 min-h-16 w-full rounded-2xl bg-gradient-to-r from-lime-300 via-lime-300 to-purple-500 px-5 text-xl font-black uppercase italic tracking-[0.18em] text-black shadow-[0_0_42px_rgba(132,204,22,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_0_54px_rgba(168,85,247,0.36)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-65 sm:min-h-20 sm:text-2xl"
           >
-            {isLoading ? "Saving..." : "Lock in teams"}
+            {isLoading ? "Saving..." : "Continue"}
           </button>
           {message && (
             <p className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-gray-200">

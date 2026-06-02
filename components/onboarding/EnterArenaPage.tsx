@@ -149,12 +149,12 @@ export function EnterArenaPage({
             </span>
           </h1>
           <p className="mt-5 text-base font-black uppercase tracking-[0.18em] text-gray-300 sm:text-xl">
-            World Cup 2026 is coming.
+            You&apos;re ready for the Match Hub.
           </p>
           <p className="mt-2 text-sm font-semibold text-gray-300 sm:text-base">
-            Pick a match, make a call, and come back when the game kicks off.
+            Pick a match, join a Game Room, and watch with your people.
           </p>
-          <p className="mt-2 text-sm font-semibold text-lime-300">Your first call starts your trophy case.</p>
+          <p className="mt-2 text-sm font-semibold text-lime-300">Make simple calls and react live.</p>
 
           <ProfileSummaryCard avatarUrl={avatarUrl} teams={selectedTeams} username={cleanUsername} />
 
@@ -174,7 +174,7 @@ export function EnterArenaPage({
 
           <p className="mt-7 flex items-center justify-center gap-3 text-sm font-black uppercase tracking-[0.16em] text-gray-400 sm:text-base">
             <span className="text-purple-400">▱</span>
-            Your World Cup board <span className="text-lime-300">starts here.</span>
+            Match Hub and Game Rooms <span className="text-lime-300">are ready.</span>
           </p>
         </section>
       </div>
@@ -199,7 +199,7 @@ function EnterArenaHeader() {
         </div>
       </Link>
       <div className="justify-self-end text-right">
-        <p className="text-xs font-black uppercase tracking-[0.22em] text-white">Join the Fun</p>
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-white">Game Room setup</p>
         <div className="mt-3 flex items-center justify-end gap-2">
           {[0, 1, 2, 3].map((step) => (
             <span key={step} className="flex items-center gap-2">
@@ -247,7 +247,7 @@ function ProfileSummaryCard({
         <span className="grid h-9 w-9 place-items-center rounded-full bg-lime-300 text-lg font-black text-black">✓</span>
       </div>
       <div className="mx-auto mt-4 w-fit rounded-2xl border border-purple-300/45 bg-purple-500/10 px-8 py-2 text-lg font-black uppercase italic tracking-[0.18em] text-lime-300">
-        Rookie
+        Game Room
       </div>
 
       <div className="my-7 flex items-center justify-center gap-5">
@@ -271,7 +271,7 @@ function ProfileSummaryCard({
       <div className="mt-7 border-t border-white/10 pt-6">
         <p className="flex items-center justify-center gap-3 text-base font-semibold text-gray-200 sm:text-xl">
           <span className="text-lime-300">◇</span>
-          Ready to lock it?
+          Ready to join the match?
         </p>
       </div>
     </section>
