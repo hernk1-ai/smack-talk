@@ -59,8 +59,8 @@ export async function createReport({
   return { report: data, error };
 }
 
-export async function getMyModerationFilters() {
-  const supabase = createClient();
+export async function getMyModerationFilters(supabaseOverride?: AppSupabaseClient) {
+  const supabase = supabaseOverride ?? createClient();
 
   if (!supabase) {
     return { mutedUserIds: [] as string[], blockedUserIds: [] as string[] };

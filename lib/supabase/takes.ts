@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
-import { ACTIVE_GAME_ID } from "@/lib/supabase/games";
 import { touchMyPresence } from "@/lib/supabase/presence";
 import { validateCallText } from "@/lib/security/contentPolicy";
+import { ensureWorldCupGameRow, resolveArenaGameId } from "@/lib/supabase/resolveArenaGame";
 import { awardStarterRepAndFirstLockTrophy } from "@/lib/supabase/starterRep";
 import type { AppSupabaseClient } from "@/lib/supabase/typedClient";
 import type { Take } from "@/lib/supabase/types";
@@ -45,7 +45,12 @@ export async function createLockedTake({ gameId, storylineId, takeText, supabase
   }
 
   const now = Date.now();
-  const { gameId: targetGameId, error: gameError } = await resolveTakeGameId(supabase, gameId);
+
+  if (gameId && supabaseOverride) {
+    await ensureWorldCupGameRow(gameId);
+  }
+
+  const { gameId: targetGameId, error: gameError } = await resolveArenaGameId(supabase, gameId);
 
   if (gameError || !targetGameId) {
     return { take: null, error: gameError ?? new Error("Unable to lock your take right now. Try again."), starterRepAwarded: false };
@@ -109,50 +114,6 @@ export async function createLockedTake({ gameId, storylineId, takeText, supabase
     error,
     starterRepAwarded: starterReward.awarded,
     starterRepTotal: starterReward.newRep,
-  };
-}
-
-async function resolveTakeGameId(supabase: AppSupabaseClient, requestedGameId?: string) {
-  const preferredGameId = requestedGameId ?? ACTIVE_GAME_ID;
-
-  const { data: preferredGame } = await supabase
-    .from("games")
-    .select("id")
-    .eq("id", preferredGameId)
-    .maybeSingle();
-
-  if (preferredGame?.id) {
-    return { gameId: preferredGame.id, error: null as Error | null };
-  }
-
-  const { data: fallbackGame } = await supabase
-    .from("games")
-    .select("id")
-    .or("league.ilike.%world cup%,sport.ilike.%soccer%")
-    .in("status", ["live", "scheduled", "final"])
-    .order("starts_at", { ascending: true, nullsFirst: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (fallbackGame?.id) {
-    return { gameId: fallbackGame.id, error: null as Error | null };
-  }
-
-  const { data: anyFallbackGame } = await supabase
-    .from("games")
-    .select("id")
-    .in("status", ["live", "scheduled", "final"])
-    .order("starts_at", { ascending: true, nullsFirst: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (anyFallbackGame?.id) {
-    return { gameId: anyFallbackGame.id, error: null as Error | null };
-  }
-
-  return {
-    gameId: null,
-    error: new Error("Unable to lock your take right now. Try again."),
   };
 }
 

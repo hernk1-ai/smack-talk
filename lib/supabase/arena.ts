@@ -1,4 +1,5 @@
 import { ACTIVE_GAME_ID, getGameById } from "@/lib/supabase/games";
+import { resolveArenaGameId } from "@/lib/supabase/resolveArenaGame";
 import { getMyReactionsForTakes } from "@/lib/supabase/reactions";
 import { createClient } from "@/lib/supabase/client";
 import { getMyModerationFilters } from "@/lib/supabase/moderation";
@@ -10,6 +11,7 @@ import {
   type SeededTake,
 } from "@/data/seededCrowd";
 import { SHOW_SEEDED_TAKES } from "@/lib/productConfig";
+import type { AppSupabaseClient } from "@/lib/supabase/typedClient";
 import type { Game, Profile, ProfileCard, Take, TakeReaction } from "@/lib/supabase/types";
 
 export type ArenaTake = Take & {
@@ -133,32 +135,37 @@ export function formatTakeForUI(take: ArenaTake) {
   };
 }
 
-export async function getArenaFeed(gameId = ACTIVE_GAME_ID) {
-  const supabase = createClient();
+export async function buildArenaFeed(
+  supabase: AppSupabaseClient,
+  gameId: string,
+  excludedUserIds = new Set<string>(),
+) {
+  const { gameId: resolvedGameId, error: resolveError } = await resolveArenaGameId(supabase, gameId);
 
-  if (!supabase) {
-    return { takes: [] as ArenaTake[], error: new Error("Supabase is not configured.") };
+  if (resolveError || !resolvedGameId) {
+    return { takes: [] as ArenaTake[], error: resolveError ?? new Error("Unable to load Match Calls."), resolvedGameId: null };
   }
-
-  const { mutedUserIds, blockedUserIds } = await getMyModerationFilters();
-  const excludedUserIds = new Set([...mutedUserIds, ...blockedUserIds]);
 
   const { data: takes, error } = await supabase
     .from("takes")
     .select("*")
-    .eq("game_id", gameId)
+    .eq("game_id", resolvedGameId)
     .eq("is_hidden", false)
     .order("created_at", { ascending: false })
     .limit(40);
 
-  if (error || !takes?.length) {
-    return { takes: [] as ArenaTake[], error };
+  if (error) {
+    return { takes: [] as ArenaTake[], error, resolvedGameId };
+  }
+
+  if (!takes?.length) {
+    return { takes: [] as ArenaTake[], error: null, resolvedGameId };
   }
 
   const visibleTakes = takes.filter((take) => !excludedUserIds.has(take.user_id));
 
   if (!visibleTakes.length) {
-    return { takes: [] as ArenaTake[], error: null };
+    return { takes: [] as ArenaTake[], error: null, resolvedGameId };
   }
 
   const userIds = [...new Set(visibleTakes.map((take) => take.user_id))];
@@ -171,7 +178,22 @@ export async function getArenaFeed(gameId = ACTIVE_GAME_ID) {
       author: profileMap.get(take.user_id) ?? null,
     })),
     error: null,
+    resolvedGameId,
   };
+}
+
+export async function getArenaFeed(gameId = ACTIVE_GAME_ID) {
+  const supabase = createClient();
+
+  if (!supabase) {
+    return { takes: [] as ArenaTake[], error: new Error("Supabase is not configured.") };
+  }
+
+  const { mutedUserIds, blockedUserIds } = await getMyModerationFilters(supabase);
+  const excludedUserIds = new Set([...mutedUserIds, ...blockedUserIds]);
+  const { takes, error } = await buildArenaFeed(supabase, gameId, excludedUserIds);
+
+  return { takes, error };
 }
 
 export async function getArenaFeedByGameIds(gameIds: string[]) {

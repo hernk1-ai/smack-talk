@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { enforceRateLimit, jsonError, requireAuthenticatedUser } from "@/lib/security/api";
 import { validateCallText, validateRequiredId } from "@/lib/security/contentPolicy";
+import { ensureWorldCupGameRow, isWorldCupRouteGameId } from "@/lib/supabase/resolveArenaGame";
 import { createLockedTake } from "@/lib/supabase/takes";
 
 /**
@@ -38,6 +39,14 @@ export async function POST(request: Request) {
     return jsonError(textCheck.error);
   }
 
+  if (isWorldCupRouteGameId(gameIdCheck.value)) {
+    const { error: ensureError } = await ensureWorldCupGameRow(gameIdCheck.value);
+
+    if (ensureError) {
+      return jsonError(ensureError.message, 503);
+    }
+  }
+
   const { take, error, starterRepAwarded } = await createLockedTake({
     gameId: gameIdCheck.value,
     takeText: textCheck.value,
@@ -48,5 +57,18 @@ export async function POST(request: Request) {
     return jsonError(error?.message ?? "Unable to save your call.", 400);
   }
 
-  return NextResponse.json({ take, starterRepAwarded });
+  const { data: author } = await auth.supabase!
+    .from("profile_cards")
+    .select("*")
+    .eq("id", auth.user.id)
+    .maybeSingle();
+
+  return NextResponse.json({
+    take: {
+      ...take,
+      author: author ?? null,
+    },
+    gameId: take.game_id,
+    starterRepAwarded,
+  });
 }

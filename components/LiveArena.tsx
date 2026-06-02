@@ -5,7 +5,8 @@ import Link from "next/link";
 import { AppHeader } from "@/components/AppHeader";
 import { useToast } from "@/components/providers/ToastProvider";
 import { formatRepSwing, QUICK_PICK_LOSS, QUICK_PICK_WIN } from "@/lib/engagement";
-import { formatTakeForUI, getArenaFeed, getCurrentUserReactionMap, type ArenaTake } from "@/lib/supabase/arena";
+import { formatTakeForUI, getCurrentUserReactionMap, type ArenaTake } from "@/lib/supabase/arena";
+import { fetchArenaFeed, fetchArenaGame } from "@/lib/arena/arenaApi";
 import { ACTIVE_GAME_ID, getGameById } from "@/lib/supabase/games";
 import { createQuickPick, getMyQuickPicks } from "@/lib/supabase/quickPicks";
 import {
@@ -104,9 +105,16 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
     let isMounted = true;
 
     async function loadGameAndQuickPicks() {
-      const [{ game: loadedGame }, { quickPicks }] = await Promise.all([getGameById(gameId), getMyQuickPicks(gameId)]);
-      const effectiveGameId = loadedGame?.id ?? gameId;
-      const { takes } = await getArenaFeed(effectiveGameId);
+      const [{ data: arenaGamePayload }, { game: legacyGame }, { quickPicks }] = await Promise.all([
+        fetchArenaGame(gameId),
+        getGameById(gameId),
+        getMyQuickPicks(gameId),
+      ]);
+
+      const loadedGame = (arenaGamePayload?.game as Game | null | undefined) ?? legacyGame;
+      const effectiveGameId = arenaGamePayload?.gameId ?? loadedGame?.id ?? gameId;
+      const { data: feedPayload } = await fetchArenaFeed(effectiveGameId);
+      const takes = (feedPayload?.takes ?? []) as ArenaTake[];
 
       if (!isMounted) {
         return;
@@ -143,7 +151,7 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
     return () => {
       isMounted = false;
     };
-  }, [gameId, guest, supabase]);
+  }, [gameId, guest.user?.id]);
 
   useEffect(() => {
     setShowClaimPrompt(
@@ -176,30 +184,36 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
   async function performLockIt() {
     setIsLockingTake(true);
     setTakesMessage("");
+    await guest.refreshSession();
     const { data, error } = await postArenaCall(gameId, newTakeText.trim());
     setIsLockingTake(false);
 
-    const take = data?.take as Take | undefined;
+    const savedTake = data?.take as ArenaTake | undefined;
+    const feedGameId = (data?.gameId as string | undefined) ?? savedTake?.game_id ?? gameId;
 
-    if (error || !take) {
+    if (error || !savedTake) {
       setTakesMessage(error ?? "Unable to lock your take right now. Try again.");
       showToast("Unable to lock your take right now. Try again.", "error");
       return;
     }
 
-    const { takes, error: refreshError } = await getArenaFeed(take.game_id);
-    if (!refreshError) {
-      setFeedTakes(takes);
-      const { reactionMap } = await getCurrentUserReactionMap(takes.map((row) => row.id));
+    setFeedTakes((current) => [savedTake, ...current.filter((row) => row.id !== savedTake.id)]);
+
+    const { data: feedPayload, error: feedError } = await fetchArenaFeed(feedGameId);
+    const refreshedTakes = (feedPayload?.takes ?? []) as ArenaTake[];
+
+    if (!feedError && refreshedTakes.length) {
+      setFeedTakes(refreshedTakes);
+      const { reactionMap } = await getCurrentUserReactionMap(refreshedTakes.map((row) => row.id));
       setTakeReactions(reactionMap);
     }
+
     setNewTakeText("");
     setTakesMessage("Your call is saved for this match.");
-    setPostToFeedNotice("Posted to the match room feed.");
+    setPostToFeedNotice("Your call is live in the room.");
     window.setTimeout(() => setPostToFeedNotice(""), 2200);
-    showToast("Take locked.", "success");
+    showToast("Call saved.", "success");
     setGuestActivityCount((count) => count + 1);
-    await guest.refreshSession();
   }
 
   async function lockIt() {
@@ -297,7 +311,7 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
     setFeedTakes((current) =>
       current.map((item) => (item.id === takeId ? { ...item, reply_count: (item.reply_count ?? 0) + 1 } : item)),
     );
-    showToast("Reply posted.", "success");
+    showToast("Comment posted.", "success");
     setGuestActivityCount((count) => count + 1);
     await guest.refreshSession();
   }
@@ -1126,7 +1140,7 @@ function CallsPanel({
         <textarea
           value={newTakeText}
           onChange={(event) => onNewTakeTextChange(event.target.value)}
-          placeholder={guestLabel ? `Comment as ${guestLabel}...` : "Drop your match call..."}
+          placeholder="Drop your match call..."
           maxLength={GUEST_CALL_TEXT_MAX}
           className="mt-3 min-h-24 w-full rounded-xl border border-white/10 bg-black/55 px-3 py-2 text-sm font-semibold text-white outline-none"
         />
@@ -1140,13 +1154,13 @@ function CallsPanel({
             disabled={isLockingTake}
             className="inline-flex min-h-10 items-center justify-center rounded-lg border border-lime-300/50 bg-lime-400/10 px-3 text-[11px] font-black uppercase tracking-[0.12em] text-lime-200 transition hover:bg-lime-400/20 disabled:opacity-60"
           >
-            {isLockingTake ? "Saving..." : "Make a Call"}
+            {isLockingTake ? "Saving..." : "Make Call"}
           </button>
         </div>
         {!hasSession ? (
-          <p className="mt-2 text-xs font-semibold text-gray-400">Pick a Game Room name when you make a call or comment.</p>
+          <p className="mt-2 text-xs font-semibold text-gray-400">Pick a Game Room name when you make a call.</p>
         ) : guestLabel ? (
-          <p className="mt-2 text-xs font-semibold text-gray-400">Commenting as {guestLabel}.</p>
+          <p className="mt-2 text-xs font-semibold text-gray-400">Calling as {guestLabel}.</p>
         ) : null}
         {takesMessage ? <p className="mt-2 text-xs font-semibold text-gray-300">{takesMessage}</p> : null}
       </div>
@@ -1226,7 +1240,8 @@ function CallsPanel({
               onClick={() => onToggleReplies(take.id)}
               className="text-xs font-black uppercase tracking-[0.1em] text-purple-300"
             >
-              {isRepliesOpen ? "Hide replies" : "View replies"} {take.reply_count ? `${take.reply_count}` : ""}
+              {isRepliesOpen ? "Hide Room Comments" : "Room Comments"}
+              {take.reply_count ? ` · ${take.reply_count}` : ""}
             </button>
             {isRepliesOpen ? (
               <div className="mt-3 space-y-2">
@@ -1275,7 +1290,13 @@ function CallsPanel({
                   <input
                     value={replyDraft}
                     onChange={(event) => onReplyDraftChange(take.id, event.target.value)}
-                    placeholder={replyingToReplyId ? "Replying to comment..." : "Reply"}
+                    placeholder={
+                      replyingToReplyId
+                        ? "Replying to comment..."
+                        : guestLabel
+                          ? `Comment as ${guestLabel}...`
+                          : "Add a room comment..."
+                    }
                     maxLength={GUEST_COMMENT_MAX}
                     className="min-h-10 rounded-lg border border-white/10 bg-black/55 px-3 text-sm font-semibold text-white outline-none"
                   />
@@ -1285,7 +1306,7 @@ function CallsPanel({
                     disabled={replyLoadingTakeId === take.id}
                     className="min-h-10 rounded-lg border border-purple-300/45 bg-purple-500/10 px-3 text-[10px] font-black uppercase tracking-[0.12em] text-purple-100 disabled:opacity-60"
                   >
-                    {replyLoadingTakeId === take.id ? "Posting..." : "Reply"}
+                    {replyLoadingTakeId === take.id ? "Posting..." : "Post Comment"}
                   </button>
                 </div>
               </div>
