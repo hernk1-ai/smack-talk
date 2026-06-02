@@ -91,6 +91,6 @@ function redirectTo(request: NextRequest, path: string) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|smack-talk-logo.png|smack-talk-logo.svg|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|google[^/]*\\.html|smack-talk-logo.png|smack-talk-logo.svg|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

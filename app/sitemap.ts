@@ -1,31 +1,45 @@
 import type { MetadataRoute } from "next";
-import { worldCupStorylines } from "@/data/worldCupStorylines";
-import { getSiteUrl } from "@/lib/site-url";
 
-const publicRoutes: Array<{ path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"] }> = [
-  { path: "", priority: 1, changeFrequency: "weekly" },
-  { path: "/schedule", priority: 0.9, changeFrequency: "daily" },
-  { path: "/privacy", priority: 0.3, changeFrequency: "yearly" },
-  { path: "/terms", priority: 0.3, changeFrequency: "yearly" },
-  { path: "/rules", priority: 0.4, changeFrequency: "yearly" },
-];
+import { worldCupStorylines } from "@/data/worldCupStorylines";
+import { getCanonicalSiteUrl } from "@/lib/seo/canonical-site-url";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = getSiteUrl();
+  const siteUrl = getCanonicalSiteUrl();
+  const lastModified = new Date();
 
-  const pages: MetadataRoute.Sitemap = publicRoutes.map(({ path, priority, changeFrequency }) => ({
-    url: path ? `${baseUrl}${path}` : `${baseUrl}/`,
-    lastModified: new Date(),
-    changeFrequency,
-    priority,
-  }));
+  const staticPages: MetadataRoute.Sitemap = [
+    {
+      url: siteUrl,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 1,
+    },
+    {
+      url: `${siteUrl}/schedule`,
+      lastModified,
+      changeFrequency: "daily",
+      priority: 0.9,
+    },
+    {
+      url: `${siteUrl}/privacy`,
+      lastModified,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: `${siteUrl}/terms`,
+      lastModified,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+  ];
 
-  const storylines: MetadataRoute.Sitemap = worldCupStorylines.map((storyline) => ({
-    url: `${baseUrl}/storylines/${storyline.slug}`,
+  const storylinePages: MetadataRoute.Sitemap = worldCupStorylines.map((storyline) => ({
+    url: `${siteUrl}/storylines/${storyline.slug}`,
     lastModified: new Date(storyline.createdAt),
     changeFrequency: "monthly",
     priority: 0.7,
   }));
 
-  return [...pages, ...storylines];
+  return [...staticPages, ...storylinePages];
 }
