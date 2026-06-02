@@ -443,18 +443,16 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   if (matchHubMode) {
     return (
       <div className="page-rhythm">
-      <FeedHeader profile={profile} />
-      <MatchHubIntro />
-      <SportSelector activeSport={activeSport} onSelect={setActiveSport} visibleTabs={visibleSportTabs} />
-      <PreTournamentCountdown />
-      <WorldCupUpcomingMatches />
-      <ScheduledGames activeSport={activeSport} games={scheduledSportGames} onEnterArena={onEnterArena} />
-      <PreTournamentStorylines />
-      <FeaturedPlayers />
-      <HostCityCommentary />
-      <PreTournamentNews />
-    </div>
-  );
+        <FeedHeader profile={profile} />
+        <MatchHubIntro />
+        <PreTournamentCountdown />
+        <WorldCupUpcomingMatches />
+        <PreTournamentStorylines />
+        <FeaturedPlayers />
+        <HostCityCommentary />
+        <PreTournamentNews />
+      </div>
+    );
   }
 
   return (
@@ -668,7 +666,7 @@ function PreTournamentStorylines() {
   const storylines = worldCupStorylines.slice(0, 6);
 
   return (
-    <FeedSection title="🔥 Storylines to Watch" icon="" action="">
+    <FeedSection title="Storylines to Watch" icon="🔥" action="">
       <div className="grid gap-2 sm:grid-cols-2">
         {storylines.map((storyline) => (
           <Link
@@ -777,11 +775,13 @@ function MatchHubIntro() {
   );
 }
 
+const MATCH_HUB_UPCOMING_LIMIT = 4;
+
 function WorldCupUpcomingMatches() {
   const now = new Date();
   const upcoming = worldCupSchedule
     .filter((match) => getWorldCupMatchStatus(match, now) === "upcoming")
-    .slice(0, 8);
+    .slice(0, MATCH_HUB_UPCOMING_LIMIT);
 
   if (!upcoming.length) {
     return null;
