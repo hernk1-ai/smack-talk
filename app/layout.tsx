@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
+import { GoogleAnalyticsPageView } from "@/components/analytics/GoogleAnalyticsPageView";
 import { DevRoutePanel } from "@/components/DevRoutePanel";
 import { AppProviders } from "@/components/providers/AppProviders";
 import { getSiteUrl } from "@/lib/site-url";
@@ -67,7 +69,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <GoogleAnalytics />
         <AppProviders>
+          <GoogleAnalyticsPageView />
           {children}
           <DevRoutePanel />
         </AppProviders>
