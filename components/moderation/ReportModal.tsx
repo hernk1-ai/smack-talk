@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 
-import { createReport, type ReportReason, type ReportTargetType } from "@/lib/supabase/moderation";
+import { postArenaReport } from "@/lib/arena/arenaApi";
+import type { ReportReason, ReportTargetType } from "@/lib/supabase/moderation";
 
 const REPORT_REASONS: Array<{ value: ReportReason; label: string }> = [
   { value: "harassment", label: "Harassment" },
@@ -38,7 +39,7 @@ export function ReportModal({
     setStatus("loading");
     setMessage("");
 
-    const { error } = await createReport({
+    const { error } = await postArenaReport({
       targetType,
       targetId,
       reason,
@@ -47,7 +48,7 @@ export function ReportModal({
 
     if (error) {
       setStatus("error");
-      setMessage(error.message);
+      setMessage(error);
       return;
     }
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { signInAsGuest } from "@/lib/supabase/guest";
+import { postGuestJoin } from "@/lib/arena/arenaApi";
 import { getCurrentProfile } from "@/lib/supabase/profiles";
 import type { Profile } from "@/lib/supabase/types";
 import type { User } from "@supabase/supabase-js";
@@ -91,17 +91,21 @@ export function useGuestParticipation(loginNext?: string) {
       setJoinLoading(true);
       setJoinError(null);
 
-      const { profile: guestProfile, user: guestUser, error } = await signInAsGuest(displayName);
+      const { data, error } = await postGuestJoin(displayName);
 
       setJoinLoading(false);
 
-      if (error || !guestUser) {
-        setJoinError(error?.message ?? "Unable to join the Game Room right now.");
+      if (error) {
+        setJoinError(error);
         return;
       }
 
-      setUser(guestUser);
-      setProfile(guestProfile);
+      await refreshSession();
+
+      if (!data) {
+        setJoinError("Unable to join the Game Room right now.");
+        return;
+      }
       setModalOpen(false);
 
       const pending = pendingActionRef.current;
@@ -111,7 +115,7 @@ export function useGuestParticipation(loginNext?: string) {
         await pending();
       }
     },
-    [],
+    [refreshSession],
   );
 
   const loginHref = loginNext ? `/login?next=${encodeURIComponent(loginNext)}` : "/login";

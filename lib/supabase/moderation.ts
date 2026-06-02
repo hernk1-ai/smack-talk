@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import type { AppSupabaseClient } from "@/lib/supabase/typedClient";
 
 export type ReportTargetType = "take" | "reply" | "user";
 export type ReportReason = "harassment" | "hate_speech" | "spam" | "threats" | "impersonation" | "inappropriate_content" | "other";
@@ -8,35 +9,45 @@ export async function createReport({
   targetId,
   reason,
   details,
+  supabase: supabaseOverride,
+  reporterUserId,
 }: {
   targetType: ReportTargetType;
   targetId: string;
   reason: ReportReason;
   details?: string;
+  supabase?: AppSupabaseClient;
+  reporterUserId?: string;
 }) {
-  const supabase = createClient();
+  const supabase = supabaseOverride ?? createClient();
 
   if (!supabase) {
     return { report: null, error: new Error("Supabase is not configured.") };
   }
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+  let reporterId = reporterUserId;
 
-  if (userError) {
-    return { report: null, error: userError };
-  }
+  if (!reporterId) {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-  if (!user) {
-    return { report: null, error: new Error("Log in to report content.") };
+    if (userError) {
+      return { report: null, error: userError };
+    }
+
+    if (!user) {
+      return { report: null, error: new Error("Log in to report content.") };
+    }
+
+    reporterId = user.id;
   }
 
   const { data, error } = await supabase
     .from("reports")
     .insert({
-      reporter_user_id: user.id,
+      reporter_user_id: reporterId,
       target_type: targetType,
       target_id: targetId,
       reason,

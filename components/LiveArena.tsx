@@ -8,10 +8,14 @@ import { formatRepSwing, QUICK_PICK_LOSS, QUICK_PICK_WIN } from "@/lib/engagemen
 import { formatTakeForUI, getArenaFeed, getCurrentUserReactionMap, type ArenaTake } from "@/lib/supabase/arena";
 import { ACTIVE_GAME_ID, getGameById } from "@/lib/supabase/games";
 import { createQuickPick, getMyQuickPicks } from "@/lib/supabase/quickPicks";
-import { reactToTake } from "@/lib/supabase/reactions";
-import { createReply, getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/replies";
+import {
+  deleteArenaComment,
+  postArenaCall,
+  postArenaComment,
+  postArenaReaction,
+} from "@/lib/arena/arenaApi";
+import { getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/replies";
 import { createClient } from "@/lib/supabase/client";
-import { createLockedTake } from "@/lib/supabase/takes";
 import { getWorldCupMatchById } from "@/data/worldCupSchedule";
 import {
   isMatchHubMode,
@@ -24,10 +28,12 @@ import { shareWithFallback } from "@/lib/share";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 import { ClaimProfilePrompt } from "@/components/guest/ClaimProfilePrompt";
 import { GuestJoinModal } from "@/components/guest/GuestJoinModal";
-import { GUEST_COMMENT_MAX } from "@/lib/guest/displayName";
+import { GUEST_CALL_TEXT_MAX, GUEST_COMMENT_MAX } from "@/lib/guest/displayName";
+import { ReportModal } from "@/components/moderation/ReportModal";
 import { shouldShowClaimPrompt } from "@/lib/supabase/guest";
 import { useGuestParticipation } from "@/hooks/useGuestParticipation";
-import type { Game, TakeReaction } from "@/lib/supabase/types";
+import type { Game, Take, TakeReaction } from "@/lib/supabase/types";
+import type { ReportTargetType } from "@/lib/supabase/moderation";
 
 type ArenaTab = "calls" | "control-room";
 type Side = "ride" | "fade";
@@ -86,6 +92,8 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
   const [postToFeedNotice, setPostToFeedNotice] = useState("");
   const [guestActivityCount, setGuestActivityCount] = useState(0);
   const [showClaimPrompt, setShowClaimPrompt] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ targetType: ReportTargetType; targetId: string } | null>(null);
+  const [deletingReplyId, setDeletingReplyId] = useState<string | null>(null);
   const awayTeam = game?.away_team ?? "AWAY";
   const homeTeam = game?.home_team ?? "HOME";
 
@@ -168,14 +176,13 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
   async function performLockIt() {
     setIsLockingTake(true);
     setTakesMessage("");
-    const { take, error } = await createLockedTake({
-      gameId,
-      takeText: newTakeText.trim(),
-    });
+    const { data, error } = await postArenaCall(gameId, newTakeText.trim());
     setIsLockingTake(false);
 
+    const take = data?.take as Take | undefined;
+
     if (error || !take) {
-      setTakesMessage(getUserFacingErrorMessage(error, "Unable to lock your take right now. Try again."));
+      setTakesMessage(error ?? "Unable to lock your take right now. Try again.");
       showToast("Unable to lock your take right now. Try again.", "error");
       return;
     }
@@ -208,11 +215,14 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
 
   async function performReact(takeId: string, reaction: Side) {
     setReactionLoadingTakeId(takeId);
-    const { reaction: savedReaction, take, error } = await reactToTake({ takeId, reaction });
+    const { data, error } = await postArenaReaction(takeId, reaction);
     setReactionLoadingTakeId(null);
 
+    const savedReaction = data?.reaction as TakeReaction | undefined;
+    const take = data?.take as Take | undefined;
+
     if (error) {
-      setTakesMessage(getUserFacingErrorMessage(error, "Could not save your reaction."));
+      setTakesMessage(error);
       showToast("Could not save your reaction.", "error");
       return;
     }
@@ -268,15 +278,13 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
     }
 
     setReplyLoadingTakeId(takeId);
-    const { reply, error } = await createReply({
-      takeId,
-      replyText,
-      parentReplyId: replyingToReplyByTake[takeId] ?? null,
-    });
+    const { data, error } = await postArenaComment(takeId, replyText, replyingToReplyByTake[takeId] ?? null);
     setReplyLoadingTakeId(null);
 
+    const reply = data?.reply;
+
     if (error || !reply) {
-      setTakesMessage(getUserFacingErrorMessage(error, "Could not post reply."));
+      setTakesMessage(error ?? "Could not post reply.");
       showToast("Could not post reply.", "error");
       return;
     }
@@ -303,6 +311,27 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
     await guest.requireParticipation(async () => {
       await performSubmitReply(takeId);
     });
+  }
+
+  async function deleteReply(takeId: string, replyId: string) {
+    setDeletingReplyId(replyId);
+    const { error } = await deleteArenaComment(replyId);
+    setDeletingReplyId(null);
+
+    if (error) {
+      setTakesMessage(error);
+      showToast("Could not delete comment.", "error");
+      return;
+    }
+
+    const { replies } = await getRepliesForTake(takeId);
+    setRepliesByTake((current) => ({ ...current, [takeId]: replies }));
+    setFeedTakes((current) =>
+      current.map((item) =>
+        item.id === takeId ? { ...item, reply_count: Math.max((item.reply_count ?? 1) - 1, 0) } : item,
+      ),
+    );
+    showToast("Comment removed.", "success");
   }
 
   const rotateQuickPick = useCallback((reason: "timer" | "interaction") => {
@@ -411,6 +440,14 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
         onClose={guest.closeModal}
         onJoin={guest.joinAsGuest}
       />
+      {reportTarget ? (
+        <ReportModal
+          open
+          targetType={reportTarget.targetType}
+          targetId={reportTarget.targetId}
+          onClose={() => setReportTarget(null)}
+        />
+      ) : null}
       <div className="arena-shell screen-safe-bottom space-y-5">
         <AppHeader subtitle="Game Room · Watch together and react live." rightAriaLabel="Account" />
         <button
@@ -468,9 +505,11 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
             {(simplifiedRoom || activeTab === "calls") && (
               <CallsPanel
                 gameId={gameId}
+                currentUserId={guest.user?.id ?? null}
                 hasSession={guest.hasSession}
                 guestLabel={guest.guestLabel}
                 takes={visibleTakes}
+                deletingReplyId={deletingReplyId}
                 totalCount={totalFeedCount}
                 showFeedHeader={!simplifiedRoom}
                 reactionLoadingTakeId={reactionLoadingTakeId}
@@ -498,6 +537,17 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
                     [takeId]: current[takeId] === replyId ? null : replyId,
                   }));
                 }}
+                onReportTake={(takeId) => {
+                  void guest.requireParticipation(async () => {
+                    setReportTarget({ targetType: "take", targetId: takeId });
+                  });
+                }}
+                onReportReply={(replyId) => {
+                  void guest.requireParticipation(async () => {
+                    setReportTarget({ targetType: "reply", targetId: replyId });
+                  });
+                }}
+                onDeleteReply={deleteReply}
               />
             )}
             {activeTab === "control-room" && !simplifiedRoom ? <ControlRoomPanel game={game} /> : null}
@@ -1009,6 +1059,7 @@ function ArenaTabs({
 
 function CallsPanel({
   gameId,
+  currentUserId,
   hasSession,
   guestLabel,
   takes,
@@ -1017,6 +1068,7 @@ function CallsPanel({
   reactionLoadingTakeId,
   reactions,
   replyLoadingTakeId,
+  deletingReplyId,
   repliesByTake,
   expandedReplyTakeIds,
   replyDraftByTake,
@@ -1032,8 +1084,12 @@ function CallsPanel({
   onReplyDraftChange,
   onSubmitReply,
   onReplyToReply,
+  onReportTake,
+  onReportReply,
+  onDeleteReply,
 }: {
   gameId: string;
+  currentUserId: string | null;
   hasSession: boolean;
   guestLabel: string | null;
   takes: ArenaTake[];
@@ -1042,6 +1098,7 @@ function CallsPanel({
   reactionLoadingTakeId: string | null;
   reactions: Record<string, TakeReaction["reaction"]>;
   replyLoadingTakeId: string | null;
+  deletingReplyId: string | null;
   repliesByTake: Record<string, TakeReplyWithAuthor[]>;
   expandedReplyTakeIds: Record<string, boolean>;
   replyDraftByTake: Record<string, string>;
@@ -1057,6 +1114,9 @@ function CallsPanel({
   onReplyDraftChange: (takeId: string, text: string) => void;
   onSubmitReply: (takeId: string) => void;
   onReplyToReply: (takeId: string, replyId: string) => void;
+  onReportTake: (takeId: string) => void;
+  onReportReply: (replyId: string) => void;
+  onDeleteReply: (takeId: string, replyId: string) => void;
 }) {
   return (
     <section className="space-y-3 rounded-[1.5rem] border border-white/10 bg-black/30 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
@@ -1067,11 +1127,13 @@ function CallsPanel({
           value={newTakeText}
           onChange={(event) => onNewTakeTextChange(event.target.value)}
           placeholder={guestLabel ? `Comment as ${guestLabel}...` : "Drop your match call..."}
-          maxLength={GUEST_COMMENT_MAX}
+          maxLength={GUEST_CALL_TEXT_MAX}
           className="mt-3 min-h-24 w-full rounded-xl border border-white/10 bg-black/55 px-3 py-2 text-sm font-semibold text-white outline-none"
         />
         <div className="mt-2 flex items-center justify-between gap-3">
-          <p className="text-[11px] font-semibold text-gray-400">{newTakeText.length}/160</p>
+          <p className="text-[11px] font-semibold text-gray-400">
+            {newTakeText.length}/{GUEST_CALL_TEXT_MAX}
+          </p>
           <button
             type="button"
             onClick={onLockIt}
@@ -1123,9 +1185,18 @@ function CallsPanel({
             <Link href={getReceiptHref(ui.handle)} className="text-sm font-black text-white transition hover:text-lime-200">
               {ui.handle}
             </Link>
-            <span className="rounded-md border border-purple-300/35 bg-purple-500/10 px-2 py-1 text-[10px] font-black uppercase text-purple-200">
-              Locked
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onReportTake(take.id)}
+                className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-gray-400 transition hover:text-yellow-200"
+              >
+                Report
+              </button>
+              <span className="rounded-md border border-purple-300/35 bg-purple-500/10 px-2 py-1 text-[10px] font-black uppercase text-purple-200">
+                Locked
+              </span>
+            </div>
           </div>
           <p className="mt-3 text-lg font-black leading-tight text-gray-100">{take.take_text}</p>
           <div className="mt-4 flex items-center justify-between text-sm font-black">
@@ -1161,9 +1232,32 @@ function CallsPanel({
               <div className="mt-3 space-y-2">
                 {replies.map((reply) => {
                   const replyHandle = reply.author?.username ? `@${reply.author.username.replace(/^@/, "")}` : "@Talker";
+                  const isOwnReply = currentUserId === reply.user_id;
+
                   return (
                     <div key={reply.id} className="rounded-lg border border-white/10 bg-black/45 p-2">
-                      <p className="text-xs font-black text-white">{replyHandle}</p>
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-xs font-black text-white">{replyHandle}</p>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => onReportReply(reply.id)}
+                            className="text-[10px] font-black uppercase tracking-[0.08em] text-gray-500 transition hover:text-yellow-200"
+                          >
+                            Report
+                          </button>
+                          {isOwnReply ? (
+                            <button
+                              type="button"
+                              onClick={() => onDeleteReply(take.id, reply.id)}
+                              disabled={deletingReplyId === reply.id}
+                              className="text-[10px] font-black uppercase tracking-[0.08em] text-red-300/80 transition hover:text-red-200 disabled:opacity-60"
+                            >
+                              {deletingReplyId === reply.id ? "..." : "Delete"}
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
                       <p className="mt-1 text-sm font-semibold text-gray-200">{reply.reply_text}</p>
                       <button
                         type="button"
@@ -1182,6 +1276,7 @@ function CallsPanel({
                     value={replyDraft}
                     onChange={(event) => onReplyDraftChange(take.id, event.target.value)}
                     placeholder={replyingToReplyId ? "Replying to comment..." : "Reply"}
+                    maxLength={GUEST_COMMENT_MAX}
                     className="min-h-10 rounded-lg border border-white/10 bg-black/55 px-3 text-sm font-semibold text-white outline-none"
                   />
                   <button

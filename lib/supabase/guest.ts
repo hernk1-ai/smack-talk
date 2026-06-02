@@ -4,16 +4,14 @@ import { guestDisplayNameToUsernameSlug, validateGuestDisplayName } from "@/lib/
 import { serializeAvatarKey } from "@/lib/avatar";
 import { createClient } from "@/lib/supabase/client";
 import { getCurrentProfile } from "@/lib/supabase/profiles";
+import type { AppSupabaseClient } from "@/lib/supabase/typedClient";
 import type { Profile } from "@/lib/supabase/types";
 
 function randomSuffix() {
   return Math.random().toString(36).slice(2, 6);
 }
 
-async function generateUniqueGuestUsername(
-  supabase: NonNullable<ReturnType<typeof createClient>>,
-  displayName: string,
-) {
+async function generateUniqueGuestUsername(supabase: AppSupabaseClient, displayName: string) {
   const base = guestDisplayNameToUsernameSlug(displayName);
 
   for (let attempt = 0; attempt < 8; attempt += 1) {
@@ -28,11 +26,7 @@ async function generateUniqueGuestUsername(
   return `${base.slice(0, 12)}_${randomSuffix()}`.slice(0, 20);
 }
 
-export async function upsertGuestProfile(
-  supabase: NonNullable<ReturnType<typeof createClient>>,
-  user: User,
-  displayName: string,
-) {
+export async function upsertGuestProfile(supabase: AppSupabaseClient, user: User, displayName: string) {
   const validation = validateGuestDisplayName(displayName);
   if (!validation.valid) {
     return { profile: null as Profile | null, error: new Error(validation.error ?? "Invalid name.") };
@@ -76,8 +70,8 @@ export async function upsertGuestProfile(
   return { profile: data as Profile | null, error };
 }
 
-export async function signInAsGuest(displayName: string) {
-  const supabase = createClient();
+export async function signInAsGuest(displayName: string, supabaseOverride?: AppSupabaseClient) {
+  const supabase = supabaseOverride ?? createClient();
 
   if (!supabase) {
     return { profile: null as Profile | null, user: null as User | null, error: new Error("Supabase is not configured.") };

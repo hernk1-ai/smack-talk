@@ -1,5 +1,16 @@
+/**
+ * Safe to expose in the browser (project URL only).
+ * NEXT_PUBLIC_SUPABASE_URL
+ */
 export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+/**
+ * Safe to expose in the browser (anon key; RLS enforces access).
+ * NEXT_PUBLIC_SUPABASE_ANON_KEY
+ */
 export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+/** Server-only. Never prefix with NEXT_PUBLIC_. Used in lib/supabase/admin.ts only. */
 export const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 export const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 export const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;

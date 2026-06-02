@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 import { createNotification } from "@/lib/supabase/notifications";
 import { touchMyPresence } from "@/lib/supabase/presence";
+import type { AppSupabaseClient } from "@/lib/supabase/typedClient";
 import type { Take, TakeReaction } from "@/lib/supabase/types";
 
 type ReactionSide = TakeReaction["reaction"];
@@ -8,6 +9,7 @@ type ReactionSide = TakeReaction["reaction"];
 type ReactToTakeInput = {
   takeId: string;
   reaction: ReactionSide;
+  supabase?: AppSupabaseClient;
 };
 
 export async function getReactionsForTake(takeId: string) {
@@ -85,8 +87,8 @@ export async function getMyReactionsForTakes(takeIds: string[]) {
   return { reactions: data ?? [], error };
 }
 
-export async function reactToTake({ takeId, reaction }: ReactToTakeInput) {
-  const supabase = createClient();
+export async function reactToTake({ takeId, reaction, supabase: supabaseOverride }: ReactToTakeInput) {
+  const supabase = supabaseOverride ?? createClient();
 
   if (!supabase) {
     return { reaction: null as TakeReaction | null, take: null as Take | null, error: new Error("Supabase is not configured.") };
@@ -152,7 +154,9 @@ export async function reactToTake({ takeId, reaction }: ReactToTakeInput) {
     });
   }
 
-  await touchMyPresence();
+  if (!supabaseOverride) {
+    await touchMyPresence();
+  }
 
   return { reaction: savedReaction, take, error: takeError };
 }

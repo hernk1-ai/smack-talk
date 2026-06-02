@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/client";
+import { validateCommentText } from "@/lib/security/contentPolicy";
 import { getMyModerationFilters } from "@/lib/supabase/moderation";
 import { createNotification } from "@/lib/supabase/notifications";
 import { touchMyPresence } from "@/lib/supabase/presence";
+import type { AppSupabaseClient } from "@/lib/supabase/typedClient";
 import type { ProfileCard, TakeReply } from "@/lib/supabase/types";
 
 export type TakeReplyWithAuthor = TakeReply & {
@@ -55,26 +57,26 @@ export async function createReply({
   takeId,
   replyText,
   parentReplyId,
+  supabase: supabaseOverride,
 }: {
   takeId: string;
   replyText: string;
   parentReplyId?: string | null;
+  supabase?: AppSupabaseClient;
 }) {
-  const supabase = createClient();
+  const supabase = supabaseOverride ?? createClient();
 
   if (!supabase) {
     return { reply: null as TakeReply | null, error: new Error("Supabase is not configured.") };
   }
 
-  const cleanReplyText = replyText.trim();
+  const textCheck = validateCommentText(replyText);
 
-  if (!cleanReplyText) {
-    return { reply: null, error: new Error("Say something before you reply.") };
+  if (!textCheck.valid) {
+    return { reply: null, error: new Error(textCheck.error) };
   }
 
-  if (cleanReplyText.length > 280) {
-    return { reply: null, error: new Error("Keep replies under 280 characters.") };
-  }
+  const cleanReplyText = textCheck.value;
 
   const {
     data: { user },
@@ -145,7 +147,66 @@ export async function createReply({
     }
   }
 
-  await touchMyPresence();
+  if (!supabaseOverride) {
+    await touchMyPresence();
+  }
 
   return { reply: data, error };
+}
+
+export async function deleteReply({
+  replyId,
+  supabase: supabaseOverride,
+  userId,
+}: {
+  replyId: string;
+  supabase?: AppSupabaseClient;
+  userId?: string;
+}) {
+  const supabase = supabaseOverride ?? createClient();
+
+  if (!supabase) {
+    return { error: new Error("Supabase is not configured.") };
+  }
+
+  let ownerId = userId;
+
+  if (!ownerId) {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError) {
+      return { error: userError };
+    }
+
+    if (!user) {
+      return { error: new Error("Join the Game Room to manage comments.") };
+    }
+
+    ownerId = user.id;
+  }
+
+  const { data: existing, error: fetchError } = await supabase
+    .from("take_replies")
+    .select("id, user_id")
+    .eq("id", replyId)
+    .maybeSingle();
+
+  if (fetchError) {
+    return { error: fetchError };
+  }
+
+  if (!existing) {
+    return { error: new Error("Comment not found.") };
+  }
+
+  if (existing.user_id !== ownerId) {
+    return { error: new Error("You can only delete your own comments.") };
+  }
+
+  const { error } = await supabase.from("take_replies").delete().eq("id", replyId).eq("user_id", ownerId);
+
+  return { error: error ?? null };
 }

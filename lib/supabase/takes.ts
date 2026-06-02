@@ -1,30 +1,35 @@
 import { createClient } from "@/lib/supabase/client";
 import { ACTIVE_GAME_ID } from "@/lib/supabase/games";
 import { touchMyPresence } from "@/lib/supabase/presence";
+import { validateCallText } from "@/lib/security/contentPolicy";
 import { awardStarterRepAndFirstLockTrophy } from "@/lib/supabase/starterRep";
+import type { AppSupabaseClient } from "@/lib/supabase/typedClient";
 import type { Take } from "@/lib/supabase/types";
 
 type CreateLockedTakeInput = {
   gameId?: string;
   storylineId?: string | null;
   takeText: string;
+  supabase?: AppSupabaseClient;
 };
 
 const TAKE_DUPLICATE_WINDOW_MS = 3 * 60 * 1000;
 const TAKE_ACTION_COOLDOWN_MS = 6 * 1000;
 
-export async function createLockedTake({ gameId, storylineId, takeText }: CreateLockedTakeInput) {
-  const supabase = createClient();
+export async function createLockedTake({ gameId, storylineId, takeText, supabase: supabaseOverride }: CreateLockedTakeInput) {
+  const supabase = supabaseOverride ?? createClient();
 
   if (!supabase) {
     return { take: null, error: new Error("Supabase is not configured."), starterRepAwarded: false };
   }
 
-  const cleanTakeText = takeText.trim();
+  const textCheck = validateCallText(takeText);
 
-  if (!cleanTakeText) {
-    return { take: null, error: new Error("Say it before you lock it."), starterRepAwarded: false };
+  if (!textCheck.valid) {
+    return { take: null, error: new Error(textCheck.error), starterRepAwarded: false };
   }
+
+  const cleanTakeText = textCheck.value;
 
   const {
     data: { user },
@@ -94,7 +99,10 @@ export async function createLockedTake({ gameId, storylineId, takeText }: Create
   }
 
   const starterReward = await awardStarterRepAndFirstLockTrophy(supabase, user.id);
-  await touchMyPresence();
+
+  if (!supabaseOverride) {
+    await touchMyPresence();
+  }
 
   return {
     take: data,
@@ -104,10 +112,7 @@ export async function createLockedTake({ gameId, storylineId, takeText }: Create
   };
 }
 
-async function resolveTakeGameId(
-  supabase: NonNullable<ReturnType<typeof createClient>>,
-  requestedGameId?: string,
-) {
+async function resolveTakeGameId(supabase: AppSupabaseClient, requestedGameId?: string) {
   const preferredGameId = requestedGameId ?? ACTIVE_GAME_ID;
 
   const { data: preferredGame } = await supabase
