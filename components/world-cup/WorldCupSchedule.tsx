@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { getWorldCupFixtureSourceUrls, worldCupSchedule, type WorldCupGroup, type WorldCupMatch } from "@/data/worldCupSchedule";
-import { getWorldCupMatchStatus } from "@/lib/worldCupMatchStatus";
+import { getWorldCupMatchPublicCta } from "@/lib/worldCupPublicNav";
 
 const groupFilters: Array<{ value: "ALL" | WorldCupGroup; label: string }> = [
   { value: "ALL", label: "All Groups" },
@@ -79,7 +79,7 @@ export function WorldCupSchedule({ limit, showHeader = true, showViewFullLink = 
         <div className="mb-3.5 sm:mb-4">
           <h1 className="sports-display text-3xl italic leading-none text-white sm:text-4xl">WORLD CUP 2026 SCHEDULE</h1>
           <p className="mt-1.5 text-sm font-semibold text-gray-300">
-            Browse the matches. Study the groups. Lock your calls before kickoff.
+            Find a game, open its room, and make your call with friends and family.
           </p>
         </div>
       ) : null}
@@ -162,13 +162,7 @@ function FilterSelect<T extends string>({
 
 function MatchRow({ match }: { match: WorldCupMatch }) {
   const isKnockout = match.group === "KO";
-  const lifecycle = getWorldCupMatchStatus(match);
-  const cta =
-    lifecycle === "upcoming"
-      ? { label: "Make Call", href: `/schedule/${match.id}/make-call` }
-      : lifecycle === "live"
-        ? { label: "Join Live", href: `/matches/${match.id}` }
-        : { label: "View Receipts", href: `/matches/${match.id}?view=receipts` };
+  const cta = getWorldCupMatchPublicCta(match);
 
   return (
     <div

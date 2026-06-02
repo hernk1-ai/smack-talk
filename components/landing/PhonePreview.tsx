@@ -6,9 +6,9 @@ export function PhonePreview() {
         <div className="overflow-hidden rounded-[2.05rem] border border-white/10 bg-[#050814] p-4 lg:p-5">
           <div className="flex items-center justify-between">
             <p className="flex items-center gap-2 text-[10px] font-black uppercase italic tracking-[0.16em] text-red-300">
-              <span className="h-2 w-2 rounded-full border border-red-400" /> Live Arena
+              <span className="h-2 w-2 rounded-full border border-red-400" /> Game Room
             </p>
-            <span className="text-[10px] font-black uppercase tracking-[0.12em] text-white">12.8K Watching</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.12em] text-white">Match Live</span>
           </div>
 
           <div className="arena-scoreboard mt-5 rounded-3xl border border-white/10 px-3 py-4 shadow-inner sm:px-4">
@@ -87,7 +87,7 @@ export function PhonePreview() {
                 </span>
               ))}
             </div>
-            <p className="text-xs font-bold text-gray-300">+8.2K others online</p>
+            <p className="text-xs font-bold text-gray-300">Friends & family in the room</p>
           </div>
         </div>
       </div>

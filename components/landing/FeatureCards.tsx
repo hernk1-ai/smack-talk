@@ -14,21 +14,20 @@ function ShieldIcon() {
   );
 }
 
-function TrophyIcon() {
+function ScheduleIcon() {
   return (
     <svg aria-hidden="true" className="h-11 w-11" viewBox="0 0 24 24" fill="none">
-      <path d="M8 4h8v3.8c0 3.4-1.7 5.7-4 6.7-2.3-1-4-3.3-4-6.7V4Z" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M8 6H4.5c0 3.3 1.1 5 4.1 5.5M16 6h3.5c0 3.3-1.1 5-4.1 5.5M12 15v3M8.5 21h7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="m12 7.2.7 1.4 1.5.2-1.1 1.1.3 1.5-1.4-.7-1.4.7.3-1.5-1.1-1.1 1.5-.2.7-1.4Z" fill="currentColor" />
+      <path d="M7 4v2M17 4v2M5 8h14M6 6h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M9 12h2v4H9v-4Zm4 0h2v4h-2v-4Z" fill="currentColor" />
     </svg>
   );
 }
 
-function ReceiptIcon() {
+function GameRoomIcon() {
   return (
     <svg aria-hidden="true" className="h-11 w-11" viewBox="0 0 24 24" fill="none">
-      <path d="M7 3h10v18l-2-1.3-2 1.3-2-1.3L9 21l-2-1.3V3Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-      <path d="M9.5 8h5M9.5 12h5M9.5 16h3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M4 7h16v10H4V7Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      <path d="M8 11h3M13 11h3M8 14h8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
@@ -45,26 +44,26 @@ function FansIcon() {
 const features: Feature[] = [
   {
     icon: <ShieldIcon />,
-    title: "Make World Cup Calls",
-    text: "Pick winners, exact scores, and tournament moments before kickoff.",
+    title: "Follow the Match",
+    text: "Use the Match Hub and Schedule to find the game you care about.",
     tone: "lime",
   },
   {
-    icon: <TrophyIcon />,
-    title: "Collect Trophies",
-    text: "Unlock trophies as you make calls, hit receipts, and build your World Cup board.",
+    icon: <ScheduleIcon />,
+    title: "Make a Call",
+    text: "Pick a winner or exact score before kickoff. Your call is saved for that match.",
     tone: "purple",
   },
   {
-    icon: <ReceiptIcon />,
-    title: "Check Receipts",
-    text: "Every locked call becomes a receipt after the match result is final.",
+    icon: <GameRoomIcon />,
+    title: "Join the Game Room",
+    text: "Watch with friends and family, react live, and ride or fade calls together.",
     tone: "lime",
   },
   {
     icon: <FansIcon />,
-    title: "Follow Fans",
-    text: "Follow other users, compare calls, and share receipts throughout the tournament.",
+    title: "Keep It With Your People",
+    text: "Share a match room link and keep the conversation in one place for that game.",
     tone: "purple",
   },
 ];
@@ -75,7 +74,7 @@ export function FeatureCards() {
       <div className="landing-shell">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-lime-300">World Cup Ready</p>
-          <h2 className="sports-display mt-3 text-4xl italic leading-none text-white sm:text-6xl">Built For The Fans</h2>
+          <h2 className="sports-display mt-3 text-4xl italic leading-none text-white sm:text-6xl">The match is the product</h2>
         </div>
 
         <div className="mt-10 grid gap-0 overflow-hidden rounded-[2rem] border border-white/10 bg-black/25 sm:grid-cols-2 lg:grid-cols-4">

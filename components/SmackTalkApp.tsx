@@ -49,8 +49,8 @@ export function LocktApp({
     }
 
     if (view === "profile") {
-      router.push("/receipts");
-      setAppView("receipts");
+      router.push("/settings");
+      setAppView("profile");
       return;
     }
 

@@ -391,7 +391,7 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
         </p>
         </div>
       </main>
-      <RouteBottomNav activeView="settings" />
+      <RouteBottomNav activeView="match-hub" />
     </>
   );
 }

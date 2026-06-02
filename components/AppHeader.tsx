@@ -6,12 +6,17 @@ import { LocktLogo } from "@/components/LocktLogo";
 import { NotificationBell } from "@/components/social/NotificationBell";
 import { UserAvatar } from "@/components/UserAvatar";
 import { createClient } from "@/lib/supabase/client";
+import {
+  SHOW_FAKE_LIVE_ACTIVITY,
+  SHOW_FOLLOW_SYSTEM_PUBLICLY,
+  SHOW_PROFILES,
+} from "@/lib/productConfig";
 import type { Profile } from "@/lib/supabase/types";
 
 export function AppHeader({
   subtitle,
   profile,
-  rightAriaLabel = "Profile",
+  rightAriaLabel = "Account",
 }: {
   subtitle: string;
   profile?: Profile | null;
@@ -20,6 +25,7 @@ export function AppHeader({
   const [resolvedProfile, setResolvedProfile] = useState<Profile | null>(null);
   const activeProfile = profile ?? resolvedProfile;
   const username = activeProfile?.username || "LOCKT";
+  const accountHref = SHOW_PROFILES ? "/profile" : "/settings";
 
   useEffect(() => {
     let mounted = true;
@@ -75,17 +81,21 @@ export function AppHeader({
         </div>
 
         <div className="min-w-0">
-          <p className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.08em] text-gray-200 sm:text-sm">
-            <span className="h-2 w-2 rounded-full bg-lime-400 shadow-[0_0_16px_rgba(132,204,22,0.75)]" />
-            12.8K <span className="text-gray-400">Online</span>
+          {SHOW_FAKE_LIVE_ACTIVITY ? (
+            <p className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.08em] text-gray-200 sm:text-sm">
+              <span className="h-2 w-2 rounded-full bg-lime-400 shadow-[0_0_16px_rgba(132,204,22,0.75)]" />
+              12.8K <span className="text-gray-400">Online</span>
+            </p>
+          ) : null}
+          <p className={`max-w-[24ch] text-xs font-semibold leading-tight text-gray-400 sm:max-w-[46ch] sm:text-sm ${SHOW_FAKE_LIVE_ACTIVITY ? "mt-0.5" : ""}`}>
+            {subtitle}
           </p>
-          <p className="mt-0.5 max-w-[24ch] text-xs font-semibold leading-tight text-gray-400 sm:max-w-[46ch] sm:text-sm">{subtitle}</p>
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2">
-          <NotificationBell />
+          {SHOW_FOLLOW_SYSTEM_PUBLICLY ? <NotificationBell /> : null}
           <Link
-            href="/profile"
+            href={accountHref}
             className="relative grid h-11 w-11 place-items-center rounded-2xl border border-white/15 bg-white/[0.04] text-xl text-white shadow-[0_0_22px_rgba(255,255,255,0.06)] transition hover:-translate-y-0.5 hover:border-purple-300/35 hover:bg-white/[0.07] active:scale-95 sm:h-12 sm:w-12"
             aria-label={rightAriaLabel}
           >

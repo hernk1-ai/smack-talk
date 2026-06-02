@@ -1,15 +1,15 @@
 const faqs = [
   {
     question: "What is LOCKT?",
-    answer: "A World Cup call-and-receipt platform where locked calls become receipts and your calls build REP.",
+    answer: "A World Cup match hub where you follow games with friends and family, make simple calls, and react together in the Game Room.",
   },
   {
     question: "Is this about money?",
-    answer: "No. LOCKT is a 13+ reputation game. No betting, no odds, no cash prizes, and REP has no cash value.",
+    answer: "No. LOCKT is 13+ entertainment. No betting, no odds, no cash prizes.",
   },
   {
-    question: "How does the World Cup flow work?",
-    answer: "Call before kickoff, lock it in, and check the receipt after the final result.",
+    question: "How does it work?",
+    answer: "Find a match in the hub or schedule, make your call, then join the Game Room when it kicks off.",
   },
 ];
 

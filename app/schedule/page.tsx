@@ -23,9 +23,9 @@ export default async function SchedulePage() {
     <main className="min-h-screen bg-black px-4 py-5 pb-28 text-white sm:py-6">
       <div className="page-rhythm mx-auto w-full max-w-5xl screen-safe-bottom">
         <AppHeader
-          subtitle="Browse World Cup matches and lock your calls."
+          subtitle="Schedule · Find a game and open its room."
           profile={profile}
-          rightAriaLabel="Schedule"
+          rightAriaLabel="Account"
         />
         <WorldCupSchedule />
       </div>

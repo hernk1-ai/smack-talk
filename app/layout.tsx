@@ -18,13 +18,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   title: "LOCKT",
-  description: "LOCKT is a sports reputation platform where fans lock takes, ride or fade calls, and build receipts.",
+  description: "Watch the World Cup with your people. Match Hub, Schedule, and Game Rooms for calls and live reactions.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
     title: "LOCKT",
-    description: "LOCKT is a sports reputation platform where fans lock takes, ride or fade calls, and build receipts.",
+    description: "Watch the World Cup with your people. Match Hub, Schedule, and Game Rooms for calls and live reactions.",
     url: "/",
     siteName: "LOCKT",
     type: "website",
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "LOCKT",
-    description: "LOCKT is a sports reputation platform where fans lock takes, ride or fade calls, and build receipts.",
+    description: "Watch the World Cup with your people. Match Hub, Schedule, and Game Rooms for calls and live reactions.",
     images: ["/brand/lockt-wordmark.svg"],
   },
   icons: {

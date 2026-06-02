@@ -12,6 +12,15 @@ import { reactToTake } from "@/lib/supabase/reactions";
 import { createReply, getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/replies";
 import { createClient } from "@/lib/supabase/client";
 import { createLockedTake } from "@/lib/supabase/takes";
+import { getWorldCupMatchById } from "@/data/worldCupSchedule";
+import {
+  isMatchHubMode,
+  SHOW_FAKE_LIVE_ACTIVITY,
+  SHOW_REP_SYSTEM_PUBLICLY,
+} from "@/lib/productConfig";
+import { buildGameRoomShareText } from "@/lib/worldCupPublicNav";
+import { buildSiteUrl } from "@/lib/site-url";
+import { shareWithFallback } from "@/lib/share";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 import type { Game, TakeReaction } from "@/lib/supabase/types";
 
@@ -124,6 +133,28 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
     };
   }, [gameId, supabase]);
 
+  const worldCupMatch = useMemo(() => parseWorldCupMatchFromGameId(gameId), [gameId]);
+  const isWorldCupRoom = Boolean(worldCupMatch) || game?.league === "World Cup" || gameId.startsWith("wc-");
+  const makeCallHref = worldCupMatch ? `/schedule/${worldCupMatch.id}/make-call` : null;
+  const simplifiedRoom = isMatchHubMode();
+
+  async function shareGameRoom() {
+    if (!worldCupMatch) {
+      return;
+    }
+
+    const url = buildSiteUrl(`/game/${gameId}`);
+    const outcome = await shareWithFallback({
+      title: "LOCKT Game Room",
+      text: buildGameRoomShareText(worldCupMatch),
+      url,
+    });
+
+    if (outcome !== "cancelled") {
+      showToast(outcome === "shared" ? "Shared." : "Game Room link copied.", "success");
+    }
+  }
+
   async function lockIt() {
     if (!newTakeText.trim()) {
       setTakesMessage("Write your call before locking it.");
@@ -156,8 +187,8 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
       setTakeReactions(reactionMap);
     }
     setNewTakeText("");
-    setTakesMessage("Locked, no take backs.");
-    setPostToFeedNotice("Posted to Early Call Feed.");
+    setTakesMessage("Your call is saved for this match.");
+    setPostToFeedNotice("Posted to the match room feed.");
     window.setTimeout(() => setPostToFeedNotice(""), 2200);
     showToast("Take locked.", "success");
   }
@@ -348,7 +379,7 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
   return (
     <main className="min-h-dvh overflow-x-hidden bg-transparent pb-4 pt-[calc(1rem+env(safe-area-inset-top))] text-white sm:pb-5 sm:pt-5">
       <div className="arena-shell screen-safe-bottom space-y-5">
-        <AppHeader subtitle="Game Room · World Cup calls and control room." rightAriaLabel="Profile" />
+        <AppHeader subtitle="Game Room · Watch together and react live." rightAriaLabel="Account" />
         <button
           type="button"
           onClick={onBack}
@@ -356,8 +387,35 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
         >
           ← Back to Match Hub
         </button>
+        {worldCupMatch ? (
+          <div className="flex flex-wrap gap-2">
+            {makeCallHref ? (
+              <Link
+                href={makeCallHref}
+                className="inline-flex min-h-10 items-center rounded-xl border border-lime-300/45 bg-lime-400/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-lime-200"
+              >
+                Make Call
+              </Link>
+            ) : null}
+            <button
+              type="button"
+              onClick={shareGameRoom}
+              className="inline-flex min-h-10 items-center rounded-xl border border-purple-300/45 bg-purple-500/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-purple-200"
+            >
+              Share Match Room
+            </button>
+          </div>
+        ) : null}
+        {!isWorldCupRoom && simplifiedRoom ? (
+          <p className="rounded-xl border border-white/10 bg-black/45 px-3 py-2 text-xs font-semibold text-gray-300">
+            This room is for World Cup matches. Pick a match from the Schedule or Match Hub.
+          </p>
+        ) : null}
         <ArenaScoreboard
           game={game}
+          worldCupMatch={worldCupMatch}
+          simplifiedRoom={simplifiedRoom && isWorldCupRoom}
+          showQuickPicks={!simplifiedRoom && !isWorldCupRoom}
           quickPickQuestions={quickPickQueue}
           quickPickSelections={quickPickSelections}
           quickPickResults={quickPickResults}
@@ -366,7 +424,7 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
           quickPickCrowdLine={quickPickCrowdLine}
           onQuickPick={lockQuickPick}
         />
-        <ArenaTabs activeTab={activeTab} onSelect={setActiveTab} earlyCallCount={totalFeedCount} />
+        <ArenaTabs activeTab={activeTab} onSelect={setActiveTab} earlyCallCount={totalFeedCount} simplifiedRoom={simplifiedRoom} />
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
           <section className="space-y-4">
@@ -403,12 +461,19 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
                 }}
               />
             )}
-            {activeTab === "control-room" && <ControlRoomPanel game={game} />}
+            {activeTab === "control-room" && !simplifiedRoom ? <ControlRoomPanel game={game} /> : null}
           </section>
 
           <aside className="space-y-4">
-            {activeTab !== "control-room" && <ControlRoomPanel game={game} />}
+            {activeTab !== "control-room" && !simplifiedRoom ? <ControlRoomPanel game={game} /> : null}
             <ArenaVibePanel />
+            {simplifiedRoom ? (
+              <section className="rounded-[1.5rem] border border-white/10 bg-black/35 p-4">
+                <p className="text-sm font-semibold text-gray-300">
+                  Invite your people to this Game Room, or share the match link with friends and family.
+                </p>
+              </section>
+            ) : null}
           </aside>
         </div>
       </div>
@@ -416,8 +481,20 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
   );
 }
 
+function parseWorldCupMatchFromGameId(gameId: string) {
+  const normalized = gameId.match(/^wc-2026-(\d+)$/);
+  if (!normalized) {
+    return null;
+  }
+
+  return getWorldCupMatchById(Number(normalized[1]));
+}
+
 function ArenaScoreboard({
   game,
+  worldCupMatch,
+  simplifiedRoom,
+  showQuickPicks,
   quickPickQuestions,
   quickPickSelections,
   quickPickResults,
@@ -427,6 +504,9 @@ function ArenaScoreboard({
   onQuickPick,
 }: {
   game: Game | null;
+  worldCupMatch: ReturnType<typeof getWorldCupMatchById>;
+  simplifiedRoom: boolean;
+  showQuickPicks: boolean;
   quickPickQuestions: QuickPickQuestion[];
   quickPickSelections: Record<string, string>;
   quickPickResults: Record<string, "pending" | "hit" | "miss">;
@@ -450,11 +530,29 @@ function ArenaScoreboard({
   const rideCount = game?.ride_count ?? 0;
   const fadeCount = game?.fade_count ?? 0;
   const totalPicks = rideCount + fadeCount;
+  const showCrowdSplit = !simplifiedRoom || totalPicks > 0;
   const ridePct = totalPicks > 0 ? Math.round((rideCount / totalPicks) * 100) : 50;
   const fadePct = 100 - ridePct;
+  const stageLabel = worldCupMatch
+    ? worldCupMatch.group === "KO"
+      ? worldCupMatch.stage
+      : `Group ${worldCupMatch.group}`
+    : period;
+  const venueLabel = worldCupMatch ? `${worldCupMatch.city} · ${worldCupMatch.venue}` : null;
 
   return (
     <section className="arena-scoreboard overflow-hidden rounded-[1.75rem] border border-white/10 p-4 pt-5 shadow-[0_26px_80px_rgba(0,0,0,0.56),0_0_34px_rgba(168,85,247,0.08)] sm:p-5">
+      {worldCupMatch ? (
+        <div className="mb-4 text-center">
+          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">{stageLabel}</p>
+          {venueLabel ? <p className="mt-1 text-xs font-semibold text-gray-400">{venueLabel}</p> : null}
+        </div>
+      ) : null}
+      {status === "scheduled" && simplifiedRoom ? (
+        <p className="mb-4 rounded-xl border border-white/10 bg-black/50 px-3 py-3 text-center text-sm font-semibold text-gray-300">
+          Live updates will appear here when this match kicks off.
+        </p>
+      ) : null}
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2 text-center sm:gap-3">
         <ScoreTeam team={awayTeam} score={awayScore} label={`Team ${awayTeam}`} tone="ride" />
 
@@ -462,12 +560,19 @@ function ArenaScoreboard({
           <span className="rounded-md border border-red-400/60 bg-red-500/10 px-2.5 py-1 text-xs font-black uppercase text-red-300">
             {statusLabel}
           </span>
-          <p className="mt-3 text-xs font-black uppercase text-purple-300">{period}</p>
+          <p className="mt-3 text-xs font-black uppercase text-purple-300">{worldCupMatch ? stageLabel : period}</p>
           {clock ? <p className="scoreboard-number mt-1 text-4xl text-white">{clock}</p> : null}
           <p className="mt-2 flex items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-gray-300">
-            <span className="h-2 w-2 rounded-full bg-lime-400" /> {status === "scheduled" ? `Kickoff ${startsAt}` : status === "live" ? `${formatCompact(watching)} Fans Live` : "Final whistle"}
+            <span className="h-2 w-2 rounded-full bg-lime-400" />{" "}
+            {status === "scheduled"
+              ? `Kickoff ${startsAt}`
+              : status === "live" && SHOW_FAKE_LIVE_ACTIVITY && watching > 0
+                ? `${formatCompact(watching)} in room`
+                : status === "live"
+                  ? "Match live"
+                  : "Final whistle"}
           </p>
-          <p className="text-[10px] font-black uppercase text-gray-500">{status === "scheduled" ? "Pregame" : status === "final" ? "Final" : period}</p>
+          <p className="text-[10px] font-black uppercase text-gray-500">{status === "scheduled" ? "Upcoming" : status === "final" ? "Final" : "Live"}</p>
           <span className="mx-auto mt-3 grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/60 text-[10px] font-black text-gray-300">
             VS
           </span>
@@ -476,18 +581,21 @@ function ArenaScoreboard({
         <ScoreTeam team={homeTeam} score={homeScore} label={`Team ${homeTeam}`} tone="fade" />
       </div>
 
-      <div className="mt-5">
-        <div className="flex items-center justify-between gap-3 text-xs font-black uppercase">
-          <span className="text-lime-300">{ridePct}% Riding {awayTeam}</span>
-          <span className="text-purple-300">{fadePct}% Fading {homeTeam}</span>
+      {showCrowdSplit ? (
+        <div className="mt-5">
+          <div className="flex items-center justify-between gap-3 text-xs font-black uppercase">
+            <span className="text-lime-300">{ridePct}% Riding {awayTeam}</span>
+            <span className="text-purple-300">{fadePct}% Fading {homeTeam}</span>
+          </div>
+          <div className="mt-2 flex h-3 overflow-hidden rounded-full bg-white/10">
+            <div className="bg-gradient-to-r from-lime-400 to-lime-300" style={{ width: `${ridePct}%` }} />
+            <div className="w-3 bg-white/30" />
+            <div className="bg-gradient-to-r from-purple-700 to-purple-400" style={{ width: `${Math.max(fadePct - 3, 0)}%` }} />
+          </div>
         </div>
-        <div className="mt-2 flex h-3 overflow-hidden rounded-full bg-white/10">
-          <div className="bg-gradient-to-r from-lime-400 to-lime-300" style={{ width: `${ridePct}%` }} />
-          <div className="w-3 bg-white/30" />
-          <div className="bg-gradient-to-r from-purple-700 to-purple-400" style={{ width: `${Math.max(fadePct - 3, 0)}%` }} />
-        </div>
-      </div>
+      ) : null}
 
+      {showQuickPicks ? (
       <QuickPickPanel
         questions={quickPickQuestions}
         selections={quickPickSelections}
@@ -497,7 +605,9 @@ function ArenaScoreboard({
         crowdLine={quickPickCrowdLine}
         onPick={onQuickPick}
       />
+      ) : null}
 
+      {!simplifiedRoom ? (
       <div className="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-black/50 p-3.5 sm:grid-cols-[0.8fr_1.25fr_0.85fr] sm:items-center">
         <div>
           <p className="text-[10px] font-black uppercase text-gray-400">Crowd Split</p>
@@ -516,6 +626,7 @@ function ArenaScoreboard({
           <p className="scoreboard-number mt-1 text-4xl text-purple-300">{status === "scheduled" ? "PRE" : status === "final" ? "FIN" : "LIVE"}</p>
         </div>
       </div>
+      ) : null}
     </section>
   );
 }
@@ -549,7 +660,9 @@ function QuickPickPanel({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.16em] text-gray-400">Quick Calls</p>
-          <p className="mt-1 text-[11px] font-bold text-gray-300">{formatRepSwing(QUICK_PICK_WIN, QUICK_PICK_LOSS)} REP · match loop</p>
+          <p className="mt-1 text-[11px] font-bold text-gray-300">
+            {SHOW_REP_SYSTEM_PUBLICLY ? `${formatRepSwing(QUICK_PICK_WIN, QUICK_PICK_LOSS)} REP · match loop` : "Quick calls for this match"}
+          </p>
         </div>
         <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-gray-300">
           Match Queue
@@ -802,18 +915,22 @@ function ArenaTabs({
   activeTab,
   onSelect,
   earlyCallCount,
+  simplifiedRoom,
 }: {
   activeTab: ArenaTab;
   onSelect: (tab: ArenaTab) => void;
   earlyCallCount: number;
+  simplifiedRoom: boolean;
 }) {
-  const tabs: { id: ArenaTab; label: string; count?: string }[] = [
-    { id: "calls", label: "Early Call Feed", count: String(earlyCallCount) },
-    { id: "control-room", label: "Control Room" },
-  ];
+  const tabs: { id: ArenaTab; label: string; count?: string }[] = simplifiedRoom
+    ? [{ id: "calls", label: "Match Room", count: String(earlyCallCount) }]
+    : [
+        { id: "calls", label: "Early Call Feed", count: String(earlyCallCount) },
+        { id: "control-room", label: "Control Room" },
+      ];
 
   return (
-    <nav className="grid grid-cols-2 gap-1 rounded-[1.5rem] border border-white/10 bg-black/35 p-1.5 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur">
+    <nav className={`grid gap-1 rounded-[1.5rem] border border-white/10 bg-black/35 p-1.5 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur ${tabs.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
       {tabs.map((tab) => (
         <button
           key={tab.id}
@@ -887,8 +1004,8 @@ function CallsPanel({
   return (
     <section className="space-y-3 rounded-[1.5rem] border border-white/10 bg-black/30 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
       <div className="rounded-xl border border-white/10 bg-black/40 p-3">
-        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime-300">Lock Your Take</p>
-        <p className="mt-1 text-sm font-semibold text-gray-300">Make your World Cup call before kickoff.</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime-300">Your Call</p>
+        <p className="mt-1 text-sm font-semibold text-gray-300">Make a simple call for this match. After the final whistle, we&apos;ll show if you were right.</p>
         <textarea
           value={newTakeText}
           onChange={(event) => onNewTakeTextChange(event.target.value)}
@@ -930,7 +1047,7 @@ function CallsPanel({
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/40">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-black/80 px-3 py-2 backdrop-blur">
           <p className="text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">
-            Early Call Feed <span className="text-gray-400">{totalCount}</span>
+            Match Room Feed <span className="text-gray-400">{totalCount}</span>
           </p>
           <p className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-400">Newest First</p>
         </div>

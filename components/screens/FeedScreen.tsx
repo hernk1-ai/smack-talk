@@ -29,7 +29,8 @@ import { getGameSport, sportTabs, type SportKey } from "@/data/sportsStructure";
 import { worldCupStorylines } from "@/data/worldCupStorylines";
 import { worldCupChaosAlerts, worldCupFeaturedMatch, worldCupLiveArenas, worldCupTrendingTakes } from "@/data/worldCupMvp";
 import { worldCupSchedule, type WorldCupMatch } from "@/data/worldCupSchedule";
-import { ACTIVE_SPORT, getVisibleSportTabs, isPreTournamentMode, SHOW_MULTI_SPORT } from "@/lib/productConfig";
+import { ACTIVE_SPORT, getVisibleSportTabs, isMatchHubMode, SHOW_MULTI_SPORT } from "@/lib/productConfig";
+import { getWorldCupMatchPublicCta } from "@/lib/worldCupPublicNav";
 import { buildSiteUrl } from "@/lib/site-url";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 import { getWorldCupMatchStatus } from "@/lib/worldCupMatchStatus";
@@ -242,10 +243,10 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   const [reactionMessage, setReactionMessage] = useState("");
   const [recentActivity, setRecentActivity] = useState<string[]>([]);
   const [activeSport, setActiveSport] = useState<SportKey>(ACTIVE_SPORT);
-  const preTournamentMode = isPreTournamentMode();
+  const matchHubMode = isMatchHubMode();
   const visibleSportTabs = getVisibleSportTabs(sportTabs);
   const sportTakes = gameTakes.filter((take) => getGameSport(take.game_id) === activeSport);
-  const visibleTakes = preTournamentMode ? gameTakes : sportTakes;
+  const visibleTakes = matchHubMode ? gameTakes : sportTakes;
   const featuredTake = getFeaturedTakeFromList(visibleTakes);
   const trendingRealTakes = getTrendingTakesFromList(visibleTakes, 4);
   const activeSportGames = liveGames.filter((game) => getGameSportFromRow(game) === activeSport);
@@ -327,7 +328,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
     }
     setStarterRepUnlocked(Boolean(starterRepAwarded));
     setLockTakeStatus("success");
-    setLockTakeMessage(starterRepAwarded ? "You’re on the board." : "Your call is locked. Receipt pending until match ends.");
+    setLockTakeMessage(starterRepAwarded ? "Your call is saved for this match." : "Your call is locked. After the match, we’ll show whether it was right.");
     playSound("take_locked");
     showToast("Take locked.", "success");
   }
@@ -439,12 +440,14 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
     }
   }
 
-  if (preTournamentMode) {
+  if (matchHubMode) {
     return (
       <div className="page-rhythm">
       <FeedHeader profile={profile} />
+      <MatchHubIntro />
       <SportSelector activeSport={activeSport} onSelect={setActiveSport} visibleTabs={visibleSportTabs} />
       <PreTournamentCountdown />
+      <WorldCupUpcomingMatches />
       <ScheduledGames activeSport={activeSport} games={scheduledSportGames} onEnterArena={onEnterArena} />
       <PreTournamentStorylines />
       <FeaturedPlayers />
@@ -556,19 +559,14 @@ function PreTournamentCountdown() {
   const featuredStatus = getWorldCupMatchStatus(featuredMatch);
   const featuredLabel =
     featuredStatus === "live" ? "Live Now" : featuredStatus === "upcoming" ? "Next Up" : "Latest Final";
-  const featuredCta =
-    featuredStatus === "live"
-      ? { label: "Join Live", href: `/matches/${featuredMatch.id}` }
-      : featuredStatus === "upcoming"
-        ? { label: "Make Call", href: `/schedule/${featuredMatch.id}/make-call` }
-        : { label: "View Receipts", href: `/matches/${featuredMatch.id}?view=receipts` };
+  const featuredCta = getWorldCupMatchPublicCta(featuredMatch);
 
   return (
     <FeedSection title="World Cup Countdown" icon="◷" action="">
       <div className="rounded-2xl border border-lime-300/20 bg-black/45 p-4">
-        <h3 className="sports-display text-3xl italic leading-none text-white sm:text-4xl">World Cup Match Hub Opens Soon</h3>
+        <h3 className="sports-display text-3xl italic leading-none text-white sm:text-4xl">Countdown to World Cup Kickoff</h3>
         <p className="mt-3 text-sm font-semibold text-gray-300">
-          Study the groups. Track storylines. Make your call before kickoff.
+          Follow the match. Make a call. Watch with your people.
         </p>
         <p className="mt-3 inline-block rounded-lg border border-lime-300/40 bg-lime-400/10 px-3 py-2 text-sm font-black uppercase tracking-[0.12em] text-lime-200">
           {countdown}
@@ -650,7 +648,7 @@ function HostCityCommentary() {
   const cities = [
     "Mexico City opener: early energy and pressure from kickoff.",
     "Dallas spotlight: crowd intensity can swing momentum.",
-    "New York/New Jersey final: biggest stage, biggest receipts.",
+    "New York/New Jersey final: biggest stage, loudest room.",
   ];
 
   return (
@@ -706,7 +704,7 @@ function PreTournamentNews() {
         className="mt-3"
         compact
         heading="Follow Lockt"
-        subtext="World Cup calls, group breakdowns, receipt drops, and tournament storylines."
+        subtext="World Cup matches, schedule updates, and Game Room links."
       />
     </FeedSection>
   );
@@ -765,7 +763,74 @@ function SportSelector({
 }
 
 function FeedHeader({ profile }: { profile?: Profile | null }) {
-  return <AppHeader profile={profile} subtitle="Match Hub · World Cup 2026" rightAriaLabel="Profile" />;
+  return <AppHeader profile={profile} subtitle="Match Hub · Follow the match with your people." rightAriaLabel="Account" />;
+}
+
+function MatchHubIntro() {
+  return (
+    <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.34)] sm:p-5">
+      <h2 className="sports-display text-2xl italic leading-tight text-white sm:text-3xl">The World Cup is better with your people.</h2>
+      <p className="mt-2 text-sm font-semibold leading-6 text-gray-300">
+        Pick a match, make a call, and join the Game Room when it kicks off.
+      </p>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <Link
+          href="/schedule"
+          className="grid min-h-11 place-items-center rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-black uppercase tracking-[0.1em] text-white"
+        >
+          View Schedule
+        </Link>
+        <Link
+          href="/app"
+          className="grid min-h-11 place-items-center rounded-xl border border-lime-300/45 bg-lime-400/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-lime-200"
+        >
+          Featured Matches
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function WorldCupUpcomingMatches() {
+  const now = new Date();
+  const upcoming = worldCupSchedule
+    .filter((match) => getWorldCupMatchStatus(match, now) === "upcoming")
+    .slice(0, 8);
+
+  if (!upcoming.length) {
+    return null;
+  }
+
+  return (
+    <FeedSection title="Upcoming Matches" icon="◷" action="">
+      <div className="space-y-2">
+        {upcoming.map((match) => {
+          const cta = getWorldCupMatchPublicCta(match, now);
+          return (
+            <div
+              key={match.id}
+              className="grid gap-2 rounded-xl border border-white/10 bg-black/45 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-black text-white">
+                  {match.homeTeam} vs {match.awayTeam ?? "TBD"}
+                </p>
+                <p className="mt-0.5 text-xs font-semibold text-gray-400">
+                  {formatDateLabel(match.date)} · {match.kickoffET} · {match.city}
+                </p>
+              </div>
+              <Link
+                href={cta.href}
+                className="inline-flex min-h-10 items-center justify-center rounded-lg border border-purple-300/45 bg-purple-500/10 px-3 text-[10px] font-black uppercase tracking-[0.1em] text-purple-200"
+              >
+                {cta.label}
+              </Link>
+            </div>
+          );
+        })}
+      </div>
+    </FeedSection>
+  );
 }
 
 function getReceiptHref(handle: string) {
@@ -1704,7 +1769,7 @@ function ScheduledGameCard({
         onClick={() => onEnterArena(game.id)}
         className="mt-4 min-h-11 w-full rounded-xl border border-purple-300/45 bg-purple-500/10 text-sm font-black uppercase tracking-[0.1em] text-purple-200 transition hover:bg-purple-500/15 active:scale-[0.98]"
       >
-        Preview Game Room
+        Join Game Room
       </button>
     </article>
   );

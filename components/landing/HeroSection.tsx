@@ -7,14 +7,13 @@ export function HeroSection() {
         <div className="hero-copy relative mx-auto w-full max-w-4xl text-center">
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-lime-300 sm:text-xs">World Cup 2026</p>
 
-          <h1 className="hero-title sports-display mt-4 text-[clamp(2.6rem,12vw,6.8rem)] leading-[0.86] tracking-[0.01em] text-white sm:text-[7rem] lg:text-[6.8rem] xl:text-[8rem]">
-            <span className="block">JOIN US FOR</span>
-            <span className="hero-receipts block bg-gradient-to-r from-lime-300 via-white to-purple-500 bg-clip-text text-transparent drop-shadow-[0_0_24px_rgba(132,204,22,0.18)]">WORLD CUP 2026!</span>
+          <h1 className="hero-title sports-display mt-4 text-[clamp(2.2rem,10vw,5.2rem)] leading-[0.92] tracking-[0.01em] text-white sm:text-[4.8rem] lg:text-[5rem]">
+            Watch the World Cup with your people.
           </h1>
 
-          <p className="mt-5 text-lg font-black uppercase tracking-[0.08em] text-white/95 sm:text-xl">Lock Takes. Show Receipts.</p>
-          <p className="mt-3 max-w-2xl text-sm font-semibold leading-7 text-gray-300 sm:text-base">
-            Make your World Cup calls, collect trophies, follow other fans, and check the receipts after every match.
+          <p className="mt-5 text-lg font-black uppercase tracking-[0.08em] text-white/95 sm:text-xl">Make calls. React live. Keep it fun.</p>
+          <p className="mt-3 max-w-2xl mx-auto text-sm font-semibold leading-7 text-gray-300 sm:text-base">
+            Lockt adds a game room to every match so friends and family can follow the action, make calls, and react together.
           </p>
           <p className="mt-3 text-xs font-black uppercase tracking-[0.16em] text-gray-400">13+ · No betting · No odds · No cash prizes</p>
 
@@ -23,7 +22,7 @@ export function HeroSection() {
               href="/app"
               className="neon-cta inline-flex min-h-14 items-center justify-center rounded-sm px-8 text-base font-black uppercase italic tracking-[0.12em] text-black shadow-[0_0_34px_rgba(132,204,22,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_0_38px_rgba(132,204,22,0.3)] active:translate-y-0 active:scale-[0.99]"
             >
-              Join the Fun
+              Go to Match Hub
               <span className="ml-4 text-xl leading-none">›</span>
             </Link>
             <Link

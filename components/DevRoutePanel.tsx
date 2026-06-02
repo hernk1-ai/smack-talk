@@ -86,6 +86,26 @@ const devRoutes = [
     label: "Game Room",
     file: "app/game/[gameId]/page.tsx",
   },
+  {
+    href: "/receipts",
+    label: "Receipts (archived)",
+    file: "app/receipts/page.tsx",
+  },
+  {
+    href: "/profile",
+    label: "Profile (archived)",
+    file: "app/profile/page.tsx",
+  },
+  {
+    href: "/top-talkers",
+    label: "Top Talkers (archived)",
+    file: "app/top-talkers/page.tsx",
+  },
+  {
+    href: "/calls",
+    label: "Calls (archived)",
+    file: "app/calls/page.tsx",
+  },
 ];
 
 export function DevRoutePanel() {
