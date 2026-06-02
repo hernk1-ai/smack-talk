@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getCanonicalSiteUrl } from "@/lib/seo/canonical-site-url";
+import { SITEMAP_BASE_URL } from "@/lib/seo/sitemap";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -34,7 +34,6 @@ export default function robots(): MetadataRoute.Robots {
         "/u/",
       ],
     },
-    sitemap: `${getCanonicalSiteUrl()}/sitemap.xml`,
-    host: getCanonicalSiteUrl(),
+    sitemap: `${SITEMAP_BASE_URL}/sitemap.xml`,
   };
 }
