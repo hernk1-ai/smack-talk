@@ -3,6 +3,7 @@ import { socialLinks, type SocialPlatform } from "@/config/socialLinks";
 type SocialLinksProps = {
   className?: string;
   compact?: boolean;
+  embedded?: boolean;
   heading?: string;
   subtext?: string;
 };
@@ -23,28 +24,42 @@ const linkDefs: SocialLinkDef[] = [
 export function SocialLinks({
   className,
   compact = false,
+  embedded = false,
   heading = "Follow Lockt",
   subtext = "World Cup calls, group breakdowns, receipt drops, and tournament storylines.",
 }: SocialLinksProps) {
+  const links = (
+    <div className={`grid gap-2 ${compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4"} ${embedded ? "" : "mt-4"}`}>
+      {linkDefs.map((link) => (
+        <a
+          key={link.platform}
+          href={link.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Follow Lockt on ${link.label}`}
+          className="group inline-flex min-h-11 items-center justify-between gap-2 rounded-xl border border-white/10 bg-[var(--surface-card)] px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-white transition hover:border-lime-300/45 hover:text-lime-200"
+        >
+          <span>{link.label}</span>
+        </a>
+      ))}
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <div className={className ?? ""}>
+        <p className="text-sm font-semibold text-gray-300">{subtext}</p>
+        <div className="mt-3">{links}</div>
+      </div>
+    );
+  }
+
   return (
     <section className={className ?? ""}>
-      <div className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.34)]">
+      <div className="rounded-[1.75rem] border border-white/10 bg-[var(--surface-section)] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.34)]">
         <h2 className="sports-display text-2xl italic leading-none text-white sm:text-3xl">{heading}</h2>
         <p className="mt-2 text-sm font-semibold text-gray-300">{subtext}</p>
-        <div className={`mt-4 grid gap-2 ${compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4"}`}>
-          {linkDefs.map((link) => (
-            <a
-              key={link.platform}
-              href={link.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={`Follow Lockt on ${link.label}`}
-              className="group inline-flex min-h-11 items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-white transition hover:border-lime-300/45 hover:text-lime-200"
-            >
-              <span>{link.label}</span>
-            </a>
-          ))}
-        </div>
+        {links}
       </div>
     </section>
   );

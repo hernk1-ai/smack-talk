@@ -74,7 +74,7 @@ export function WorldCupSchedule({ limit, showHeader = true, showViewFullLink = 
   }, [filteredMatches]);
 
   return (
-    <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-3.5 shadow-[0_18px_50px_rgba(0,0,0,0.34)] sm:p-4">
+    <section className="rounded-[1.75rem] border border-white/10 bg-[var(--surface-section)] p-3.5 shadow-[0_18px_50px_rgba(0,0,0,0.34)] sm:p-4">
       {showHeader ? (
         <div className="mb-3.5 sm:mb-4">
           <h1 className="sports-display text-3xl italic leading-none text-white sm:text-4xl">WORLD CUP 2026 SCHEDULE</h1>
@@ -84,7 +84,7 @@ export function WorldCupSchedule({ limit, showHeader = true, showViewFullLink = 
         </div>
       ) : null}
 
-      <div className="sticky top-2 z-10 mb-3.5 grid gap-2 rounded-2xl border border-white/10 bg-black/70 p-2 backdrop-blur sm:mb-4 sm:grid-cols-3 sm:p-2.5">
+      <div className="sticky top-2 z-10 mb-3.5 grid gap-2 rounded-2xl border border-white/10 bg-[var(--surface-section)] p-2 backdrop-blur sm:mb-4 sm:grid-cols-3 sm:p-2.5">
         <FilterSelect label="Group" value={selectedGroup} onChange={setSelectedGroup} options={groupFilters} />
         <FilterSelect label="City" value={selectedCity} onChange={setSelectedCity} options={cities.map((city) => ({ value: city, label: city }))} />
         <FilterSelect label="Team" value={selectedTeam} onChange={setSelectedTeam} options={teams.map((team) => ({ value: team, label: team }))} />
@@ -101,7 +101,7 @@ export function WorldCupSchedule({ limit, showHeader = true, showViewFullLink = 
 
       <div className="space-y-2.5 sm:space-y-3">
         {groupedByDate.map(([date, matches]) => (
-          <article key={date} className="rounded-2xl border border-white/10 bg-black/45 p-2.5 sm:p-3">
+          <article key={date} className="rounded-2xl border border-white/10 bg-[var(--surface-card)] p-2.5 sm:p-3">
             <p className="text-xs font-black uppercase tracking-[0.12em] text-gray-300">{formatDateLabel(date)}</p>
             <div className="mt-1.5 space-y-1.5 sm:mt-2 sm:space-y-2">
               {matches.map((match) => (

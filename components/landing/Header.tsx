@@ -16,7 +16,7 @@ export function Header() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#02040a]/78 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0b0f0c]/78 backdrop-blur-xl">
       <div className="landing-shell flex min-h-18 items-center justify-between gap-4 py-2 sm:min-h-20">
         <a href="#about" className="flex min-w-0 items-center gap-3" aria-label="LOCKT home">
           <LocktLogo size={50} />

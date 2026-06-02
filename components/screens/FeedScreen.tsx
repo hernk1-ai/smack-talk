@@ -692,19 +692,22 @@ function PreTournamentStorylines() {
 
 function PreTournamentNews() {
   return (
-    <FeedSection title="⚽ Team News / Injury Watch" icon="" action="Coming Soon">
-      <div className="rounded-2xl border border-white/10 bg-black/45 p-4">
-        <p className="text-sm font-semibold text-gray-300">
-          Team news and injury updates will appear here as kickoff approaches.
-        </p>
-      </div>
-      <SocialLinks
-        className="mt-3"
-        compact
-        heading="Follow Lockt"
-        subtext="World Cup matches, schedule updates, and Game Room links."
-      />
-    </FeedSection>
+    <>
+      <FeedSection title="Team News / Injury Watch" icon="⚽" action="Coming Soon">
+        <div className="rounded-2xl border border-white/10 bg-[var(--surface-card)] p-4">
+          <p className="text-sm font-semibold text-gray-300">
+            Team news and injury updates will appear here as kickoff approaches.
+          </p>
+        </div>
+      </FeedSection>
+      <FeedSection title="Follow Lockt" icon="" action="">
+        <SocialLinks
+          embedded
+          compact
+          subtext="World Cup matches, schedule updates, and Game Room links."
+        />
+      </FeedSection>
+    </>
   );
 }
 
@@ -1878,7 +1881,7 @@ function FeedSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[1.75rem] border border-white/10 bg-black/30 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.34)] backdrop-blur">
+    <section className="rounded-[1.75rem] border border-white/10 bg-[var(--surface-section)] p-3 shadow-[0_18px_50px_rgba(0,0,0,0.34)] backdrop-blur">
       <div className="mb-3 flex items-center justify-between gap-3 px-1">
         <h2 className="sports-display text-2xl italic leading-none text-white">
           {icon ? <span className="mr-2 not-italic">{icon}</span> : null}

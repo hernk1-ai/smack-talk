@@ -43,7 +43,7 @@ export function BottomNav({ activeView, onSelect }: { activeView: AppView; onSel
   const columnClass = items.length === 2 ? "grid-cols-2" : items.length === 3 ? "grid-cols-3" : "grid-cols-4";
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-[#02040a]/95 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-18px_50px_rgba(0,0,0,0.45)] backdrop-blur">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-[#0b0f0c]/95 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-18px_50px_rgba(0,0,0,0.45)] backdrop-blur">
       <div className={`bottom-nav-shell grid ${columnClass} gap-1 rounded-[1.4rem] border border-white/10 bg-white/5 p-2`}>
         {items.map((item) => (
           <button
@@ -79,7 +79,7 @@ export function RouteBottomNav({ activeView }: { activeView: NavView }) {
   const columnClass = items.length === 2 ? "grid-cols-2" : items.length === 3 ? "grid-cols-3" : "grid-cols-4";
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-[#02040a]/95 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-18px_50px_rgba(0,0,0,0.45)] backdrop-blur">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-[#0b0f0c]/95 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-18px_50px_rgba(0,0,0,0.45)] backdrop-blur">
       <div className={`bottom-nav-shell grid ${columnClass} gap-1 rounded-[1.4rem] border border-white/10 bg-white/5 p-2`}>
         {items.map((item) => (
           <Link

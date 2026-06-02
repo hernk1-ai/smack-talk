@@ -24,7 +24,7 @@ export function FAQSection() {
 
         <div className="mx-auto mt-8 grid max-w-4xl gap-3 sm:grid-cols-3">
           {faqs.map((faq) => (
-            <article key={faq.question} className="rounded-3xl border border-white/10 bg-black/35 p-5">
+            <article key={faq.question} className="rounded-3xl border border-white/10 bg-[var(--surface-card)] p-5">
               <h3 className="text-sm font-black uppercase tracking-[0.1em] text-white">{faq.question}</h3>
               <p className="mt-3 text-sm font-semibold leading-6 text-gray-400">{faq.answer}</p>
             </article>

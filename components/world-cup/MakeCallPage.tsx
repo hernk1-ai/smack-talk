@@ -314,7 +314,7 @@ export function MakeCallPage({ match, initialPick, profile, isAuthenticated }: M
   }, [hasSession, lockClosed, match.id, winnerLockedAt, exactLockedAt, lockWinner, lockExactScore]);
 
   return (
-    <main className="min-h-dvh bg-black px-4 py-6 pb-28 text-white">
+    <main className="min-h-dvh bg-transparent px-4 py-6 pb-28 text-white">
       <GuestJoinModal
         open={guest.modalOpen}
         loading={guest.joinLoading}

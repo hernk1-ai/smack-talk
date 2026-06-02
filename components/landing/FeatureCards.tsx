@@ -77,7 +77,7 @@ export function FeatureCards() {
           <h2 className="sports-display mt-3 text-4xl italic leading-none text-white sm:text-6xl">The match is the product</h2>
         </div>
 
-        <div className="mt-10 grid gap-0 overflow-hidden rounded-[2rem] border border-white/10 bg-black/25 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-10 grid gap-0 overflow-hidden rounded-[2rem] border border-white/10 bg-[var(--surface-section)] sm:grid-cols-2 lg:grid-cols-4">
           {features.map((feature) => (
             <article
               key={feature.title}
