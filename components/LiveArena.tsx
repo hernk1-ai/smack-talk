@@ -424,16 +424,21 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
           quickPickCrowdLine={quickPickCrowdLine}
           onQuickPick={lockQuickPick}
         />
-        <ArenaTabs activeTab={activeTab} onSelect={setActiveTab} earlyCallCount={totalFeedCount} simplifiedRoom={simplifiedRoom} />
+        {simplifiedRoom ? (
+          <MatchCallsHeading count={totalFeedCount} />
+        ) : (
+          <ArenaTabs activeTab={activeTab} onSelect={setActiveTab} earlyCallCount={totalFeedCount} />
+        )}
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
           <section className="space-y-4">
-            {activeTab === "calls" && (
+            {(simplifiedRoom || activeTab === "calls") && (
               <CallsPanel
                 gameId={gameId}
                 isAuthenticated={isAuthenticated}
                 takes={visibleTakes}
                 totalCount={totalFeedCount}
+                showFeedHeader={!simplifiedRoom}
                 reactionLoadingTakeId={reactionLoadingTakeId}
                 reactions={takeReactions}
                 replyLoadingTakeId={replyLoadingTakeId}
@@ -911,26 +916,33 @@ function ScoreTeam({
   );
 }
 
+function MatchCallsHeading({ count }: { count: number }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 border-b border-white/10 pb-2">
+      <h2 className="text-sm font-black uppercase tracking-[0.12em] text-white">
+        Match Calls <span className="font-semibold text-gray-400">· {count}</span>
+      </h2>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-gray-500">Newest first</p>
+    </div>
+  );
+}
+
 function ArenaTabs({
   activeTab,
   onSelect,
   earlyCallCount,
-  simplifiedRoom,
 }: {
   activeTab: ArenaTab;
   onSelect: (tab: ArenaTab) => void;
   earlyCallCount: number;
-  simplifiedRoom: boolean;
 }) {
-  const tabs: { id: ArenaTab; label: string; count?: string }[] = simplifiedRoom
-    ? [{ id: "calls", label: "Match Room", count: String(earlyCallCount) }]
-    : [
-        { id: "calls", label: "Early Call Feed", count: String(earlyCallCount) },
-        { id: "control-room", label: "Control Room" },
-      ];
+  const tabs: { id: ArenaTab; label: string; count?: string }[] = [
+    { id: "calls", label: "Early Call Feed", count: String(earlyCallCount) },
+    { id: "control-room", label: "Control Room" },
+  ];
 
   return (
-    <nav className={`grid gap-1 rounded-[1.5rem] border border-white/10 bg-black/35 p-1.5 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur ${tabs.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+    <nav className="grid grid-cols-2 gap-1 rounded-[1.5rem] border border-white/10 bg-black/35 p-1.5 shadow-[0_18px_48px_rgba(0,0,0,0.34)] backdrop-blur">
       {tabs.map((tab) => (
         <button
           key={tab.id}
@@ -959,6 +971,7 @@ function CallsPanel({
   isAuthenticated,
   takes,
   totalCount,
+  showFeedHeader = true,
   reactionLoadingTakeId,
   reactions,
   replyLoadingTakeId,
@@ -982,6 +995,7 @@ function CallsPanel({
   isAuthenticated: boolean;
   takes: ArenaTake[];
   totalCount: number;
+  showFeedHeader?: boolean;
   reactionLoadingTakeId: string | null;
   reactions: Record<string, TakeReaction["reaction"]>;
   replyLoadingTakeId: string | null;
@@ -1045,13 +1059,15 @@ function CallsPanel({
       ) : null}
 
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/40">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-black/80 px-3 py-2 backdrop-blur">
-          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">
-            Match Room Feed <span className="text-gray-400">{totalCount}</span>
-          </p>
-          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-400">Newest First</p>
-        </div>
-        <div className="max-h-[32rem] space-y-3 overflow-y-auto p-3">
+        {showFeedHeader ? (
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-black/80 px-3 py-2 backdrop-blur">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">
+              Early Call Feed <span className="text-gray-400">{totalCount}</span>
+            </p>
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-400">Newest First</p>
+          </div>
+        ) : null}
+        <div className={`max-h-[32rem] space-y-3 overflow-y-auto p-3 ${showFeedHeader ? "" : "pt-3"}`}>
           {!takes.length ? (
             <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
               <p className="text-sm font-semibold text-gray-300">No locked calls yet. Be first to lock one.</p>

@@ -773,20 +773,6 @@ function MatchHubIntro() {
       <p className="mt-2 text-sm font-semibold leading-6 text-gray-300">
         Pick a match, make a call, and join the Game Room when it kicks off.
       </p>
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        <Link
-          href="/schedule"
-          className="grid min-h-11 place-items-center rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-black uppercase tracking-[0.1em] text-white"
-        >
-          View Schedule
-        </Link>
-        <Link
-          href="/app"
-          className="grid min-h-11 place-items-center rounded-xl border border-lime-300/45 bg-lime-400/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-lime-200"
-        >
-          Featured Matches
-        </Link>
-      </div>
     </section>
   );
 }
