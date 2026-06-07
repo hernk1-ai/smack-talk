@@ -10,20 +10,19 @@ export type WorldCupMatchCta = {
 export function getWorldCupMatchPublicCta(match: WorldCupMatch, now = new Date()): WorldCupMatchCta {
   const lifecycle = getWorldCupMatchStatus(match, now);
   const gameRoomHref = `/game/${getWorldCupMatchId(match)}`;
-  const makeCallHref = `/schedule/${match.id}/make-call`;
   const matchRoomHref = `/matches/${match.id}`;
 
   if (lifecycle === "live") {
     return {
       label: "Join Game Room",
-      href: SHOW_GAME_ROOM ? matchRoomHref : makeCallHref,
+      href: SHOW_GAME_ROOM ? matchRoomHref : gameRoomHref,
     };
   }
 
   if (lifecycle === "upcoming") {
     return {
-      label: SHOW_GAME_ROOM ? "Join Game Room" : "Make Call",
-      href: SHOW_GAME_ROOM ? gameRoomHref : makeCallHref,
+      label: "Join Game Room",
+      href: gameRoomHref,
     };
   }
 

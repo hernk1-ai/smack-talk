@@ -21,3 +21,16 @@ export const isSupabaseAdminConfigured = Boolean(supabaseUrl && supabaseServiceR
 export const isNotificationFanoutConfigured = Boolean(
   vapidPublicKey && vapidPrivateKey && notificationFanoutSecret && supabaseServiceRoleKey,
 );
+
+/** Returns a specific setup error for server routes that require the admin client. */
+export function getSupabaseAdminSetupError() {
+  if (!supabaseUrl?.trim()) {
+    return "Missing NEXT_PUBLIC_SUPABASE_URL.";
+  }
+
+  if (!supabaseServiceRoleKey?.trim()) {
+    return "Missing SUPABASE_SERVICE_ROLE_KEY.";
+  }
+
+  return null;
+}

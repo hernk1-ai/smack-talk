@@ -16,16 +16,19 @@ export function LocktApp({
   initialView = "arena",
   receiptOwner,
   initialGameId = ACTIVE_GAME_ID,
+  initialRoomCode = null,
 }: {
   profile?: Profile | null;
   initialView?: AppView;
   receiptOwner?: ReceiptOwner | null;
   initialGameId?: string;
+  initialRoomCode?: string | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const [appView, setAppView] = useState<AppView>(initialView);
   const [activeGameRoomId, setActiveGameRoomId] = useState(initialGameId);
+  const [activeRoomCode, setActiveRoomCode] = useState<string | null>(initialRoomCode);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -38,6 +41,7 @@ export function LocktApp({
 
   const joinLive = (gameId = ACTIVE_GAME_ID) => {
     setActiveGameRoomId(gameId);
+    setActiveRoomCode(null);
     setAppView("live-arena");
     router.push(`/game/${gameId}`);
   };
@@ -61,6 +65,7 @@ export function LocktApp({
 
     if (view === "game-room") {
       setActiveGameRoomId(ACTIVE_GAME_ID);
+      setActiveRoomCode(null);
       setAppView("live-arena");
       router.push(`/game/${ACTIVE_GAME_ID}`);
       return;
@@ -70,7 +75,7 @@ export function LocktApp({
   return (
     <>
       {appView === "live-arena" ? (
-        <LiveArena gameId={activeGameRoomId} onBack={goToArena} />
+        <LiveArena gameId={activeGameRoomId} roomCode={activeRoomCode} onBack={goToArena} />
       ) : appView === "arena" ? (
         <ArenaView onJoinLive={joinLive} profile={profile} />
       ) : appView === "receipts" ? (

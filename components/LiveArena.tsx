@@ -27,6 +27,11 @@ import { buildGameRoomShareText } from "@/lib/worldCupPublicNav";
 import { formatShareClipboardText, shareWithFallback } from "@/lib/share";
 import { getShareUrl } from "@/lib/site-url";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
+import { GameRoomRooting } from "@/components/game-room/GameRoomRooting";
+import { GameRoomChat } from "@/components/game-room/GameRoomChat";
+import { PublicGameRoomShareSection, PrivateGameRoomShareSection } from "@/components/game-room/CreatePrivateRoomPanel";
+import { buildPrivateRoomPath } from "@/lib/gameRoom/roomCode";
+import { validatePrivateRoom } from "@/lib/gameRoom/rootingApi";
 import { ClaimProfilePrompt } from "@/components/guest/ClaimProfilePrompt";
 import { GuestJoinModal } from "@/components/guest/GuestJoinModal";
 import { GUEST_CALL_TEXT_MAX, GUEST_COMMENT_MAX } from "@/lib/guest/displayName";
@@ -65,7 +70,15 @@ const topTalkers: TopTalker[] = [
   { rank: 5, handle: "@GoalRush", heat: "2.1K", avatar: "HD" },
 ];
 
-export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string; onBack: () => void }) {
+export function LiveArena({
+  gameId = ACTIVE_GAME_ID,
+  roomCode = null,
+  onBack,
+}: {
+  gameId?: string;
+  roomCode?: string | null;
+  onBack: () => void;
+}) {
   const { showToast } = useToast();
   const supabase = createClient();
   const gameRoomPath = `/game/${gameId}`;
@@ -95,6 +108,8 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
   const [showClaimPrompt, setShowClaimPrompt] = useState(false);
   const [reportTarget, setReportTarget] = useState<{ targetType: ReportTargetType; targetId: string } | null>(null);
   const [deletingReplyId, setDeletingReplyId] = useState<string | null>(null);
+  const [privateRoomValid, setPrivateRoomValid] = useState<boolean | null>(roomCode ? null : true);
+  const [privateRoomError, setPrivateRoomError] = useState<string | null>(null);
   const awayTeam = game?.away_team ?? "AWAY";
   const homeTeam = game?.home_team ?? "HOME";
 
@@ -161,16 +176,53 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
 
   const worldCupMatch = useMemo(() => parseWorldCupMatchFromGameId(gameId), [gameId]);
   const isWorldCupRoom = Boolean(worldCupMatch) || game?.league === "World Cup" || gameId.startsWith("wc-");
-  const makeCallHref = worldCupMatch ? `/schedule/${worldCupMatch.id}/make-call` : null;
   const simplifiedRoom = isMatchHubMode();
+  const isPrivateRoom = Boolean(roomCode);
+  const showWorldCupFanRoom = isWorldCupRoom && simplifiedRoom;
+
+  useEffect(() => {
+    if (!roomCode) {
+      setPrivateRoomValid(true);
+      setPrivateRoomError(null);
+      return;
+    }
+
+    const activeRoomCode = roomCode;
+    let isMounted = true;
+
+    async function verifyPrivateRoom() {
+      setPrivateRoomValid(null);
+      setPrivateRoomError(null);
+
+      const valid = await validatePrivateRoom(gameId, activeRoomCode);
+      if (!isMounted) {
+        return;
+      }
+
+      if (!valid) {
+        setPrivateRoomValid(false);
+        setPrivateRoomError("This private room link is invalid or expired.");
+        return;
+      }
+
+      setPrivateRoomValid(true);
+    }
+
+    void verifyPrivateRoom();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [gameId, roomCode]);
 
   async function shareGameRoom() {
     if (!worldCupMatch) {
       return;
     }
 
+    const sharePath = roomCode ? buildPrivateRoomPath(gameId, roomCode) : `/game/${gameId}`;
     const shareText = buildGameRoomShareText(worldCupMatch);
-    const url = getShareUrl(`/game/${gameId}`);
+    const url = getShareUrl(sharePath);
     const outcome = await shareWithFallback({
       title: "Join my Lockt Game Room",
       text: shareText,
@@ -474,23 +526,16 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
           ← Back to Match Hub
         </button>
         {worldCupMatch ? (
-          <div className="flex flex-wrap gap-2">
-            {makeCallHref ? (
-              <Link
-                href={makeCallHref}
-                className="inline-flex min-h-10 items-center rounded-xl border border-lime-300/45 bg-lime-400/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-lime-200"
-              >
-                Make Call
-              </Link>
-            ) : null}
-            <button
-              type="button"
-              onClick={shareGameRoom}
-              className="inline-flex min-h-10 items-center rounded-xl border border-purple-300/45 bg-purple-500/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-purple-200"
-            >
-              Share Match Room
-            </button>
-          </div>
+          isPrivateRoom && roomCode ? (
+            <PrivateGameRoomShareSection gameId={gameId} roomCode={roomCode} onSharePrivate={shareGameRoom} />
+          ) : (
+            <PublicGameRoomShareSection gameId={gameId} onSharePublic={shareGameRoom} />
+          )
+        ) : null}
+        {privateRoomError ? (
+          <p className="rounded-xl border border-red-400/35 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-200">
+            {privateRoomError}
+          </p>
         ) : null}
         {!isWorldCupRoom && simplifiedRoom ? (
           <p className="rounded-xl border border-white/10 bg-black/45 px-3 py-2 text-xs font-semibold text-gray-300">
@@ -510,15 +555,21 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
           quickPickCrowdLine={quickPickCrowdLine}
           onQuickPick={lockQuickPick}
         />
-        {simplifiedRoom ? (
-          <MatchCallsHeading count={totalFeedCount} />
-        ) : (
+        {showWorldCupFanRoom && privateRoomValid ? (
+          <GameRoomRooting gameId={gameId} roomCode={roomCode} homeTeam={homeTeam} awayTeam={awayTeam} />
+        ) : null}
+        {showWorldCupFanRoom && isPrivateRoom && roomCode && privateRoomValid ? (
+          <GameRoomChat gameId={gameId} roomCode={roomCode} />
+        ) : null}
+        {!simplifiedRoom ? (
           <ArenaTabs activeTab={activeTab} onSelect={setActiveTab} earlyCallCount={totalFeedCount} />
+        ) : (
+          <MatchCallsHeading count={totalFeedCount} />
         )}
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
           <section className="space-y-4">
-            {(simplifiedRoom || activeTab === "calls") && (
+            {(simplifiedRoom || activeTab === "calls") ? (
               <CallsPanel
                 gameId={gameId}
                 currentUserId={guest.user?.id ?? null}
@@ -565,7 +616,7 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
                 }}
                 onDeleteReply={deleteReply}
               />
-            )}
+            ) : null}
             {activeTab === "control-room" && !simplifiedRoom ? <ControlRoomPanel game={game} /> : null}
           </section>
 
@@ -575,7 +626,9 @@ export function LiveArena({ gameId = ACTIVE_GAME_ID, onBack }: { gameId?: string
             {simplifiedRoom ? (
               <section className="rounded-[1.5rem] border border-white/10 bg-black/35 p-4">
                 <p className="text-sm font-semibold text-gray-300">
-                  Invite your people to this Game Room, or share the match link with friends and family.
+                  {isPrivateRoom
+                    ? "Share your private invite link so only your group can root together in this room."
+                    : "Invite your people to this Game Room, or share the match link with friends and family."}
                 </p>
               </section>
             ) : null}

@@ -874,6 +874,87 @@ export type Database = {
           },
         ];
       };
+      private_match_rooms: {
+        Row: {
+          id: string;
+          game_id: string;
+          room_code: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          game_id: string;
+          room_code: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          game_id?: string;
+          room_code?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      match_rooting_votes: {
+        Row: {
+          id: string;
+          game_id: string;
+          room_code: string | null;
+          voter_key: string;
+          team_key: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          game_id: string;
+          room_code?: string | null;
+          voter_key: string;
+          team_key: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          game_id?: string;
+          room_code?: string | null;
+          voter_key?: string;
+          team_key?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      match_room_messages: {
+        Row: {
+          id: string;
+          game_id: string;
+          room_code: string | null;
+          sender_key: string;
+          display_name: string | null;
+          message_text: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          game_id: string;
+          room_code?: string | null;
+          sender_key: string;
+          display_name?: string | null;
+          message_text: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          game_id?: string;
+          room_code?: string | null;
+          sender_key?: string;
+          display_name?: string | null;
+          message_text?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       profile_cards: {
