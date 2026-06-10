@@ -111,6 +111,9 @@ export function LiveArena({
   const [deletingReplyId, setDeletingReplyId] = useState<string | null>(null);
   const [privateRoomValid, setPrivateRoomValid] = useState<boolean | null>(roomCode ? null : true);
   const [privateRoomError, setPrivateRoomError] = useState<string | null>(null);
+  // Ticking clock so the scoreboard recalculates match status (upcoming → live →
+  // final) while the room stays open, without requiring a page refresh/refetch.
+  const [now, setNow] = useState<Date>(() => new Date());
   const worldCupMatch = useMemo(() => parseWorldCupMatchFromGameId(gameId), [gameId]);
   // Prefer live game-row teams, but fall back to the static schedule so the room
   // still shows the correct matchup if Supabase/the game API is unavailable.
@@ -178,6 +181,11 @@ export function LiveArena({
       isMounted = false;
     };
   }, [gameId, guest.user?.id]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     setShowClaimPrompt(
@@ -555,6 +563,7 @@ export function LiveArena({
         <ArenaScoreboard
           game={game}
           worldCupMatch={worldCupMatch}
+          now={now}
           simplifiedRoom={simplifiedRoom && isWorldCupRoom}
           showQuickPicks={!simplifiedRoom && !isWorldCupRoom}
           quickPickQuestions={quickPickQueue}
@@ -668,6 +677,7 @@ function parseWorldCupMatchFromGameId(gameId: string) {
 function ArenaScoreboard({
   game,
   worldCupMatch,
+  now,
   simplifiedRoom,
   showQuickPicks,
   quickPickQuestions,
@@ -680,6 +690,7 @@ function ArenaScoreboard({
 }: {
   game: Game | null;
   worldCupMatch: ReturnType<typeof getWorldCupMatchById>;
+  now: Date;
   simplifiedRoom: boolean;
   showQuickPicks: boolean;
   quickPickQuestions: QuickPickQuestion[];
@@ -694,15 +705,18 @@ function ArenaScoreboard({
   const homeTeam = game?.home_team ?? worldCupMatch?.homeTeam ?? "HOME";
   const awayScore = String(game?.away_score ?? 0);
   const homeScore = String(game?.home_score ?? 0);
-  // Status comes from the live game row when present; otherwise derive it from the
-  // static schedule so the scoreboard still transitions upcoming → live → final.
-  const fallbackStatus = worldCupMatch
+  // Status from the static schedule, recomputed on every `now` tick so the room
+  // transitions upcoming → live → final on its own while open.
+  const scheduleStatus = worldCupMatch
     ? (() => {
-        const lifecycle = getWorldCupMatchStatus(worldCupMatch);
+        const lifecycle = getWorldCupMatchStatus(worldCupMatch, now);
         return lifecycle === "finished" ? "final" : lifecycle === "live" ? "live" : "scheduled";
       })()
-    : "scheduled";
-  const status = game?.status ?? fallbackStatus;
+    : null;
+  // Trust a live/final row from a real feed; otherwise use the ticking
+  // schedule-derived status so World Cup rooms go live at kickoff without a refresh.
+  const status =
+    game?.status && game.status !== "scheduled" ? game.status : scheduleStatus ?? game?.status ?? "scheduled";
   const statusLabel = status === "live" ? "LIVE" : status === "final" ? "FINAL" : "SCHEDULED";
   const period = game?.period ?? (status === "live" ? "LIVE" : status === "final" ? "Final" : "Pregame");
   const clock = status === "live" ? game?.clock ?? "--:--" : null;
