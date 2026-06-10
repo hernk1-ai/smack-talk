@@ -18,6 +18,7 @@ import {
 import { getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/replies";
 import { createClient } from "@/lib/supabase/client";
 import { getWorldCupMatchById } from "@/data/worldCupSchedule";
+import { getWorldCupMatchStatus } from "@/lib/worldCupMatchStatus";
 import {
   isMatchHubMode,
   SHOW_FAKE_LIVE_ACTIVITY,
@@ -110,8 +111,11 @@ export function LiveArena({
   const [deletingReplyId, setDeletingReplyId] = useState<string | null>(null);
   const [privateRoomValid, setPrivateRoomValid] = useState<boolean | null>(roomCode ? null : true);
   const [privateRoomError, setPrivateRoomError] = useState<string | null>(null);
-  const awayTeam = game?.away_team ?? "AWAY";
-  const homeTeam = game?.home_team ?? "HOME";
+  const worldCupMatch = useMemo(() => parseWorldCupMatchFromGameId(gameId), [gameId]);
+  // Prefer live game-row teams, but fall back to the static schedule so the room
+  // still shows the correct matchup if Supabase/the game API is unavailable.
+  const awayTeam = game?.away_team ?? worldCupMatch?.awayTeam ?? "AWAY";
+  const homeTeam = game?.home_team ?? worldCupMatch?.homeTeam ?? "HOME";
 
   const totalFeedCount = feedTakes.length;
   const visibleTakes = useMemo(() => feedTakes.slice(0, 30), [feedTakes]);
@@ -127,6 +131,13 @@ export function LiveArena({
       ]);
 
       const loadedGame = (arenaGamePayload?.game as Game | null | undefined) ?? legacyGame;
+
+      if (process.env.NODE_ENV === "development" && !loadedGame && gameId.startsWith("wc-2026-")) {
+        console.warn(
+          `[GameRoom] No live game row for ${gameId}; falling back to static World Cup schedule for teams/status.`,
+        );
+      }
+
       const effectiveGameId = arenaGamePayload?.gameId ?? loadedGame?.id ?? gameId;
       const { data: feedPayload } = await fetchArenaFeed(effectiveGameId);
       const takes = (feedPayload?.takes ?? []) as ArenaTake[];
@@ -174,7 +185,6 @@ export function LiveArena({
     );
   }, [guest.profile, guestActivityCount]);
 
-  const worldCupMatch = useMemo(() => parseWorldCupMatchFromGameId(gameId), [gameId]);
   const isWorldCupRoom = Boolean(worldCupMatch) || game?.league === "World Cup" || gameId.startsWith("wc-");
   const simplifiedRoom = isMatchHubMode();
   const isPrivateRoom = Boolean(roomCode);
@@ -680,11 +690,19 @@ function ArenaScoreboard({
   quickPickCrowdLine: string;
   onQuickPick: (question: QuickPickQuestion, selectedSide: string) => void;
 }) {
-  const awayTeam = game?.away_team ?? "AWAY";
-  const homeTeam = game?.home_team ?? "HOME";
+  const awayTeam = game?.away_team ?? worldCupMatch?.awayTeam ?? "AWAY";
+  const homeTeam = game?.home_team ?? worldCupMatch?.homeTeam ?? "HOME";
   const awayScore = String(game?.away_score ?? 0);
   const homeScore = String(game?.home_score ?? 0);
-  const status = game?.status ?? "scheduled";
+  // Status comes from the live game row when present; otherwise derive it from the
+  // static schedule so the scoreboard still transitions upcoming → live → final.
+  const fallbackStatus = worldCupMatch
+    ? (() => {
+        const lifecycle = getWorldCupMatchStatus(worldCupMatch);
+        return lifecycle === "finished" ? "final" : lifecycle === "live" ? "live" : "scheduled";
+      })()
+    : "scheduled";
+  const status = game?.status ?? fallbackStatus;
   const statusLabel = status === "live" ? "LIVE" : status === "final" ? "FINAL" : "SCHEDULED";
   const period = game?.period ?? (status === "live" ? "LIVE" : status === "final" ? "Final" : "Pregame");
   const clock = status === "live" ? game?.clock ?? "--:--" : null;

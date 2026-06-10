@@ -14,7 +14,9 @@ export const SHOW_FOLLOW_SYSTEM_PUBLICLY = false;
 export const SHOW_SOCIAL_PROFILE_FEATURES = false;
 
 export const SHOW_GAME_ROOM = true;
-export const SHOW_GAME_ROOM_IN_NAV = false;
+// Game Room nav resolves to the live match (or next upcoming, else schedule)
+// via resolveGameRoomNavTarget. See lib/worldCupMatchResolver.ts.
+export const SHOW_GAME_ROOM_IN_NAV = true;
 export const SHOW_MATCH_HUB = true;
 export const SHOW_SCHEDULE = true;
 
