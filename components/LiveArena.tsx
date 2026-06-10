@@ -778,7 +778,7 @@ function ArenaScoreboard({
       ) : null}
       {status === "scheduled" && simplifiedRoom ? (
         <p className="mb-4 rounded-xl border border-white/10 bg-black/50 px-3 py-3 text-center text-sm font-semibold text-gray-300">
-          Live updates will appear here when this match kicks off.
+          Live room opens at kickoff.
         </p>
       ) : null}
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2 text-center sm:gap-3">
