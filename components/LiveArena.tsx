@@ -33,6 +33,7 @@ import { GameRoomChat } from "@/components/game-room/GameRoomChat";
 import { PublicGameRoomShareSection, PrivateGameRoomShareSection } from "@/components/game-room/CreatePrivateRoomPanel";
 import { buildPrivateRoomPath } from "@/lib/gameRoom/roomCode";
 import { validatePrivateRoom } from "@/lib/gameRoom/rootingApi";
+import { heartbeatPresence, resolveViewerKey } from "@/lib/gameRoom/presenceApi";
 import { ClaimProfilePrompt } from "@/components/guest/ClaimProfilePrompt";
 import { GuestJoinModal } from "@/components/guest/GuestJoinModal";
 import { GUEST_CALL_TEXT_MAX, GUEST_COMMENT_MAX } from "@/lib/guest/displayName";
@@ -114,6 +115,8 @@ export function LiveArena({
   // Ticking clock so the scoreboard recalculates match status (upcoming → live →
   // final) while the room stays open, without requiring a page refresh/refetch.
   const [now, setNow] = useState<Date>(() => new Date());
+  // Live viewers ("fans here now"); null = hidden (presence unavailable).
+  const [viewerCount, setViewerCount] = useState<number | null>(null);
   const worldCupMatch = useMemo(() => parseWorldCupMatchFromGameId(gameId), [gameId]);
   // Prefer live game-row teams, but fall back to the static schedule so the room
   // still shows the correct matchup if Supabase/the game API is unavailable.
@@ -186,6 +189,29 @@ export function LiveArena({
     const interval = window.setInterval(() => setNow(new Date()), 60_000);
     return () => window.clearInterval(interval);
   }, []);
+
+  // Live viewers presence: heartbeat on mount and every 30s while the room is open.
+  // Scoped to this exact room (public = null roomCode, private = roomCode), and
+  // fails silently (count stays null → metric hidden) without blocking the room.
+  useEffect(() => {
+    let isMounted = true;
+    const viewerKey = resolveViewerKey(guest.user?.id);
+
+    async function beat() {
+      const count = await heartbeatPresence(gameId, roomCode, viewerKey);
+      if (isMounted) {
+        setViewerCount(count);
+      }
+    }
+
+    void beat();
+    const interval = window.setInterval(() => void beat(), 30_000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(interval);
+    };
+  }, [gameId, roomCode, guest.user?.id]);
 
   useEffect(() => {
     setShowClaimPrompt(
@@ -558,6 +584,11 @@ export function LiveArena({
         {!isWorldCupRoom && simplifiedRoom ? (
           <p className="rounded-xl border border-white/10 bg-black/45 px-3 py-2 text-xs font-semibold text-gray-300">
             This room is for World Cup matches. Pick a match from the Schedule or Match Hub.
+          </p>
+        ) : null}
+        {viewerCount !== null ? (
+          <p className="text-center text-xs font-black uppercase tracking-[0.12em] text-lime-300">
+            🟢 {viewerCount} {viewerCount === 1 ? "fan" : "fans"} here now
           </p>
         ) : null}
         <ArenaScoreboard

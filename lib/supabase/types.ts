@@ -925,6 +925,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      game_room_presence: {
+        Row: {
+          id: string;
+          game_id: string;
+          room_code: string | null;
+          viewer_key: string;
+          last_seen_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          game_id: string;
+          room_code?: string | null;
+          viewer_key: string;
+          last_seen_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          game_id?: string;
+          room_code?: string | null;
+          viewer_key?: string;
+          last_seen_at?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       match_room_messages: {
         Row: {
           id: string;
