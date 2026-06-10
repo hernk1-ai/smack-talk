@@ -18,7 +18,7 @@ import {
 import { getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/replies";
 import { createClient } from "@/lib/supabase/client";
 import { getWorldCupMatchById } from "@/data/worldCupSchedule";
-import { getWorldCupMatchStatus } from "@/lib/worldCupMatchStatus";
+import { getEstimatedMatchDisplay, getWorldCupMatchStatus } from "@/lib/worldCupMatchStatus";
 import {
   isMatchHubMode,
   SHOW_FAKE_LIVE_ACTIVITY,
@@ -767,6 +767,9 @@ function ArenaScoreboard({
       : `Group ${worldCupMatch.group}`
     : period;
   const venueLabel = worldCupMatch ? `${worldCupMatch.city} · ${worldCupMatch.venue}` : null;
+  // Estimated match clock (display only), recomputed on each 60s `now` tick.
+  // Null when schedule data is unavailable → fall back to existing status text.
+  const estimatedMatchDisplay = worldCupMatch ? getEstimatedMatchDisplay(worldCupMatch, now) : null;
 
   return (
     <section className="arena-scoreboard overflow-hidden rounded-[1.75rem] border border-white/10 p-4 pt-5 shadow-[0_26px_80px_rgba(0,0,0,0.56),0_0_34px_rgba(168,85,247,0.08)] sm:p-5">
@@ -800,7 +803,7 @@ function ArenaScoreboard({
                   ? "Match live"
                   : "Final whistle"}
           </p>
-          <p className="text-[10px] font-black uppercase text-gray-500">{status === "scheduled" ? "Upcoming" : status === "final" ? "Final" : "Live"}</p>
+          <p className="text-[10px] font-black uppercase text-gray-500">{estimatedMatchDisplay ?? (status === "scheduled" ? "Upcoming" : status === "final" ? "Final" : "Live")}</p>
           <span className="mx-auto mt-3 grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/60 text-[10px] font-black text-gray-300">
             VS
           </span>
