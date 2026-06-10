@@ -2,7 +2,7 @@ import { getWorldCupKickoffIso, type WorldCupMatch } from "@/data/worldCupSchedu
 
 export type WorldCupMatchLifecycle = "upcoming" | "live" | "finished";
 
-const DEFAULT_MATCH_WINDOW_MINUTES = 135; // 2h 15m
+const DEFAULT_MATCH_WINDOW_MINUTES = 180; // 3h — covers extra time + stoppage
 
 export function getWorldCupMatchStatus(
   match: WorldCupMatch,
