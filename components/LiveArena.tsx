@@ -115,7 +115,7 @@ export function LiveArena({
   // Ticking clock so the scoreboard recalculates match status (upcoming → live →
   // final) while the room stays open, without requiring a page refresh/refetch.
   const [now, setNow] = useState<Date>(() => new Date());
-  // Live viewers ("fans here now"); null = hidden (presence unavailable).
+  // Live viewers ("fans in the room"); null = hidden (presence unavailable).
   const [viewerCount, setViewerCount] = useState<number | null>(null);
   const worldCupMatch = useMemo(() => parseWorldCupMatchFromGameId(gameId), [gameId]);
   // Prefer live game-row teams, but fall back to the static schedule so the room
@@ -588,7 +588,7 @@ export function LiveArena({
         ) : null}
         {viewerCount !== null ? (
           <p className="text-center text-xs font-black uppercase tracking-[0.12em] text-lime-300">
-            🟢 {viewerCount} {viewerCount === 1 ? "fan" : "fans"} here now
+            🟢 {viewerCount} {viewerCount === 1 ? "fan" : "fans"} in the room
           </p>
         ) : null}
         <ArenaScoreboard

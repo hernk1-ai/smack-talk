@@ -4,8 +4,8 @@ import type { Database } from "@/lib/supabase/types";
 
 type AdminClient = SupabaseClient<Database>;
 
-/** A viewer counts as "here now" if seen within this window. */
-export const PRESENCE_ACTIVE_WINDOW_MS = 2 * 60 * 1000;
+/** A viewer counts as in the room if seen within this window. */
+export const PRESENCE_ACTIVE_WINDOW_MS = 30 * 60 * 1000;
 
 function scopeRoom<T extends { eq: (column: string, value: string) => T; is: (column: string, value: null) => T }>(
   query: T,
