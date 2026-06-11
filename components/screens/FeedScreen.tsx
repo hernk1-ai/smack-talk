@@ -28,9 +28,10 @@ import { seededChaosAlerts } from "@/data/seededCrowd";
 import { getGameSport, sportTabs, type SportKey } from "@/data/sportsStructure";
 import { worldCupStorylines } from "@/data/worldCupStorylines";
 import { worldCupChaosAlerts, worldCupFeaturedMatch, worldCupLiveArenas, worldCupTrendingTakes } from "@/data/worldCupMvp";
-import { worldCupSchedule, type WorldCupMatch } from "@/data/worldCupSchedule";
+import { getWorldCupKickoffIso, worldCupSchedule, type WorldCupMatch } from "@/data/worldCupSchedule";
 import { ACTIVE_SPORT, getVisibleSportTabs, isMatchHubMode, SHOW_MULTI_SPORT } from "@/lib/productConfig";
 import { getWorldCupMatchPublicCta } from "@/lib/worldCupPublicNav";
+import { getCurrentOrNextWorldCupMatch, getNextWorldCupMatch } from "@/lib/worldCupMatchResolver";
 import { buildSiteUrl } from "@/lib/site-url";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 import { getWorldCupMatchStatus } from "@/lib/worldCupMatchStatus";
@@ -526,9 +527,6 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   );
 }
 
-// Assumes opening-match kickoff in Eastern Time on June 11, 2026.
-const WORLD_CUP_KICKOFF_TARGET = "2026-06-11T15:00:00-04:00";
-
 function PreTournamentCountdown() {
   const [mounted, setMounted] = useState(false);
   const [countdown, setCountdown] = useState("Loading countdown...");
@@ -553,34 +551,31 @@ function PreTournamentCountdown() {
     return () => window.clearInterval(timer);
   }, [mounted]);
 
-  const featuredMatch = getFeaturedWorldCupMatch();
-  const featuredStatus = getWorldCupMatchStatus(featuredMatch);
-  const featuredLabel =
-    featuredStatus === "live" ? "Live Now" : featuredStatus === "upcoming" ? "Next Up" : "Latest Final";
-  const featuredCta = getWorldCupMatchPublicCta(featuredMatch);
+  const nextMatch = getNextMatchForCountdown();
+  const nextCta = getWorldCupMatchPublicCta(nextMatch);
 
   return (
-    <FeedSection title="World Cup Countdown" icon="◷" action="">
+    <FeedSection title="Next Match Countdown" icon="◷" action="">
       <div className="rounded-2xl border border-lime-300/20 bg-black/45 p-4">
-        <h3 className="sports-display text-3xl italic leading-none text-white sm:text-4xl">Countdown to World Cup Kickoff</h3>
+        <h3 className="sports-display text-3xl italic leading-none text-white sm:text-4xl">Countdown to Next Match</h3>
         <p className="mt-3 text-sm font-semibold text-gray-300">
-          Follow the match. Make a call. Watch with your people.
+          Join the Game Room before kickoff and make your call.
         </p>
         <p className="mt-3 inline-block rounded-lg border border-lime-300/40 bg-lime-400/10 px-3 py-2 text-sm font-black uppercase tracking-[0.12em] text-lime-200">
           {countdown}
         </p>
         <div className="mt-4 rounded-xl border border-white/10 bg-black/40 p-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-purple-300">{featuredLabel}</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.12em] text-purple-300">Next Up</p>
           <p className="mt-1 text-base font-black text-white">
-            {featuredMatch.homeTeam} vs {featuredMatch.awayTeam ?? "TBD"}
+            {nextMatch.homeTeam} vs {nextMatch.awayTeam ?? "TBD"}
           </p>
           <p className="mt-1 text-xs font-semibold text-gray-400">
-            {formatDateLabel(featuredMatch.date)} · {featuredMatch.kickoffET} · {featuredMatch.city}
+            {formatDateLabel(nextMatch.date)} · {nextMatch.kickoffET} · {nextMatch.city}
           </p>
         </div>
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          <Link href={featuredCta.href} className="grid min-h-11 place-items-center rounded-xl border border-purple-300/45 bg-purple-500/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-purple-200">
-            {featuredCta.label}
+          <Link href={nextCta.href} className="grid min-h-11 place-items-center rounded-xl border border-purple-300/45 bg-purple-500/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-purple-200">
+            {nextCta.label}
           </Link>
           <Link href="/schedule" className="grid min-h-11 place-items-center rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-black uppercase tracking-[0.1em] text-white">
             View Schedule
@@ -591,33 +586,9 @@ function PreTournamentCountdown() {
   );
 }
 
-function getFeaturedWorldCupMatch(now = new Date()): WorldCupMatch {
-  const liveMatch = worldCupSchedule.find((match) => getWorldCupMatchStatus(match, now) === "live");
-  if (liveMatch) {
-    return liveMatch;
-  }
-
-  const upcomingMatches = worldCupSchedule
-    .filter((match) => getWorldCupMatchStatus(match, now) === "upcoming")
-    .sort((a, b) => {
-      const aTime = new Date(`${a.date}T00:00:00Z`).getTime();
-      const bTime = new Date(`${b.date}T00:00:00Z`).getTime();
-      return aTime - bTime || a.id - b.id;
-    });
-
-  if (upcomingMatches.length > 0) {
-    return upcomingMatches[0];
-  }
-
-  const finishedMatches = worldCupSchedule
-    .filter((match) => getWorldCupMatchStatus(match, now) === "finished")
-    .sort((a, b) => {
-      const aTime = new Date(`${a.date}T00:00:00Z`).getTime();
-      const bTime = new Date(`${b.date}T00:00:00Z`).getTime();
-      return bTime - aTime || b.id - a.id;
-    });
-
-  return finishedMatches[0] ?? worldCupSchedule[0];
+/** The next upcoming match, rolling forward automatically as matches kick off. */
+function getNextMatchForCountdown(now = new Date()): WorldCupMatch {
+  return getNextWorldCupMatch(now) ?? getCurrentOrNextWorldCupMatch(now) ?? worldCupSchedule[0];
 }
 
 function FeaturedPlayers() {
@@ -712,9 +683,11 @@ function PreTournamentNews() {
 }
 
 function getCountdownLabel() {
-  const now = Date.now();
-  const target = new Date(WORLD_CUP_KICKOFF_TARGET).getTime();
-  const diff = Math.max(0, target - now);
+  const now = new Date();
+  const nextMatch = getNextMatchForCountdown(now);
+  const kickoffIso = getWorldCupKickoffIso(nextMatch);
+  const target = kickoffIso ? new Date(kickoffIso).getTime() : now.getTime();
+  const diff = Math.max(0, target - now.getTime());
   const totalSeconds = Math.floor(diff / 1000);
   const days = Math.floor(totalSeconds / (60 * 60 * 24));
   const hours = Math.floor((totalSeconds % (60 * 60 * 24)) / (60 * 60));
