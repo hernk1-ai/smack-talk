@@ -2,7 +2,9 @@ import { AppHeader } from "@/components/AppHeader";
 import { WorldCupSchedule } from "@/components/world-cup/WorldCupSchedule";
 import { RouteBottomNav } from "@/components/BottomNav";
 import { ensureProfile } from "@/lib/supabase/profiles";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { buildScheduleMatchStates, type ScheduleGameRow } from "@/lib/worldCup/scheduleStatus";
 
 export default async function SchedulePage() {
   const supabase = await createClient();
@@ -19,6 +21,21 @@ export default async function SchedulePage() {
     }
   }
 
+  // Merge live game state (score/status) from the games table when available.
+  // Falls back to kickoff-derived status when Supabase/admin is not configured.
+  let gameRows: ScheduleGameRow[] = [];
+  const admin = createAdminClient();
+  if (admin) {
+    const { data } = await admin
+      .from("games")
+      .select("id, status, home_score, away_score")
+      .eq("league", "World Cup");
+    if (data) {
+      gameRows = data as ScheduleGameRow[];
+    }
+  }
+  const matchStates = buildScheduleMatchStates(gameRows);
+
   return (
     <main className="min-h-screen bg-transparent px-4 py-5 pb-28 text-white sm:py-6">
       <div className="page-rhythm mx-auto w-full max-w-5xl screen-safe-bottom">
@@ -27,7 +44,7 @@ export default async function SchedulePage() {
           profile={profile}
           rightAriaLabel="Account"
         />
-        <WorldCupSchedule />
+        <WorldCupSchedule matchStates={matchStates} />
       </div>
       <RouteBottomNav activeView="schedule" />
     </main>

@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { getWorldCupFixtureSourceUrls, worldCupSchedule, type WorldCupGroup, type WorldCupMatch } from "@/data/worldCupSchedule";
-import { getWorldCupMatchPublicCta } from "@/lib/worldCupPublicNav";
+import { getWorldCupFixtureSourceUrls, getWorldCupMatchId, worldCupSchedule, type WorldCupGroup, type WorldCupMatch } from "@/data/worldCupSchedule";
+import { SHOW_GAME_ROOM } from "@/lib/productConfig";
+import type { ScheduleMatchState, ScheduleMatchStatus } from "@/lib/worldCup/scheduleStatus";
 
 const groupFilters: Array<{ value: "ALL" | WorldCupGroup; label: string }> = [
   { value: "ALL", label: "All Groups" },
@@ -26,9 +27,18 @@ type WorldCupScheduleProps = {
   limit?: number;
   showHeader?: boolean;
   showViewFullLink?: boolean;
+  /** match.id -> live/derived state. Missing entries fall back to "upcoming". */
+  matchStates?: Record<number, ScheduleMatchState>;
 };
 
-export function WorldCupSchedule({ limit, showHeader = true, showViewFullLink = false }: WorldCupScheduleProps) {
+const FALLBACK_MATCH_STATE: ScheduleMatchState = { status: "upcoming", homeScore: null, awayScore: null };
+
+export function WorldCupSchedule({
+  limit,
+  showHeader = true,
+  showViewFullLink = false,
+  matchStates = {},
+}: WorldCupScheduleProps) {
   const sourceUrls = getWorldCupFixtureSourceUrls();
   const [selectedGroup, setSelectedGroup] = useState<"ALL" | WorldCupGroup>("ALL");
   const [selectedCity, setSelectedCity] = useState("All Cities");
@@ -73,6 +83,11 @@ export function WorldCupSchedule({ limit, showHeader = true, showViewFullLink = 
     return [...byDate.entries()];
   }, [filteredMatches]);
 
+  const remainingCount = useMemo(
+    () => filteredMatches.filter((match) => (matchStates[match.id] ?? FALLBACK_MATCH_STATE).status !== "final").length,
+    [filteredMatches, matchStates],
+  );
+
   return (
     <section className="rounded-[1.75rem] border border-white/10 bg-[var(--surface-section)] p-3.5 shadow-[0_18px_50px_rgba(0,0,0,0.34)] sm:p-4">
       {showHeader ? (
@@ -91,7 +106,7 @@ export function WorldCupSchedule({ limit, showHeader = true, showViewFullLink = 
       </div>
 
       <div className="mb-2.5 flex items-center justify-between sm:mb-3">
-        <p className="text-xs font-black uppercase tracking-[0.12em] text-lime-300">{filteredMatches.length} Upcoming Matches</p>
+        <p className="text-xs font-black uppercase tracking-[0.12em] text-lime-300">{remainingCount} Matches Remaining</p>
         {showViewFullLink ? (
           <Link href="/schedule" className="text-xs font-black uppercase tracking-[0.1em] text-purple-300 hover:text-purple-100">
             View Full Schedule
@@ -105,7 +120,7 @@ export function WorldCupSchedule({ limit, showHeader = true, showViewFullLink = 
             <p className="text-xs font-black uppercase tracking-[0.12em] text-gray-300">{formatDateLabel(date)}</p>
             <div className="mt-1.5 space-y-1.5 sm:mt-2 sm:space-y-2">
               {matches.map((match) => (
-                <MatchRow key={match.id} match={match} />
+                <MatchRow key={match.id} match={match} state={matchStates[match.id] ?? FALLBACK_MATCH_STATE} />
               ))}
             </div>
           </article>
@@ -160,9 +175,27 @@ function FilterSelect<T extends string>({
   );
 }
 
-function MatchRow({ match }: { match: WorldCupMatch }) {
+function getScheduleCta(match: WorldCupMatch, status: ScheduleMatchStatus) {
+  const gameRoomHref = `/game/${getWorldCupMatchId(match)}`;
+  const matchRoomHref = `/matches/${match.id}`;
+
+  if (status === "final") {
+    return { label: "View Match", href: matchRoomHref };
+  }
+
+  if (status === "live") {
+    return { label: "Join Game Room", href: SHOW_GAME_ROOM ? matchRoomHref : gameRoomHref };
+  }
+
+  return { label: "Join Game Room", href: gameRoomHref };
+}
+
+function MatchRow({ match, state }: { match: WorldCupMatch; state: ScheduleMatchState }) {
   const isKnockout = match.group === "KO";
-  const cta = getWorldCupMatchPublicCta(match);
+  const cta = getScheduleCta(match, state.status);
+  const awayTeam = match.awayTeam ?? "TBD";
+  const hasScore = state.homeScore !== null && state.awayScore !== null;
+  const showFinalScore = state.status === "final" && hasScore;
 
   return (
     <div
@@ -173,13 +206,23 @@ function MatchRow({ match }: { match: WorldCupMatch }) {
       <p className="text-xs font-black uppercase tracking-[0.1em] text-lime-300 sm:text-[13px]">{match.kickoffET}</p>
       <div className="min-w-0">
         <p className="truncate text-[15px] font-black text-white sm:text-base">
-          {match.homeTeam} vs {match.awayTeam ?? "TBD"}
+          {showFinalScore ? `${match.homeTeam} ${state.homeScore}–${state.awayScore} ${awayTeam}` : `${match.homeTeam} vs ${awayTeam}`}
         </p>
         <p className="truncate text-xs font-semibold text-gray-400 sm:text-[13px]">
           {match.city} · {match.venue}
         </p>
       </div>
       <div className="flex items-center gap-1.5 sm:justify-end sm:gap-2">
+        {state.status === "live" ? (
+          <span className="rounded-md border border-red-400/50 bg-red-500/15 px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-red-300 sm:px-2.5">
+            Live
+          </span>
+        ) : null}
+        {state.status === "final" ? (
+          <span className="rounded-md border border-white/20 bg-white/[0.06] px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-gray-300 sm:px-2.5">
+            Final
+          </span>
+        ) : null}
         <span
           className={`rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] sm:px-2.5 ${
             isKnockout ? "border border-purple-300/45 bg-purple-500/15 text-purple-200" : "border border-lime-300/40 bg-lime-400/10 text-lime-200"
