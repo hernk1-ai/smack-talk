@@ -1,10 +1,60 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { getWorldCupFixtureSourceUrls, getWorldCupMatchId, worldCupSchedule, type WorldCupGroup, type WorldCupMatch } from "@/data/worldCupSchedule";
+import { useEffect, useMemo, useState } from "react";
+import { getWorldCupFixtureSourceUrls, getWorldCupKickoffIso, getWorldCupMatchId, worldCupSchedule, type WorldCupGroup, type WorldCupMatch } from "@/data/worldCupSchedule";
 import { SHOW_GAME_ROOM } from "@/lib/productConfig";
 import type { ScheduleMatchState, ScheduleMatchStatus } from "@/lib/worldCup/scheduleStatus";
+
+/**
+ * Deterministic timezone for SSR + the first client render so server and client
+ * markup match (avoids hydration errors). After mount we switch to the viewer's
+ * actual browser timezone, which is the real source of truth for grouping/sorting.
+ */
+const FALLBACK_TIME_ZONE = "America/New_York";
+
+/** Absolute kickoff instant (UTC) for a match; equals games.starts_at. */
+function getKickoffMs(match: WorldCupMatch): number {
+  const iso = getWorldCupKickoffIso(match);
+  const ms = iso ? new Date(iso).getTime() : Number.NaN;
+  // Matches with an unknown kickoff sort to the end rather than crashing.
+  return Number.isFinite(ms) ? ms : Number.MAX_SAFE_INTEGER;
+}
+
+/** Sortable local calendar-day key (YYYY-MM-DD) in the given timezone. */
+function getLocalDateKey(match: WorldCupMatch, timeZone: string): string {
+  const iso = getWorldCupKickoffIso(match);
+  if (!iso) return "9999-12-31";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(iso));
+}
+
+/** Human day header (e.g. "Saturday, June 13") in the given timezone. */
+function getLocalDateLabel(match: WorldCupMatch, timeZone: string): string {
+  const iso = getWorldCupKickoffIso(match);
+  if (!iso) return "Date TBD";
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(new Date(iso));
+}
+
+/** Local kickoff time (e.g. "9:00 PM") in the given timezone. */
+function formatLocalKickoff(match: WorldCupMatch, timeZone: string): string {
+  const iso = getWorldCupKickoffIso(match);
+  if (!iso) return match.kickoffET;
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(iso));
+}
 
 const groupFilters: Array<{ value: "ALL" | WorldCupGroup; label: string }> = [
   { value: "ALL", label: "All Groups" },
@@ -43,6 +93,15 @@ export function WorldCupSchedule({
   const [selectedGroup, setSelectedGroup] = useState<"ALL" | WorldCupGroup>("ALL");
   const [selectedCity, setSelectedCity] = useState("All Cities");
   const [selectedTeam, setSelectedTeam] = useState("All Teams");
+  // Source of truth for grouping/sorting. ET on the server + first paint, then
+  // the viewer's real browser timezone after mount (keeps hydration stable).
+  const [timeZone, setTimeZone] = useState(FALLBACK_TIME_ZONE);
+  useEffect(() => {
+    const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (resolved) {
+      setTimeZone(resolved);
+    }
+  }, []);
   const collator = useMemo(() => new Intl.Collator("en", { sensitivity: "base" }), []);
 
   const cities = useMemo(
@@ -73,15 +132,26 @@ export function WorldCupSchedule({
     return typeof limit === "number" ? matches.slice(0, limit) : matches;
   }, [limit, selectedCity, selectedGroup, selectedTeam]);
 
+  // Group by the viewer's LOCAL calendar day and sort chronologically within
+  // each day by local kickoff — never by FIFA matchday. Answers "what's on next
+  // for me, in my timezone?".
   const groupedByDate = useMemo(() => {
-    const byDate = new Map<string, WorldCupMatch[]>();
-    filteredMatches.forEach((match) => {
-      const list = byDate.get(match.date) ?? [];
-      list.push(match);
-      byDate.set(match.date, list);
-    });
-    return [...byDate.entries()];
-  }, [filteredMatches]);
+    const byDate = new Map<string, { label: string; matches: WorldCupMatch[] }>();
+    for (const match of filteredMatches) {
+      const key = getLocalDateKey(match, timeZone);
+      const bucket = byDate.get(key) ?? { label: getLocalDateLabel(match, timeZone), matches: [] };
+      bucket.matches.push(match);
+      byDate.set(key, bucket);
+    }
+
+    return [...byDate.entries()]
+      .sort(([keyA], [keyB]) => (keyA < keyB ? -1 : keyA > keyB ? 1 : 0))
+      .map(([key, bucket]) => ({
+        key,
+        label: bucket.label,
+        matches: [...bucket.matches].sort((a, b) => getKickoffMs(a) - getKickoffMs(b)),
+      }));
+  }, [filteredMatches, timeZone]);
 
   const remainingCount = useMemo(
     () => filteredMatches.filter((match) => (matchStates[match.id] ?? FALLBACK_MATCH_STATE).status !== "final").length,
@@ -115,12 +185,17 @@ export function WorldCupSchedule({
       </div>
 
       <div className="space-y-2.5 sm:space-y-3">
-        {groupedByDate.map(([date, matches]) => (
-          <article key={date} className="rounded-2xl border border-white/10 bg-[var(--surface-card)] p-2.5 sm:p-3">
-            <p className="text-xs font-black uppercase tracking-[0.12em] text-gray-300">{formatDateLabel(date)}</p>
+        {groupedByDate.map(({ key, label, matches }) => (
+          <article key={key} className="rounded-2xl border border-white/10 bg-[var(--surface-card)] p-2.5 sm:p-3">
+            <p className="text-xs font-black uppercase tracking-[0.12em] text-gray-300">{label}</p>
             <div className="mt-1.5 space-y-1.5 sm:mt-2 sm:space-y-2">
               {matches.map((match) => (
-                <MatchRow key={match.id} match={match} state={matchStates[match.id] ?? FALLBACK_MATCH_STATE} />
+                <MatchRow
+                  key={match.id}
+                  match={match}
+                  state={matchStates[match.id] ?? FALLBACK_MATCH_STATE}
+                  kickoffLabel={formatLocalKickoff(match, timeZone)}
+                />
               ))}
             </div>
           </article>
@@ -190,7 +265,7 @@ function getScheduleCta(match: WorldCupMatch, status: ScheduleMatchStatus) {
   return { label: "Join Game Room", href: gameRoomHref };
 }
 
-function MatchRow({ match, state }: { match: WorldCupMatch; state: ScheduleMatchState }) {
+function MatchRow({ match, state, kickoffLabel }: { match: WorldCupMatch; state: ScheduleMatchState; kickoffLabel: string }) {
   const isKnockout = match.group === "KO";
   const cta = getScheduleCta(match, state.status);
   const awayTeam = match.awayTeam ?? "TBD";
@@ -203,7 +278,7 @@ function MatchRow({ match, state }: { match: WorldCupMatch; state: ScheduleMatch
         isKnockout ? "border-purple-300/30 bg-purple-500/10" : "border-white/10 bg-black/50"
       }`}
     >
-      <p className="text-xs font-black uppercase tracking-[0.1em] text-lime-300 sm:text-[13px]">{match.kickoffET}</p>
+      <p className="text-xs font-black uppercase tracking-[0.1em] text-lime-300 sm:text-[13px]">{kickoffLabel}</p>
       <div className="min-w-0">
         <p className="truncate text-[15px] font-black text-white sm:text-base">
           {showFinalScore ? `${match.homeTeam} ${state.homeScore}–${state.awayScore} ${awayTeam}` : `${match.homeTeam} vs ${awayTeam}`}
@@ -239,13 +314,4 @@ function MatchRow({ match, state }: { match: WorldCupMatch; state: ScheduleMatch
       </div>
     </div>
   );
-}
-
-function formatDateLabel(date: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(`${date}T12:00:00Z`));
 }
