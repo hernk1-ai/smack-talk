@@ -9,9 +9,10 @@ import {
 } from "@/lib/admin/secret";
 import { enforceRateLimit, jsonError } from "@/lib/security/api";
 import {
-  fetchEspnWorldCupScoreboard,
+  fetchEspnWorldCupEventsForDates,
   proposeEspnMatchMappings,
   syncEspnWorldCupScores,
+  upcomingScheduleDates,
 } from "@/lib/sports/espnWorldCupSync";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseAdminSetupError } from "@/lib/supabase/env";
@@ -74,8 +75,11 @@ export async function POST(request: Request) {
 
 /**
  * Dry-run mapping helper: returns proposed espn_match_map rows by matching ESPN
- * events to the static World Cup schedule. Never writes — review then insert
- * via SQL or the admin tooling.
+ * events to the static World Cup schedule across upcoming dates. Never writes —
+ * review then insert via SQL or the admin tooling.
+ *
+ * Optional `?days=N` controls how many upcoming match dates to scan (default 14,
+ * max 32).
  */
 export async function GET(request: Request) {
   const rateLimited = enforceRateLimit({ request, action: "admin-sync-espn", limit: 60, windowMs: 60 * 1000 });
@@ -88,10 +92,14 @@ export async function GET(request: Request) {
     return unauthorized;
   }
 
+  const daysParam = Number(new URL(request.url).searchParams.get("days"));
+  const maxDates = Number.isFinite(daysParam) && daysParam > 0 ? Math.min(Math.floor(daysParam), 32) : 14;
+
   try {
-    const events = await fetchEspnWorldCupScoreboard();
+    const dates = upcomingScheduleDates(new Date(), maxDates);
+    const events = await fetchEspnWorldCupEventsForDates(dates);
     const proposals = proposeEspnMatchMappings(events);
-    return NextResponse.json({ fetchedEvents: events.length, proposals });
+    return NextResponse.json({ scannedDates: dates, fetchedEvents: events.length, proposals });
   } catch (error) {
     return jsonError(error instanceof Error ? error.message : "Failed to fetch ESPN scoreboard.", 502);
   }

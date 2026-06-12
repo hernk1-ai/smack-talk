@@ -1,6 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { getWorldCupMatchId, worldCupSchedule, type WorldCupMatch } from "@/data/worldCupSchedule";
+import {
+  getWorldCupKickoffIso,
+  getWorldCupMatchId,
+  worldCupSchedule,
+  type WorldCupMatch,
+} from "@/data/worldCupSchedule";
 import type { Database } from "@/lib/supabase/types";
 
 type AdminClient = SupabaseClient<Database>;
@@ -141,9 +146,18 @@ export function parseEspnScoreboard(scoreboard: EspnScoreboard): EspnParsedEvent
   return events;
 }
 
-/** Fetch + parse the ESPN FIFA World Cup scoreboard. */
-export async function fetchEspnWorldCupScoreboard(): Promise<EspnParsedEvent[]> {
-  const response = await fetch(ESPN_WORLD_CUP_SCOREBOARD_URL, {
+/**
+ * Fetch + parse the ESPN FIFA World Cup scoreboard. Pass a `YYYYMMDD` date to
+ * query a specific day; omit it for ESPN's default (current) scoreboard, which
+ * is what the live sync uses.
+ */
+export async function fetchEspnWorldCupScoreboard(date?: string): Promise<EspnParsedEvent[]> {
+  const url = new URL(ESPN_WORLD_CUP_SCOREBOARD_URL);
+  if (date) {
+    url.searchParams.set("dates", date);
+  }
+
+  const response = await fetch(url, {
     headers: { accept: "application/json" },
     cache: "no-store",
   });
@@ -154,6 +168,59 @@ export async function fetchEspnWorldCupScoreboard(): Promise<EspnParsedEvent[]> 
 
   const scoreboard = (await response.json()) as EspnScoreboard;
   return parseEspnScoreboard(scoreboard);
+}
+
+/** Convert a schedule date (`YYYY-MM-DD`) to ESPN's `YYYYMMDD` query format. */
+function toEspnDateParam(date: string): string {
+  return date.replace(/-/g, "");
+}
+
+/** Distinct upcoming match calendar dates from the static schedule. */
+export function upcomingScheduleDates(now: Date = new Date(), maxDates = 14): string[] {
+  const dates: string[] = [];
+  const seen = new Set<string>();
+
+  for (const match of worldCupSchedule) {
+    const iso = getWorldCupKickoffIso(match);
+    if (!iso || new Date(iso).getTime() < now.getTime()) {
+      continue;
+    }
+    if (!seen.has(match.date)) {
+      seen.add(match.date);
+      dates.push(match.date);
+    }
+    if (dates.length >= maxDates) {
+      break;
+    }
+  }
+
+  return dates;
+}
+
+/**
+ * Fetch ESPN events across a set of schedule dates (`YYYY-MM-DD`), deduped by
+ * event id. ESPN reports kickoffs in UTC, so adjacent days are also pulled to
+ * catch late-night ET matches that roll into the next UTC day.
+ */
+export async function fetchEspnWorldCupEventsForDates(dates: string[]): Promise<EspnParsedEvent[]> {
+  const dayParams = new Set<string>();
+  for (const date of dates) {
+    dayParams.add(toEspnDateParam(date));
+    // Late ET kickoffs land on the next UTC day; include it so they appear.
+    const next = new Date(`${date}T00:00:00Z`);
+    next.setUTCDate(next.getUTCDate() + 1);
+    dayParams.add(next.toISOString().slice(0, 10).replace(/-/g, ""));
+  }
+
+  const byId = new Map<string, EspnParsedEvent>();
+  for (const day of dayParams) {
+    const events = await fetchEspnWorldCupScoreboard(day);
+    for (const event of events) {
+      byId.set(event.espnEventId, event);
+    }
+  }
+
+  return [...byId.values()];
 }
 
 /**
@@ -252,26 +319,54 @@ export async function syncEspnWorldCupScores(admin: AdminClient): Promise<EspnSy
 
 // ---- Optional mapping helper (dry-run; never writes) -----------------------
 
-function normalizeTeamName(value: string): string {
-  return value
+/** Two kickoffs are considered the same match window within this tolerance. */
+const KICKOFF_TOLERANCE_MS = 3 * 60 * 60 * 1000;
+
+/** FIFA-vs-ESPN naming differences that token overlap alone cannot bridge. */
+const TEAM_ALIASES: Record<string, string> = {
+  turkiye: "turkey",
+  cotedivoire: "ivorycoast",
+  czechrepublic: "czechia",
+  korearepublic: "southkorea",
+  irislamicrepubliciran: "iran",
+  iriran: "iran",
+};
+
+const TEAM_STOPWORDS = new Set(["and", "of", "the", "republic", "rep", "ir", "fr"]);
+
+/** Tokenize a team name into comparable parts, applying known aliases. */
+function teamTokens(value: string): Set<string> {
+  const cleaned = value
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z]/g, "");
+    .replace(/[\u0300-\u036f]/g, "");
+  const tokens = cleaned.split(/[^a-z]+/).filter(Boolean);
+  const joined = tokens.join("");
+  if (TEAM_ALIASES[joined]) {
+    return new Set([TEAM_ALIASES[joined]]);
+  }
+  const meaningful = tokens.filter((token) => !TEAM_STOPWORDS.has(token));
+  return new Set(meaningful.length > 0 ? meaningful : tokens);
 }
 
 /** Heuristic: do two team names refer to the same side? Best-effort only. */
 function teamsMatch(a: string, b: string): boolean {
-  const x = normalizeTeamName(a);
-  const y = normalizeTeamName(b);
-  if (!x || !y) return false;
-  return x === y || x.includes(y) || y.includes(x);
+  const ta = teamTokens(a);
+  const tb = teamTokens(b);
+  if (ta.size === 0 || tb.size === 0) return false;
+  for (const token of ta) {
+    if (tb.has(token)) return true;
+  }
+  const ja = [...ta].join("");
+  const jb = [...tb].join("");
+  return ja === jb || ja.includes(jb) || jb.includes(ja);
 }
 
 /**
  * Propose espn_match_map rows by matching ESPN events to the static schedule on
- * kickoff date + both team names. Returns suggestions only — it never writes.
- * Manual review / SQL insert is expected before trusting these.
+ * kickoff instant (UTC-safe, within a tolerance) plus both team names. Returns
+ * suggestions only — it never writes. Manual review / SQL insert is expected
+ * before trusting these.
  */
 export function proposeEspnMatchMappings(
   events: EspnParsedEvent[],
@@ -283,13 +378,20 @@ export function proposeEspnMatchMappings(
     if (!event.homeTeam || !event.awayTeam || !event.date) {
       continue;
     }
-    const espnDay = event.date.slice(0, 10);
+    const espnTime = new Date(event.date).getTime();
+    if (!Number.isFinite(espnTime)) {
+      continue;
+    }
 
     const match = schedule.find((candidate) => {
-      if (candidate.date !== espnDay) return false;
       const home = candidate.homeTeam;
       const away = candidate.awayTeam;
       if (!home || !away) return false;
+
+      const iso = getWorldCupKickoffIso(candidate);
+      if (!iso) return false;
+      if (Math.abs(new Date(iso).getTime() - espnTime) > KICKOFF_TOLERANCE_MS) return false;
+
       const direct = teamsMatch(home, event.homeTeam!) && teamsMatch(away, event.awayTeam!);
       const swapped = teamsMatch(home, event.awayTeam!) && teamsMatch(away, event.homeTeam!);
       return direct || swapped;
