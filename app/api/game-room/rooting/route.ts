@@ -4,6 +4,7 @@ import { loadRootingState, upsertRootingVote, getPrivateRoom } from "@/lib/gameR
 import { validateGameId, validateRoomCode, validateTeamKey, validateVoterKey } from "@/lib/gameRoom/validation";
 import { enforceRateLimit, jsonError } from "@/lib/security/api";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -110,11 +111,21 @@ export async function POST(request: Request) {
     }
   }
 
+  let userId: string | null = null;
+  const supabase = await createClient();
+  if (supabase) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    userId = user?.id ?? null;
+  }
+
   const { error, state } = await upsertRootingVote(admin, {
     gameId: gameIdCheck.value,
     roomCode: roomCodeCheck.value,
     voterKey: voterKeyCheck.value,
     teamKey: teamKeyCheck.value,
+    userId,
   });
 
   if (error || !state) {

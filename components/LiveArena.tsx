@@ -28,9 +28,9 @@ import { buildGameRoomShareText } from "@/lib/worldCupPublicNav";
 import { formatShareClipboardText, shareWithFallback } from "@/lib/share";
 import { getShareUrl } from "@/lib/site-url";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
-import { GameRoomRooting } from "@/components/game-room/GameRoomRooting";
 import { GameRoomChat } from "@/components/game-room/GameRoomChat";
-import { GameRoomWinnerPick } from "@/components/game-room/GameRoomWinnerPick";
+import { GameRoomBacking } from "@/components/game-room/GameRoomBacking";
+import { FansAreSaying } from "@/components/game-room/FansAreSaying";
 import { PublicGameRoomShareSection, PrivateGameRoomShareSection } from "@/components/game-room/CreatePrivateRoomPanel";
 import { buildPrivateRoomPath } from "@/lib/gameRoom/roomCode";
 import { validatePrivateRoom } from "@/lib/gameRoom/rootingApi";
@@ -607,15 +607,17 @@ export function LiveArena({
           onQuickPick={lockQuickPick}
         />
         {showWorldCupFanRoom && privateRoomValid && worldCupMatch ? (
-          <GameRoomWinnerPick
+          <GameRoomBacking
+            gameId={gameId}
+            roomCode={roomCode}
+            homeTeam={homeTeam}
+            awayTeam={awayTeam}
             worldCupMatch={worldCupMatch}
             game={game}
             now={now}
+            hasSession={guest.hasSession}
             onRequireParticipation={guest.requireParticipation}
           />
-        ) : null}
-        {showWorldCupFanRoom && privateRoomValid ? (
-          <GameRoomRooting gameId={gameId} roomCode={roomCode} homeTeam={homeTeam} awayTeam={awayTeam} />
         ) : null}
         {showWorldCupFanRoom && privateRoomValid ? (
           <GameRoomChat gameId={gameId} roomCode={roomCode} />
@@ -685,7 +687,11 @@ export function LiveArena({
 
           <aside className="space-y-4">
             {activeTab !== "control-room" && !simplifiedRoom ? <ControlRoomPanel game={game} /> : null}
-            <ArenaVibePanel />
+            {showWorldCupFanRoom ? (
+              <FansAreSaying gameId={gameId} roomCode={roomCode} />
+            ) : (
+              <ArenaVibePanel />
+            )}
             {simplifiedRoom ? (
               <section className="rounded-[1.5rem] border border-white/10 bg-black/35 p-4">
                 <p className="text-sm font-semibold text-gray-300">

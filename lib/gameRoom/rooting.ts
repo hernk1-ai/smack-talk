@@ -4,6 +4,8 @@ export type RootingState = {
   homeCount: number;
   awayCount: number;
   choice: RootingSide | null;
+  /** When the viewer last selected their side (ISO timestamp). */
+  choiceAt: string | null;
 };
 
 export function emptyRootingState(): RootingState {
@@ -11,5 +13,6 @@ export function emptyRootingState(): RootingState {
     homeCount: 0,
     awayCount: 0,
     choice: null,
+    choiceAt: null,
   };
 }

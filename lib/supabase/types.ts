@@ -929,6 +929,7 @@ export type Database = {
           room_code: string | null;
           voter_key: string;
           team_key: string;
+          user_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -938,6 +939,7 @@ export type Database = {
           room_code?: string | null;
           voter_key: string;
           team_key: string;
+          user_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -947,6 +949,7 @@ export type Database = {
           room_code?: string | null;
           voter_key?: string;
           team_key?: string;
+          user_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };

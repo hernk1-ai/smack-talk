@@ -40,7 +40,11 @@ export async function getRootingChoice(
   roomCode: string | null,
   voterKey: string,
 ) {
-  let query = admin.from("match_rooting_votes").select("team_key").eq("game_id", gameId).eq("voter_key", voterKey);
+  let query = admin
+    .from("match_rooting_votes")
+    .select("team_key, updated_at")
+    .eq("game_id", gameId)
+    .eq("voter_key", voterKey);
 
   if (roomCode) {
     query = query.eq("room_code", roomCode);
@@ -51,12 +55,12 @@ export async function getRootingChoice(
   const { data, error } = await query.maybeSingle();
 
   if (error) {
-    return { error: error.message, choice: null as RootingSide | null };
+    return { error: error.message, choice: null as RootingSide | null, choiceAt: null as string | null };
   }
 
   const teamKey = data?.team_key;
   const choice: RootingSide | null = teamKey === "home" || teamKey === "away" ? teamKey : null;
-  return { error: null, choice };
+  return { error: null, choice, choiceAt: data?.updated_at ?? null };
 }
 
 export async function loadRootingState(
@@ -67,7 +71,9 @@ export async function loadRootingState(
 ): Promise<{ error: string | null; state: RootingState | null }> {
   const [{ error: countsError, counts }, choiceResult] = await Promise.all([
     getRootingCounts(admin, gameId, roomCode),
-    voterKey ? getRootingChoice(admin, gameId, roomCode, voterKey) : Promise.resolve({ error: null, choice: null }),
+    voterKey
+      ? getRootingChoice(admin, gameId, roomCode, voterKey)
+      : Promise.resolve({ error: null, choice: null, choiceAt: null }),
   ]);
 
   if (countsError || !counts) {
@@ -83,6 +89,7 @@ export async function loadRootingState(
     state: {
       ...counts,
       choice: choiceResult.choice,
+      choiceAt: choiceResult.choiceAt,
     },
   };
 }
@@ -94,11 +101,13 @@ export async function upsertRootingVote(
     roomCode,
     voterKey,
     teamKey,
+    userId,
   }: {
     gameId: string;
     roomCode: string | null;
     voterKey: string;
     teamKey: RootingSide;
+    userId?: string | null;
   },
 ) {
   let existingQuery = admin.from("match_rooting_votes").select("id").eq("game_id", gameId).eq("voter_key", voterKey);
@@ -118,7 +127,10 @@ export async function upsertRootingVote(
   if (existing?.id) {
     const { error: updateError } = await admin
       .from("match_rooting_votes")
-      .update({ team_key: teamKey })
+      .update({
+        team_key: teamKey,
+        ...(userId ? { user_id: userId } : {}),
+      })
       .eq("id", existing.id);
 
     if (updateError) {
@@ -130,6 +142,7 @@ export async function upsertRootingVote(
       room_code: roomCode,
       voter_key: voterKey,
       team_key: teamKey,
+      user_id: userId ?? null,
     });
 
     if (insertError) {

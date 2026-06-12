@@ -10,6 +10,9 @@ import {
 import { validateRoomChatMessage } from "@/lib/gameRoom/chatValidation";
 import { COMMENT_TEXT_MAX } from "@/lib/security/constants";
 
+/** Stable placeholder for SSR and the first client paint — avoids hydration mismatch. */
+const CHAT_DISPLAY_NAME_PLACEHOLDER = "Guest";
+
 type GameRoomChatProps = {
   gameId: string;
   /** Pass a roomCode for private rooms. Omit (or null) for the public match chat. */
@@ -23,6 +26,11 @@ export function GameRoomChat({ gameId, roomCode = null }: GameRoomChatProps) {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [chatDisplayName, setChatDisplayName] = useState(CHAT_DISPLAY_NAME_PLACEHOLDER);
+
+  useEffect(() => {
+    setChatDisplayName(getChatDisplayName());
+  }, []);
 
   const loadMessages = useCallback(async () => {
     const { messages: nextMessages, error: loadError } = await fetchRoomChatMessages(gameId, roomCode);
@@ -99,7 +107,7 @@ export function GameRoomChat({ gameId, roomCode = null }: GameRoomChatProps) {
             {sending ? "Sending..." : "Send Message"}
           </button>
         </div>
-        <p className="mt-2 text-xs font-semibold text-gray-400">Chatting as {getChatDisplayName()}.</p>
+        <p className="mt-2 text-xs font-semibold text-gray-400">Chatting as {chatDisplayName}.</p>
         {error ? (
           <p className="mt-2 text-xs font-semibold text-red-300">
             {error}{" "}
@@ -131,7 +139,9 @@ export function GameRoomChat({ gameId, roomCode = null }: GameRoomChatProps) {
           {messages.map((message) => (
             <article key={message.id} className="rounded-2xl border border-white/10 bg-black/40 p-4">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-black text-white">{message.displayName?.trim() || getChatDisplayName()}</p>
+                <p className="text-sm font-black text-white">
+                  {message.displayName?.trim() || CHAT_DISPLAY_NAME_PLACEHOLDER}
+                </p>
                 <time className="text-[10px] font-semibold uppercase tracking-[0.08em] text-gray-500">
                   {formatMessageTime(message.createdAt)}
                 </time>

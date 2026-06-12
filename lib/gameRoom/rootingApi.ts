@@ -32,6 +32,7 @@ export async function fetchRootingState(gameId: string, roomCode: string | null)
     homeCount: Math.max(0, Number(payload.homeCount) || 0),
     awayCount: Math.max(0, Number(payload.awayCount) || 0),
     choice: payload.choice === "home" || payload.choice === "away" ? payload.choice : null,
+    choiceAt: typeof payload.choiceAt === "string" ? payload.choiceAt : null,
   };
 }
 
@@ -65,6 +66,8 @@ export async function submitRootingVote(
         (payload as RootingResponse).choice === "home" || (payload as RootingResponse).choice === "away"
           ? (payload as RootingResponse).choice
           : null,
+      choiceAt:
+        typeof (payload as RootingResponse).choiceAt === "string" ? (payload as RootingResponse).choiceAt : null,
     },
     error: null,
   };

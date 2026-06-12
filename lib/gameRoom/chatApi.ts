@@ -6,7 +6,7 @@ const DISPLAY_NAME_STORAGE = "lockt-room-chat-display-name";
 
 export function getChatDisplayName() {
   if (typeof window === "undefined") {
-    return "SoccerStar";
+    return "Guest";
   }
 
   const stored = window.localStorage.getItem(DISPLAY_NAME_STORAGE)?.trim();
