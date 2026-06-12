@@ -32,12 +32,15 @@ export function setChatDisplayName(name: string) {
   }
 }
 
-function buildChatQuery(gameId: string, roomCode: string) {
-  const params = new URLSearchParams({ gameId, roomCode });
+function buildChatQuery(gameId: string, roomCode: string | null) {
+  const params = new URLSearchParams({ gameId });
+  if (roomCode) {
+    params.set("roomCode", roomCode);
+  }
   return params.toString();
 }
 
-export async function fetchRoomChatMessages(gameId: string, roomCode: string) {
+export async function fetchRoomChatMessages(gameId: string, roomCode: string | null) {
   const response = await fetch(`/api/game-room/chat?${buildChatQuery(gameId, roomCode)}`, {
     method: "GET",
     cache: "no-store",
@@ -60,7 +63,7 @@ export async function fetchRoomChatMessages(gameId: string, roomCode: string) {
   };
 }
 
-export async function sendRoomChatMessage(gameId: string, roomCode: string, messageText: string) {
+export async function sendRoomChatMessage(gameId: string, roomCode: string | null, messageText: string) {
   const senderKey = getOrCreateVoterKey();
   if (!senderKey) {
     return { message: null as MatchRoomMessage | null, error: "Unable to send message." };
@@ -71,7 +74,7 @@ export async function sendRoomChatMessage(gameId: string, roomCode: string, mess
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       gameId,
-      roomCode,
+      roomCode: roomCode ?? undefined,
       senderKey,
       displayName: getChatDisplayName(),
       messageText,

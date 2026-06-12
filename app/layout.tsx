@@ -20,13 +20,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   title: "LOCKT",
-  description: "Watch the World Cup with your people. Match Hub, Schedule, and Game Rooms for calls and live reactions.",
+  description: "Watch the World Cup with friends and family. Match Hub, Schedule, and Game Rooms for team picks, live scores, and match chat.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
     title: "LOCKT",
-    description: "Watch the World Cup with your people. Match Hub, Schedule, and Game Rooms for calls and live reactions.",
+    description: "Watch the World Cup with friends and family. Match Hub, Schedule, and Game Rooms for team picks, live scores, and match chat.",
     url: "/",
     siteName: "LOCKT",
     type: "website",
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "LOCKT",
-    description: "Watch the World Cup with your people. Match Hub, Schedule, and Game Rooms for calls and live reactions.",
+    description: "Watch the World Cup with friends and family. Match Hub, Schedule, and Game Rooms for team picks, live scores, and match chat.",
     images: ["/brand/lockt-wordmark.svg"],
   },
   icons: {

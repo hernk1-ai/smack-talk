@@ -12,10 +12,12 @@ import { COMMENT_TEXT_MAX } from "@/lib/security/constants";
 
 type GameRoomChatProps = {
   gameId: string;
-  roomCode: string;
+  /** Pass a roomCode for private rooms. Omit (or null) for the public match chat. */
+  roomCode?: string | null;
 };
 
-export function GameRoomChat({ gameId, roomCode }: GameRoomChatProps) {
+export function GameRoomChat({ gameId, roomCode = null }: GameRoomChatProps) {
+  const isPrivate = Boolean(roomCode);
   const [messages, setMessages] = useState<MatchRoomMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
@@ -69,12 +71,18 @@ export function GameRoomChat({ gameId, roomCode }: GameRoomChatProps) {
   return (
     <section className="space-y-3 rounded-[1.5rem] border border-white/10 bg-black/30 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
       <div className="rounded-xl border border-white/10 bg-black/40 p-3">
-        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime-300">Private Room Chat</p>
-        <p className="mt-1 text-sm font-semibold text-gray-300">Chat with everyone in this private room.</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime-300">
+          {isPrivate ? "Private Room Chat" : "Match Chat"}
+        </p>
+        <p className="mt-1 text-sm font-semibold text-gray-300">
+          {isPrivate
+            ? "Chat with everyone in this private room."
+            : "React live with everyone watching the match."}
+        </p>
         <textarea
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder="Send a message to this room…"
+          placeholder="Say something about the match…"
           maxLength={COMMENT_TEXT_MAX}
           className="mt-3 min-h-24 w-full rounded-xl border border-white/10 bg-black/55 px-3 py-2 text-sm font-semibold text-white outline-none"
         />
@@ -105,7 +113,7 @@ export function GameRoomChat({ gameId, roomCode }: GameRoomChatProps) {
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/40">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-black/80 px-3 py-2 backdrop-blur">
           <p className="text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">
-            Room Chat <span className="text-gray-400">{messages.length}</span>
+            {isPrivate ? "Room Chat" : "Match Chat"} <span className="text-gray-400">{messages.length}</span>
           </p>
           <p className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-400">Newest First</p>
         </div>

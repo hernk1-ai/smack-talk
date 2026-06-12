@@ -30,6 +30,7 @@ import { getShareUrl } from "@/lib/site-url";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 import { GameRoomRooting } from "@/components/game-room/GameRoomRooting";
 import { GameRoomChat } from "@/components/game-room/GameRoomChat";
+import { GameRoomWinnerPick } from "@/components/game-room/GameRoomWinnerPick";
 import { PublicGameRoomShareSection, PrivateGameRoomShareSection } from "@/components/game-room/CreatePrivateRoomPanel";
 import { buildPrivateRoomPath } from "@/lib/gameRoom/roomCode";
 import { validatePrivateRoom } from "@/lib/gameRoom/rootingApi";
@@ -605,21 +606,33 @@ export function LiveArena({
           quickPickCrowdLine={quickPickCrowdLine}
           onQuickPick={lockQuickPick}
         />
+        {showWorldCupFanRoom && privateRoomValid && worldCupMatch ? (
+          <GameRoomWinnerPick
+            worldCupMatch={worldCupMatch}
+            game={game}
+            now={now}
+            onRequireParticipation={guest.requireParticipation}
+          />
+        ) : null}
         {showWorldCupFanRoom && privateRoomValid ? (
           <GameRoomRooting gameId={gameId} roomCode={roomCode} homeTeam={homeTeam} awayTeam={awayTeam} />
         ) : null}
-        {showWorldCupFanRoom && isPrivateRoom && roomCode && privateRoomValid ? (
+        {showWorldCupFanRoom && privateRoomValid ? (
           <GameRoomChat gameId={gameId} roomCode={roomCode} />
         ) : null}
-        {!simplifiedRoom ? (
+        {showWorldCupFanRoom ? null : !simplifiedRoom ? (
           <ArenaTabs activeTab={activeTab} onSelect={setActiveTab} earlyCallCount={totalFeedCount} />
         ) : (
           <MatchCallsHeading count={totalFeedCount} />
         )}
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+        <div
+          className={`grid gap-4 lg:items-start ${
+            showWorldCupFanRoom ? "" : "lg:grid-cols-[minmax(0,1fr)_22rem]"
+          }`}
+        >
           <section className="space-y-4">
-            {(simplifiedRoom || activeTab === "calls") ? (
+            {!showWorldCupFanRoom && (simplifiedRoom || activeTab === "calls") ? (
               <CallsPanel
                 gameId={gameId}
                 currentUserId={guest.user?.id ?? null}
@@ -678,7 +691,7 @@ export function LiveArena({
                 <p className="text-sm font-semibold text-gray-300">
                   {isPrivateRoom
                     ? "Share your private invite link so only your group can root together in this room."
-                    : "Invite your people to this Game Room, or share the match link with friends and family."}
+                    : "Invite your friends and family to this Game Room, or share the match link."}
                 </p>
               </section>
             ) : null}

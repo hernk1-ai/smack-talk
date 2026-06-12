@@ -737,15 +737,15 @@ function SportSelector({
 }
 
 function FeedHeader({ profile }: { profile?: Profile | null }) {
-  return <AppHeader profile={profile} subtitle="Match Hub · Follow the match with your people." rightAriaLabel="Account" />;
+  return <AppHeader profile={profile} subtitle="Match Hub · Follow the match with friends and family." rightAriaLabel="Account" />;
 }
 
 function MatchHubIntro() {
   return (
     <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.34)] sm:p-5">
-      <h2 className="sports-display text-2xl italic leading-tight text-white sm:text-3xl">The World Cup is better with your people.</h2>
+      <h2 className="sports-display text-2xl italic leading-tight text-white sm:text-3xl">The World Cup is better with friends and family.</h2>
       <p className="mt-2 text-sm font-semibold leading-6 text-gray-300">
-        Pick a match, make a call, and join the Game Room when it kicks off.
+        Pick your winner, follow the score, and join the Game Room when it kicks off.
       </p>
     </section>
   );

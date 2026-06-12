@@ -128,7 +128,7 @@ function CompleteProfilePrompt() {
 }
 
 function ProfileHeader({ profile }: { profile?: Profile | null }) {
-  return <AppHeader profile={profile} subtitle="Your World Cup reputation profile." rightAriaLabel="Receipts" />;
+  return <AppHeader profile={profile} subtitle="Your World Cup profile · picks and match activity." rightAriaLabel="Account" />;
 }
 
 function ProfileIdentityCard({ profile }: { profile?: Profile | null }) {
@@ -183,7 +183,7 @@ function ProfileIdentityCard({ profile }: { profile?: Profile | null }) {
           </span>
 
           <p className="mx-auto mt-3 max-w-lg text-sm font-semibold leading-6 text-gray-300 md:mx-0">
-            Lock your call. Check the receipt. Called it.
+            Pick your team. Follow the score. See if you called it.
           </p>
 
           <div className="mt-4 flex flex-wrap justify-center gap-2 md:justify-start">

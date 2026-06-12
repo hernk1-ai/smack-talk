@@ -38,7 +38,7 @@ export function getSignupPageCopy(isClaimFlow: boolean): SignupPageCopy {
   return {
     eyebrow: "Match Hub · Game Room",
     headline: "Watch the World Cup",
-    headlineAccent: "with your people.",
+    headlineAccent: "with friends and family.",
     subheadline: "Game rooms for every match.",
     formTitle: "Save your Game Room spot",
     formSubtitle: "Create a quick account so your calls and comments stay with you.",

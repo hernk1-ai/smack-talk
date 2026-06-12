@@ -152,9 +152,9 @@ export function EnterArenaPage({
             You&apos;re ready for the Match Hub.
           </p>
           <p className="mt-2 text-sm font-semibold text-gray-300 sm:text-base">
-            Pick a match, join a Game Room, and watch with your people.
+            Pick a match, join a Game Room, and watch with friends and family.
           </p>
-          <p className="mt-2 text-sm font-semibold text-lime-300">Make simple calls and react live.</p>
+          <p className="mt-2 text-sm font-semibold text-lime-300">Pick your winner and react live.</p>
 
           <ProfileSummaryCard avatarUrl={avatarUrl} teams={selectedTeams} username={cleanUsername} />
 

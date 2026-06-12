@@ -8,12 +8,12 @@ export function HeroSection() {
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-lime-300 sm:text-xs">World Cup 2026</p>
 
           <h1 className="hero-title sports-display mt-4 text-[clamp(2.2rem,10vw,5.2rem)] leading-[0.92] tracking-[0.01em] text-white sm:text-[4.8rem] lg:text-[5rem]">
-            Watch the World Cup with your people.
+            Watch the World Cup with friends and family.
           </h1>
 
-          <p className="mt-5 text-lg font-black uppercase tracking-[0.08em] text-white/95 sm:text-xl">Make calls. React live. Keep it fun.</p>
+          <p className="mt-5 text-lg font-black uppercase tracking-[0.08em] text-white/95 sm:text-xl">Pick your team. Follow the score. React live.</p>
           <p className="mt-3 max-w-2xl mx-auto text-sm font-semibold leading-7 text-gray-300 sm:text-base">
-            Lockt adds a game room to every match so friends and family can follow the action, make calls, and react together.
+            Lockt adds a game room to every match so friends and family can pick a winner, follow live scores, and chat together.
           </p>
           <p className="mt-3 text-xs font-black uppercase tracking-[0.16em] text-gray-400">13+ · No betting · No odds · No cash prizes</p>
 

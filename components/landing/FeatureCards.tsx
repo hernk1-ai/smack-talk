@@ -62,7 +62,7 @@ const features: Feature[] = [
   },
   {
     icon: <FansIcon />,
-    title: "Keep It With Your People",
+    title: "Keep It With Friends & Family",
     text: "Share a match room link and keep the conversation in one place for that game.",
     tone: "purple",
   },

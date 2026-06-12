@@ -50,21 +50,21 @@ export async function GET(request: Request) {
     return jsonError(roomCodeCheck.error);
   }
 
-  if (!roomCodeCheck.value) {
-    return jsonError("roomCode is required.");
-  }
-
   const { admin, error: adminError } = getAdminOrError();
   if (adminError || !admin) {
     return adminError ?? jsonError("Supabase is not configured.", 503);
   }
 
-  const roomError = await ensurePrivateRoom(admin, gameIdCheck.value, roomCodeCheck.value);
-  if (roomError) {
-    return roomError;
+  // A roomCode means a private room (membership required). No roomCode means the
+  // public match room chat, which is open to everyone watching the match.
+  if (roomCodeCheck.value) {
+    const roomError = await ensurePrivateRoom(admin, gameIdCheck.value, roomCodeCheck.value);
+    if (roomError) {
+      return roomError;
+    }
   }
 
-  const { error, messages } = await listMatchRoomMessages(admin, gameIdCheck.value, roomCodeCheck.value);
+  const { error, messages } = await listMatchRoomMessages(admin, gameIdCheck.value, roomCodeCheck.value || null);
 
   if (error || !messages) {
     return jsonError(error ?? "Unable to load room chat.", 500);
@@ -108,10 +108,6 @@ export async function POST(request: Request) {
     return jsonError(roomCodeCheck.error);
   }
 
-  if (!roomCodeCheck.value) {
-    return jsonError("roomCode is required.");
-  }
-
   if (!senderKeyCheck.valid) {
     return jsonError(senderKeyCheck.error);
   }
@@ -134,14 +130,17 @@ export async function POST(request: Request) {
     return adminError ?? jsonError("Supabase is not configured.", 503);
   }
 
-  const roomError = await ensurePrivateRoom(admin, gameIdCheck.value, roomCodeCheck.value);
-  if (roomError) {
-    return roomError;
+  // Private rooms (with a roomCode) must exist; the public match room is open.
+  if (roomCodeCheck.value) {
+    const roomError = await ensurePrivateRoom(admin, gameIdCheck.value, roomCodeCheck.value);
+    if (roomError) {
+      return roomError;
+    }
   }
 
   const { error, message } = await createMatchRoomMessage(admin, {
     gameId: gameIdCheck.value,
-    roomCode: roomCodeCheck.value,
+    roomCode: roomCodeCheck.value || null,
     senderKey: senderKeyCheck.value,
     displayName,
     messageText: messageCheck.value,

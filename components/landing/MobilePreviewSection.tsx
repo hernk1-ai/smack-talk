@@ -24,7 +24,7 @@ const PREVIEWS: Preview[] = [
     src: "/marketing/mobile-preview-rooting.png",
     alt: "Lockt Game Room rooting view with fans backing their team",
     label: "Game Room",
-    caption: "React live and root for your team with your people.",
+    caption: "React live and root for your team with friends and family.",
   },
 ];
 
@@ -38,7 +38,7 @@ export function MobilePreviewSection() {
             See the Game Room in action
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-base font-semibold leading-7 text-gray-300">
-            Make calls, react live, and watch the World Cup with your people.
+            Pick your winner, follow live scores, and watch the World Cup with friends and family.
           </p>
         </div>
 

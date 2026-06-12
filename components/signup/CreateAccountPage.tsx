@@ -219,7 +219,7 @@ function GameRoomPreviewCard() {
       </h2>
 
       <p className="mt-3 text-sm font-semibold leading-6 text-gray-300">
-        See you in the match room. Watch with your people, make simple calls, and react live.
+        See you in the match room. Watch with friends and family, pick your winner, and react live.
       </p>
 
       <div className="mt-5 rounded-2xl border border-white/10 bg-black/45 p-4 shadow-inner shadow-black/40">
