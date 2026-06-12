@@ -28,10 +28,17 @@ import { seededChaosAlerts } from "@/data/seededCrowd";
 import { getGameSport, sportTabs, type SportKey } from "@/data/sportsStructure";
 import { worldCupStorylines } from "@/data/worldCupStorylines";
 import { worldCupChaosAlerts, worldCupFeaturedMatch, worldCupLiveArenas, worldCupTrendingTakes } from "@/data/worldCupMvp";
-import { getWorldCupKickoffIso, worldCupSchedule, type WorldCupMatch } from "@/data/worldCupSchedule";
+import { getWorldCupKickoffIso, getWorldCupMatchId, worldCupSchedule, type WorldCupMatch } from "@/data/worldCupSchedule";
 import { ACTIVE_SPORT, getVisibleSportTabs, isMatchHubMode, SHOW_MULTI_SPORT } from "@/lib/productConfig";
 import { getWorldCupMatchPublicCta } from "@/lib/worldCupPublicNav";
-import { getCurrentOrNextWorldCupMatch, getNextWorldCupMatch } from "@/lib/worldCupMatchResolver";
+import {
+  getLiveMatchStatusLabel,
+  getMatchHubFocus,
+  getNextWorldCupMatch,
+  type MatchHubFocus,
+  type WorldCupGameSnapshot,
+} from "@/lib/worldCupMatchResolver";
+import { fetchWorldCupGameSnapshots } from "@/lib/worldCupNavClient";
 import { buildSiteUrl } from "@/lib/site-url";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 import { getWorldCupMatchStatus } from "@/lib/worldCupMatchStatus";
@@ -446,7 +453,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
       <div className="page-rhythm">
         <FeedHeader profile={profile} />
         <MatchHubIntro />
-        <PreTournamentCountdown />
+        <MatchHubPrimaryFocus />
         <WorldCupUpcomingMatches />
         <PreTournamentStorylines />
         <FeaturedPlayers />
@@ -527,40 +534,139 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   );
 }
 
-function PreTournamentCountdown() {
-  const [mounted, setMounted] = useState(false);
-  const [countdown, setCountdown] = useState("Loading countdown...");
+function MatchHubPrimaryFocus() {
+  const [now, setNow] = useState(() => new Date());
+  const [games, setGames] = useState<WorldCupGameSnapshot[]>([]);
+  const [focus, setFocus] = useState<MatchHubFocus>(() => getMatchHubFocus());
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setMounted(true);
-      setCountdown(getCountdownLabel());
-    }, 0);
-    return () => window.clearTimeout(timer);
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
-    if (!mounted) {
-      return;
+    let mounted = true;
+
+    async function refreshGames() {
+      const snapshots = await fetchWorldCupGameSnapshots();
+      if (!mounted) {
+        return;
+      }
+
+      setGames(snapshots);
     }
 
-    const timer = window.setInterval(() => {
-      setCountdown(getCountdownLabel());
-    }, 1000);
+    void refreshGames();
+    const intervalId = window.setInterval(() => {
+      void refreshGames();
+    }, 30000);
 
-    return () => window.clearInterval(timer);
-  }, [mounted]);
+    return () => {
+      mounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
-  const nextMatch = getNextMatchForCountdown();
-  const nextCta = getWorldCupMatchPublicCta(nextMatch);
+  useEffect(() => {
+    setFocus(getMatchHubFocus(now, worldCupSchedule, games));
+  }, [now, games]);
+
+  if (focus.mode === "live") {
+    return <LiveNowModule match={focus.match} game={focus.game} now={now} />;
+  }
+
+  if (focus.mode === "recent-final") {
+    return <RecentFinalModule match={focus.match} game={focus.game} />;
+  }
+
+  return <NextMatchCountdown now={now} games={games} focusMatch={focus.mode === "upcoming" ? focus.match : undefined} />;
+}
+
+function LiveNowModule({
+  match,
+  game,
+  now,
+}: {
+  match: WorldCupMatch;
+  game: WorldCupGameSnapshot | null;
+  now: Date;
+}) {
+  const homeTeam = game?.home_team ?? match.homeTeam;
+  const awayTeam = game?.away_team ?? match.awayTeam ?? "TBD";
+  const homeScore = game?.home_score ?? 0;
+  const awayScore = game?.away_score ?? 0;
+  const statusLabel = getLiveMatchStatusLabel(match, game, now);
+  const venueLine = [match.city, match.venue].filter(Boolean).join(" · ");
+  const gameRoomHref = `/game/${getWorldCupMatchId(match)}`;
+
+  return (
+    <FeedSection title="Live Now" icon="●" action="">
+      <div className="rounded-2xl border border-lime-300/35 bg-lime-400/[0.08] p-4 shadow-[0_0_34px_rgba(132,204,22,0.12)]">
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime-300">Live Now</p>
+        <h3 className="sports-display mt-2 text-3xl italic leading-none text-white sm:text-4xl">
+          {awayTeam} vs {homeTeam}
+        </h3>
+        <p className="mt-3 text-2xl font-black text-white">
+          {awayTeam} {awayScore} — {homeScore} {homeTeam}
+        </p>
+        <p className="mt-2 text-sm font-black uppercase tracking-[0.12em] text-lime-200">{statusLabel}</p>
+        {venueLine ? <p className="mt-2 text-xs font-semibold text-gray-400">{venueLine}</p> : null}
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <Link
+            href={gameRoomHref}
+            className="grid min-h-12 place-items-center rounded-xl border border-lime-300/50 bg-lime-400/15 px-3 text-xs font-black uppercase tracking-[0.1em] text-lime-100 transition hover:bg-lime-400/25"
+          >
+            Join Live Game Room
+          </Link>
+          <Link
+            href="/schedule"
+            className="grid min-h-11 place-items-center rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-black uppercase tracking-[0.1em] text-white"
+          >
+            View Schedule
+          </Link>
+        </div>
+      </div>
+    </FeedSection>
+  );
+}
+
+function RecentFinalModule({ match, game }: { match: WorldCupMatch; game: WorldCupGameSnapshot | null }) {
+  const homeTeam = game?.home_team ?? match.homeTeam;
+  const awayTeam = game?.away_team ?? match.awayTeam ?? "TBD";
+  const homeScore = game?.home_score ?? 0;
+  const awayScore = game?.away_score ?? 0;
+
+  return (
+    <FeedSection title="Final" icon="◌" action="">
+      <div className="rounded-2xl border border-white/10 bg-black/45 p-4">
+        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-400">Recent Result</p>
+        <p className="mt-1 text-base font-black text-white">
+          {awayTeam} {awayScore} — {homeScore} {homeTeam}
+        </p>
+        <p className="mt-1 text-xs font-semibold text-gray-400">Final · {match.city}</p>
+      </div>
+    </FeedSection>
+  );
+}
+
+function NextMatchCountdown({
+  now,
+  games,
+  focusMatch,
+}: {
+  now: Date;
+  games: WorldCupGameSnapshot[];
+  focusMatch?: WorldCupMatch;
+}) {
+  const nextMatch = focusMatch ?? getNextWorldCupMatch(now, worldCupSchedule, games) ?? worldCupSchedule[0];
+  const countdown = getCountdownLabelForMatch(nextMatch, now);
+  const nextCta = getWorldCupMatchPublicCta(nextMatch, now);
 
   return (
     <FeedSection title="Next Match Countdown" icon="◷" action="">
       <div className="rounded-2xl border border-lime-300/20 bg-black/45 p-4">
         <h3 className="sports-display text-3xl italic leading-none text-white sm:text-4xl">Countdown to Next Match</h3>
-        <p className="mt-3 text-sm font-semibold text-gray-300">
-          Join the Game Room before kickoff and make your call.
-        </p>
+        <p className="mt-3 text-sm font-semibold text-gray-300">Join the Game Room before kickoff and pick your side.</p>
         <p className="mt-3 inline-block rounded-lg border border-lime-300/40 bg-lime-400/10 px-3 py-2 text-sm font-black uppercase tracking-[0.12em] text-lime-200">
           {countdown}
         </p>
@@ -574,10 +680,16 @@ function PreTournamentCountdown() {
           </p>
         </div>
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          <Link href={nextCta.href} className="grid min-h-11 place-items-center rounded-xl border border-purple-300/45 bg-purple-500/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-purple-200">
+          <Link
+            href={nextCta.href}
+            className="grid min-h-11 place-items-center rounded-xl border border-purple-300/45 bg-purple-500/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-purple-200"
+          >
             {nextCta.label}
           </Link>
-          <Link href="/schedule" className="grid min-h-11 place-items-center rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-black uppercase tracking-[0.1em] text-white">
+          <Link
+            href="/schedule"
+            className="grid min-h-11 place-items-center rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-black uppercase tracking-[0.1em] text-white"
+          >
             View Schedule
           </Link>
         </div>
@@ -586,9 +698,16 @@ function PreTournamentCountdown() {
   );
 }
 
-/** The next upcoming match, rolling forward automatically as matches kick off. */
-function getNextMatchForCountdown(now = new Date()): WorldCupMatch {
-  return getNextWorldCupMatch(now) ?? getCurrentOrNextWorldCupMatch(now) ?? worldCupSchedule[0];
+function getCountdownLabelForMatch(match: WorldCupMatch, now = new Date()) {
+  const kickoffIso = getWorldCupKickoffIso(match);
+  const target = kickoffIso ? new Date(kickoffIso).getTime() : now.getTime();
+  const diff = Math.max(0, target - now.getTime());
+  const totalSeconds = Math.floor(diff / 1000);
+  const days = Math.floor(totalSeconds / (60 * 60 * 24));
+  const hours = Math.floor((totalSeconds % (60 * 60 * 24)) / (60 * 60));
+  const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
+  const seconds = totalSeconds % 60;
+  return `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
 }
 
 function FeaturedPlayers() {
@@ -680,20 +799,6 @@ function PreTournamentNews() {
       </FeedSection>
     </>
   );
-}
-
-function getCountdownLabel() {
-  const now = new Date();
-  const nextMatch = getNextMatchForCountdown(now);
-  const kickoffIso = getWorldCupKickoffIso(nextMatch);
-  const target = kickoffIso ? new Date(kickoffIso).getTime() : now.getTime();
-  const diff = Math.max(0, target - now.getTime());
-  const totalSeconds = Math.floor(diff / 1000);
-  const days = Math.floor(totalSeconds / (60 * 60 * 24));
-  const hours = Math.floor((totalSeconds % (60 * 60 * 24)) / (60 * 60));
-  const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
-  const seconds = totalSeconds % 60;
-  return `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
 }
 
 function formatDateLabel(date: string) {

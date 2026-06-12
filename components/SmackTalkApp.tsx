@@ -9,7 +9,7 @@ import { ProfileScreen } from "@/components/screens/ProfileScreen";
 import { ReceiptsScreen, type ReceiptOwner } from "@/components/screens/ReceiptsScreen";
 import { TopTalkersScreen } from "@/components/screens/TopTalkersScreen";
 import { ACTIVE_GAME_ID } from "@/lib/supabase/games";
-import { resolveGameRoomNavTarget } from "@/lib/worldCupMatchResolver";
+import { resolveGameRoomNavTargetClient } from "@/lib/worldCupNavClient";
 import type { Profile } from "@/lib/supabase/types";
 
 export function LocktApp({
@@ -65,18 +65,18 @@ export function LocktApp({
     }
 
     if (view === "game-room") {
-      const target = resolveGameRoomNavTarget();
-      if (target.match) {
-        const gameId = `wc-2026-${target.match.id}`;
-        setActiveGameRoomId(gameId);
-        setActiveRoomCode(null);
-        setAppView("live-arena");
-        router.push(`/game/${gameId}`);
-        return;
-      }
+      void resolveGameRoomNavTargetClient().then((target) => {
+        if (target.match) {
+          const gameId = `wc-2026-${target.match.id}`;
+          setActiveGameRoomId(gameId);
+          setActiveRoomCode(null);
+          setAppView("live-arena");
+          router.push(`/game/${gameId}`);
+          return;
+        }
 
-      // No live or upcoming match resolvable: fall back to the schedule.
-      router.push(target.href);
+        router.push(target.href);
+      });
       return;
     }
   };

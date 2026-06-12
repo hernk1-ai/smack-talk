@@ -8,7 +8,8 @@ import {
   SHOW_PROFILES,
   SHOW_SCHEDULE,
 } from "@/lib/productConfig";
-import { resolveGameRoomNavHref, SCHEDULE_FALLBACK_ROUTE } from "@/lib/worldCupMatchResolver";
+import { SCHEDULE_FALLBACK_ROUTE } from "@/lib/worldCupMatchResolver";
+import { resolveGameRoomNavHrefClient } from "@/lib/worldCupNavClient";
 
 export type AppView = "arena" | "live-arena" | "receipts" | "top-talkers" | "profile" | "schedule";
 type PrimaryNavView = "match-hub" | "schedule" | "game-room" | "profile";
@@ -96,7 +97,9 @@ export function RouteBottomNav({ activeView }: { activeView: NavView }) {
             <button
               key={item.id}
               type="button"
-              onClick={() => router.push(resolveGameRoomNavHref())}
+              onClick={() => {
+                void resolveGameRoomNavHrefClient().then((href) => router.push(href));
+              }}
               className={itemClass(item.id)}
             >
               <span className="text-xl leading-none">{item.icon}</span>
