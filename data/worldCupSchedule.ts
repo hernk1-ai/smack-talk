@@ -67,6 +67,10 @@ const TEAM_NAMES: Record<string, string> = {
   COD: "DR Congo",
   UZB: "Uzbekistan",
   COL: "Colombia",
+  GHA: "Ghana",
+  PAN: "Panama",
+  ENG: "England",
+  CRO: "Croatia",
 };
 
 type RawFixture = {

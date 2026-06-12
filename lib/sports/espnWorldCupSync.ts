@@ -225,8 +225,12 @@ export async function fetchEspnWorldCupEventsForDates(dates: string[]): Promise<
 
 /**
  * Sync ESPN scores/status into the games table for every mapped event.
- * Only home_score, away_score, status and updated_at are ever written, and
- * writes are scoped to league = 'World Cup'.
+ *
+ * NEVER creates rows: it only issues UPDATEs scoped by id + league = 'World Cup'
+ * (no insert/upsert). The games table is seeded as the source of truth from the
+ * canonical FIFA schedule; if a mapped row does not exist yet, the event is
+ * skipped rather than created. Only home_score, away_score, status and
+ * updated_at are ever written.
  */
 export async function syncEspnWorldCupScores(admin: AdminClient): Promise<EspnSyncSummary> {
   const summary: EspnSyncSummary = {
