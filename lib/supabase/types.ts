@@ -199,6 +199,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      espn_match_map: {
+        Row: {
+          lockt_game_id: string;
+          espn_event_id: string;
+          espn_event_name: string | null;
+          starts_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          lockt_game_id: string;
+          espn_event_id: string;
+          espn_event_name?: string | null;
+          starts_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          lockt_game_id?: string;
+          espn_event_id?: string;
+          espn_event_name?: string | null;
+          starts_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       game_picks: {
         Row: {
           id: string;

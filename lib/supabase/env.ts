@@ -22,6 +22,15 @@ export const adminSecret = process.env.ADMIN_SECRET;
 /** True only when a non-empty ADMIN_SECRET is configured. Admin tools fail closed otherwise. */
 export const isAdminConfigured = Boolean(adminSecret && adminSecret.trim().length > 0);
 
+/**
+ * Server-only. Never prefix with NEXT_PUBLIC_. Vercel Cron sends this as
+ * `Authorization: Bearer <CRON_SECRET>`. Used to authorize scheduled sync jobs.
+ */
+export const cronSecret = process.env.CRON_SECRET;
+
+/** True only when a non-empty CRON_SECRET is configured. */
+export const isCronConfigured = Boolean(cronSecret && cronSecret.trim().length > 0);
+
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 export const isSupabaseAdminConfigured = Boolean(supabaseUrl && supabaseServiceRoleKey);
 export const isNotificationFanoutConfigured = Boolean(
