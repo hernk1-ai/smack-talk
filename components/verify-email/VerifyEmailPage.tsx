@@ -4,16 +4,26 @@ import { useState } from "react";
 import Link from "next/link";
 import { LocktLogo } from "@/components/LocktLogo";
 import { buildSiteUrl } from "@/lib/site-url";
+import { getSafeNextPath } from "@/lib/signup/signupCopy";
 import { createClient } from "@/lib/supabase/client";
 
 const steps = [
   { label: "Sign Up", state: "complete", icon: "✓" },
   { label: "Verify Email", state: "active", icon: "✉" },
-  { label: "Arena Access", state: "locked", icon: "▣" },
+  { label: "Match Hub", state: "locked", icon: "▣" },
 ];
 
-export function VerifyEmailPage({ email }: { email?: string }) {
+export function VerifyEmailPage({
+  email,
+  isClaimFlow = false,
+  nextPath = "/app",
+}: {
+  email?: string;
+  isClaimFlow?: boolean;
+  nextPath?: string;
+}) {
   const displayEmail = email || "you@domain.com";
+  const safeNext = getSafeNextPath(nextPath);
 
   return (
     <main className="relative min-h-dvh overflow-hidden bg-[#02040a] text-white">
@@ -31,7 +41,12 @@ export function VerifyEmailPage({ email }: { email?: string }) {
         <div className="flex flex-1 items-center justify-center pb-8">
           <section className="mx-auto w-full max-w-3xl">
             <ProgressStepper />
-            <VerifyCard email={displayEmail} canResend={Boolean(email)} />
+            <VerifyCard
+              email={displayEmail}
+              canResend={Boolean(email)}
+              isClaimFlow={isClaimFlow}
+              nextPath={safeNext}
+            />
           </section>
         </div>
 
@@ -75,7 +90,17 @@ function ProgressStepper() {
   );
 }
 
-function VerifyCard({ canResend, email }: { canResend: boolean; email: string }) {
+function VerifyCard({
+  canResend,
+  email,
+  isClaimFlow,
+  nextPath,
+}: {
+  canResend: boolean;
+  email: string;
+  isClaimFlow: boolean;
+  nextPath: string;
+}) {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -95,11 +120,15 @@ function VerifyCard({ canResend, email }: { canResend: boolean; email: string })
     setIsLoading(true);
     setMessage("");
 
+    const callbackPath = isClaimFlow
+      ? `/auth/callback?claim=1&next=${encodeURIComponent(nextPath)}`
+      : `/auth/callback?next=${encodeURIComponent(nextPath)}`;
+
     const { error } = await supabase.auth.resend({
-      type: "signup",
+      type: isClaimFlow ? "email_change" : "signup",
       email,
       options: {
-        emailRedirectTo: buildSiteUrl("/auth/callback?next=/username"),
+        emailRedirectTo: buildSiteUrl(callbackPath),
       },
     });
 
@@ -125,7 +154,9 @@ function VerifyCard({ canResend, email }: { canResend: boolean; email: string })
         <span className="block font-black text-lime-300">{email}</span>
       </p>
       <p className="mx-auto mt-3 max-w-md text-sm font-semibold leading-6 text-gray-400">
-        Click the link to verify your email and unlock full access to LOCKT.
+        {isClaimFlow
+          ? "Click the link to verify your email and keep your Game Room name across devices."
+          : "Click the link to verify your email and unlock full access to LOCKT."}
       </p>
 
       {message && (

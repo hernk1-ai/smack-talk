@@ -1,13 +1,7 @@
-import { TeamsPage } from "@/components/onboarding/TeamsPage";
+import { redirect } from "next/navigation";
 
-type TeamsRouteProps = {
-  searchParams?: Promise<{
-    username?: string;
-    avatar?: string;
-  }>;
-};
+import { LEGACY_ONBOARDING_REDIRECT } from "@/lib/routing/legacyOnboarding";
 
-export default async function TeamsRoute({ searchParams }: TeamsRouteProps) {
-  const params = await searchParams;
-  return <TeamsPage avatar={params?.avatar} username={params?.username} />;
+export default function TeamsOnboardingPage() {
+  redirect(LEGACY_ONBOARDING_REDIRECT);
 }

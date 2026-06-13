@@ -1,12 +1,7 @@
-import { ProfilePicPage } from "@/components/onboarding/ProfilePicPage";
+import { redirect } from "next/navigation";
 
-type ProfilePicRouteProps = {
-  searchParams?: Promise<{
-    username?: string;
-  }>;
-};
+import { LEGACY_ONBOARDING_REDIRECT } from "@/lib/routing/legacyOnboarding";
 
-export default async function ProfilePicRoute({ searchParams }: ProfilePicRouteProps) {
-  const params = await searchParams;
-  return <ProfilePicPage username={params?.username} />;
+export default function ProfilePicOnboardingPage() {
+  redirect(LEGACY_ONBOARDING_REDIRECT);
 }

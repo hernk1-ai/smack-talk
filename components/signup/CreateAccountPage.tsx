@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GoogleProviderButton } from "@/components/auth/GoogleProviderButton";
@@ -8,6 +8,7 @@ import { LocktLogo } from "@/components/LocktLogo";
 import { getSafeNextPath, getSignupPageCopy } from "@/lib/signup/signupCopy";
 import { buildSiteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/client";
+import { claimGuestEmail, claimGuestGoogle, isAnonymousAuthUser } from "@/lib/supabase/guestClaim";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 
 const statCards = [
@@ -62,6 +63,49 @@ export function CreateAccountPage({
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [claimMode, setClaimMode] = useState<"loading" | "guest" | "account">("loading");
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function resolveClaimMode() {
+      if (!isClaimFlow) {
+        if (mounted) {
+          setClaimMode("account");
+        }
+        return;
+      }
+
+      const supabase = createClient();
+      if (!supabase) {
+        if (mounted) {
+          setClaimMode("account");
+        }
+        return;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!mounted) {
+        return;
+      }
+
+      if (user && !isAnonymousAuthUser(user)) {
+        router.replace(safeNext);
+        return;
+      }
+
+      setClaimMode(isAnonymousAuthUser(user) ? "guest" : "account");
+    }
+
+    void resolveClaimMode();
+
+    return () => {
+      mounted = false;
+    };
+  }, [isClaimFlow, router, safeNext]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -71,7 +115,7 @@ export function CreateAccountPage({
       return;
     }
 
-    if (!password.trim()) {
+    if (!(isClaimFlow && claimMode === "guest") && !password.trim()) {
       setMessage("Password is required.");
       return;
     }
@@ -90,6 +134,19 @@ export function CreateAccountPage({
 
     setIsLoading(true);
     setMessage("");
+
+    if (isClaimFlow && claimMode === "guest") {
+      const { error, verifyPath } = await claimGuestEmail(supabase, email.trim(), safeNext);
+      setIsLoading(false);
+
+      if (error) {
+        setMessage(getUserFacingErrorMessage(error, "Unable to claim your profile right now. Try again."));
+        return;
+      }
+
+      router.push(verifyPath ?? `/verify-email?email=${encodeURIComponent(email.trim())}&claim=1`);
+      return;
+    }
 
     const emailRedirectTo = buildSiteUrl(`/auth/callback?next=${encodeURIComponent(safeNext)}`);
     const { error } = await supabase.auth.signUp({
@@ -128,6 +185,19 @@ export function CreateAccountPage({
 
     setIsGoogleLoading(true);
     setMessage("");
+
+    if (isClaimFlow && claimMode === "guest") {
+      const redirectTo = buildSiteUrl(
+        `/auth/callback?claim=1&source=oauth&next=${encodeURIComponent(safeNext)}`,
+      );
+      const { error } = await claimGuestGoogle(supabase, redirectTo);
+      setIsGoogleLoading(false);
+
+      if (error) {
+        setMessage(getUserFacingErrorMessage(error, "Unable to claim with Google right now. Try again."));
+      }
+      return;
+    }
 
     const redirectTo = buildSiteUrl(`/auth/callback?source=oauth&next=${encodeURIComponent(safeNext)}`);
     const { error } = await supabase.auth.signInWithOAuth({
@@ -174,8 +244,9 @@ export function CreateAccountPage({
             setTermsAccepted={setTermsAccepted}
             showPassword={showPassword}
             termsAccepted={termsAccepted}
-            isLoading={isLoading}
-            isGoogleLoading={isGoogleLoading}
+            isLoading={isLoading || claimMode === "loading"}
+            isGoogleLoading={isGoogleLoading || claimMode === "loading"}
+            showPasswordField={!isClaimFlow || claimMode !== "guest"}
             onSubmit={handleSubmit}
             onGoogleSignIn={handleGoogleSignIn}
           />
@@ -247,6 +318,7 @@ function SignupCard({
   isGoogleLoading,
   onSubmit,
   onGoogleSignIn,
+  showPasswordField = true,
 }: {
   copy: ReturnType<typeof getSignupPageCopy>;
   email: string;
@@ -263,6 +335,7 @@ function SignupCard({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onGoogleSignIn: () => Promise<void>;
   isGoogleLoading: boolean;
+  showPasswordField?: boolean;
 }) {
   return (
     <form
@@ -290,6 +363,7 @@ function SignupCard({
         </div>
       </label>
 
+      {showPasswordField ? (
       <label className="mt-5 block">
         <span className="text-xs font-black uppercase tracking-[0.22em] text-white">Create a Password</span>
         <div className="mt-3 grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl border border-white/15 bg-white/[0.08] px-4 py-3 shadow-inner shadow-black/35 transition focus-within:border-lime-300/55 focus-within:bg-white/[0.1]">
@@ -314,6 +388,11 @@ function SignupCard({
           </button>
         </div>
       </label>
+      ) : (
+        <p className="mt-5 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-gray-300">
+          We&apos;ll email you a verification link first. You&apos;ll set a password right after that.
+        </p>
+      )}
 
       <label className="mt-4 flex items-start gap-3 text-sm font-semibold text-gray-300">
         <input

@@ -1,5 +1,7 @@
-import { UsernamePage } from "@/components/username/UsernamePage";
+import { redirect } from "next/navigation";
 
-export default function UsernameRoute() {
-  return <UsernamePage />;
+import { LEGACY_ONBOARDING_REDIRECT } from "@/lib/routing/legacyOnboarding";
+
+export default function UsernamePage() {
+  redirect(LEGACY_ONBOARDING_REDIRECT);
 }

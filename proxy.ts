@@ -1,15 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
+import { isLegacyOnboardingPath, LEGACY_ONBOARDING_REDIRECT } from "@/lib/routing/legacyOnboarding";
 import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from "@/lib/supabase/env";
 import { getPostLoginRedirect } from "@/lib/supabase/profiles";
-import type { Profile } from "@/lib/supabase/types";
 
 const protectedRoutes = ["/receipts", "/top-talkers", "/profile", "/settings", "/followers", "/following"];
-const onboardingRoutes = ["/username", "/onboarding/profile-pic", "/onboarding/teams", "/onboarding/enter-arena"];
 const authRoutes = ["/login", "/signup", "/forgot-password", "/verify-email"];
 
 export async function proxy(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  if (isLegacyOnboardingPath(pathname)) {
+    return redirectTo(request, LEGACY_ONBOARDING_REDIRECT);
+  }
+
   const isDevelopment = process.env.NODE_ENV === "development";
 
   if (!isSupabaseConfigured || !supabaseUrl || !supabaseAnonKey) {
@@ -39,20 +44,14 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const pathname = request.nextUrl.pathname;
   const isProtectedRoute = protectedRoutes.some((path) => pathname === path || pathname.startsWith(`${path}/`));
-  const isOnboardingRoute = onboardingRoutes.some((path) => pathname === path || pathname.startsWith(`${path}/`));
   const isAuthRoute = authRoutes.includes(pathname);
 
   if (isDevelopment && isAuthRoute) {
     return response;
   }
 
-  if (isDevelopment && isOnboardingRoute) {
-    return response;
-  }
-
-  if (!user && (isProtectedRoute || isOnboardingRoute)) {
+  if (!user && isProtectedRoute) {
     return redirectTo(request, "/login");
   }
 
@@ -60,26 +59,11 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  const profile = await getProfileForMiddleware(supabase, user.id);
-  const onboardingDestination = getPostLoginRedirect(profile);
-
   if (isAuthRoute) {
-    return redirectTo(request, onboardingDestination);
-  }
-
-  if (isOnboardingRoute) {
-    return response;
+    return redirectTo(request, getPostLoginRedirect(null));
   }
 
   return response;
-}
-
-async function getProfileForMiddleware(
-  supabase: ReturnType<typeof createServerClient>,
-  userId: string,
-): Promise<Profile | null> {
-  const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
-  return data;
 }
 
 function redirectTo(request: NextRequest, path: string) {

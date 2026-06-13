@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
+import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionPrompt";
 import { ShareActions } from "@/components/ShareActions";
 import { UserAvatar } from "@/components/UserAvatar";
 import { buildSiteUrl } from "@/lib/site-url";
@@ -14,6 +15,7 @@ import {
   type TournamentRecord,
 } from "@/lib/supabase/profileActivity";
 import { getCurrentUserMatchPicks } from "@/lib/supabase/matchPicks";
+import { profileNeedsCompletion } from "@/lib/profile/completion";
 import type { Profile } from "@/lib/supabase/types";
 
 type ActivityItem = {
@@ -25,11 +27,16 @@ type ActivityItem = {
 };
 
 export function ProfileScreen({ profile }: { profile?: Profile | null }) {
+  const [localProfile, setLocalProfile] = useState(profile ?? null);
   const [tournamentRecord, setTournamentRecord] = useState<TournamentRecord>({ wins: 0, losses: 0, draws: 0 });
   const [recentPicks, setRecentPicks] = useState<RecentPickItem[]>([]);
   const [teamsBacked, setTeamsBacked] = useState<string[]>([]);
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
   const [picksCount, setPicksCount] = useState(0);
+
+  useEffect(() => {
+    setLocalProfile(profile ?? null);
+  }, [profile]);
 
   useEffect(() => {
     let mounted = true;
@@ -90,32 +97,20 @@ export function ProfileScreen({ profile }: { profile?: Profile | null }) {
 
   return (
     <div className="page-rhythm">
-      <ProfileHeader profile={profile} />
-      <ProfileIdentityCard profile={profile} />
-      {!profile?.onboarding_completed ? <CompleteProfilePrompt /> : null}
+      <ProfileHeader profile={localProfile ?? profile} />
+      <ProfileIdentityCard profile={localProfile ?? profile} />
+      {localProfile?.id && profileNeedsCompletion(localProfile) ? (
+        <ProfileCompletionPrompt
+          profile={localProfile}
+          userId={localProfile.id}
+          onUpdated={(updatedProfile) => setLocalProfile(updatedProfile)}
+        />
+      ) : null}
       <TournamentRecordSection recordLabel={recordLabel} picksCount={picksCount} />
       <RecentPicksSection picks={recentPicks} />
       <TeamsBackedSection teams={teamsBacked} />
-      <MatchActivitySection items={activityItems} profile={profile} />
+      <MatchActivitySection items={activityItems} profile={localProfile ?? profile} />
     </div>
-  );
-}
-
-function CompleteProfilePrompt() {
-  return (
-    <section className="rounded-[1.75rem] border border-lime-300/25 bg-lime-400/[0.06] p-4 shadow-[0_18px_52px_rgba(0,0,0,0.28)]">
-      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">Complete Profile</p>
-      <h2 className="sports-display mt-2 text-3xl italic leading-none text-white">Make it yours.</h2>
-      <p className="mt-2 text-sm font-semibold text-gray-300">
-        Choose your avatar, pick your countries, and customize your Lockt profile.
-      </p>
-      <Link
-        href="/onboarding/profile-pic"
-        className="mt-3 inline-flex min-h-10 items-center justify-center rounded-xl border border-lime-300/40 bg-lime-400/10 px-3 text-[11px] font-black uppercase tracking-[0.1em] text-lime-100 transition hover:bg-lime-400/20"
-      >
-        Complete Profile
-      </Link>
-    </section>
   );
 }
 

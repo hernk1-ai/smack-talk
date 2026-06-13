@@ -58,23 +58,38 @@ const devRoutes = [
   },
   {
     href: "/username",
-    label: "Username",
+    label: "Username (archived → /app)",
     file: "app/username/page.tsx",
   },
   {
     href: "/onboarding/profile-pic",
-    label: "Profile Pic",
+    label: "Profile Pic (archived → /app)",
     file: "app/onboarding/profile-pic/page.tsx",
   },
   {
     href: "/onboarding/teams",
-    label: "Teams",
+    label: "Teams (archived → /app)",
     file: "app/onboarding/teams/page.tsx",
   },
   {
+    href: "/onboarding/join-fun",
+    label: "Join Fun (archived → /app)",
+    file: "app/onboarding/join-fun/page.tsx",
+  },
+  {
     href: "/onboarding/enter-arena",
-    label: "Enter Arena",
+    label: "Enter Arena (archived → /app)",
     file: "app/onboarding/enter-arena/page.tsx",
+  },
+  {
+    href: "/signup?claim=1",
+    label: "Claim Profile",
+    file: "app/signup/page.tsx",
+  },
+  {
+    href: "/claim/password",
+    label: "Claim Password",
+    file: "app/claim/password/page.tsx",
   },
   {
     href: "/app",

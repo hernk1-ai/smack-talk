@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type KeyboardEvent, type MouseEvent } fro
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppHeader } from "@/components/AppHeader";
+import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionPrompt";
 import { useToast } from "@/components/providers/ToastProvider";
 import { SocialLinks } from "@/components/SocialLinks";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -50,6 +51,7 @@ import {
   WORLD_CUP_SCHEDULE_FALLBACK_TIME_ZONE,
 } from "@/lib/worldCup/localSchedule";
 import { buildSiteUrl } from "@/lib/site-url";
+import { isProfileCompletionDismissed, profileNeedsCompletion } from "@/lib/profile/completion";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 import type { Game, Profile, TakeReaction } from "@/lib/supabase/types";
 
@@ -244,6 +246,8 @@ const liveArenas: LiveArenaCard[] = worldCupLiveArenas as LiveArenaCard[];
 export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: string) => void; profile?: Profile | null }) {
   const router = useRouter();
   const { showToast } = useToast();
+  const [localProfile, setLocalProfile] = useState(profile ?? null);
+  const [profilePromptDismissed, setProfilePromptDismissed] = useState(false);
   const [takeChoices, setTakeChoices] = useState<Record<string, Side>>({});
   const [featuredChoice, setFeaturedChoice] = useState<Side | null>(null);
   const [lockedTake, setLockedTake] = useState("");
@@ -273,6 +277,24 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   const activeSportGame = liveSportGames[0] ?? scheduledSportGames[0] ?? (activeSport === ACTIVE_SPORT ? activeGame : null);
   const combinedReactions = { ...takeChoices, ...takeReactions } as Record<string, TakeReaction["reaction"]>;
   const dynamicChaosAlerts = buildChaosAlerts(visibleTakes);
+
+  useEffect(() => {
+    setLocalProfile(profile ?? null);
+  }, [profile]);
+
+  useEffect(() => {
+    if (!localProfile?.id) {
+      setProfilePromptDismissed(false);
+      return;
+    }
+
+    setProfilePromptDismissed(isProfileCompletionDismissed(localProfile.id));
+  }, [localProfile?.id]);
+
+  const showProfileCompletionPrompt =
+    Boolean(localProfile?.id) &&
+    profileNeedsCompletion(localProfile) &&
+    !profilePromptDismissed;
 
   useEffect(() => {
     let isMounted = true;
@@ -460,7 +482,15 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   if (matchHubMode) {
     return (
       <div className="page-rhythm">
-        <FeedHeader profile={profile} />
+        <FeedHeader profile={localProfile ?? profile} />
+        {showProfileCompletionPrompt && localProfile?.id ? (
+          <ProfileCompletionPrompt
+            profile={localProfile}
+            userId={localProfile.id}
+            onUpdated={(updatedProfile) => setLocalProfile(updatedProfile)}
+            onDismiss={() => setProfilePromptDismissed(true)}
+          />
+        ) : null}
         <MatchHubIntro />
         <MatchHubPrimaryFocus />
         <MatchHubWorldCupNews />
@@ -475,7 +505,15 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
 
   return (
     <div className="page-rhythm">
-      <FeedHeader profile={profile} />
+      <FeedHeader profile={localProfile ?? profile} />
+      {showProfileCompletionPrompt && localProfile?.id ? (
+        <ProfileCompletionPrompt
+          profile={localProfile}
+          userId={localProfile.id}
+          onUpdated={(updatedProfile) => setLocalProfile(updatedProfile)}
+          onDismiss={() => setProfilePromptDismissed(true)}
+        />
+      ) : null}
       <SportSelector activeSport={activeSport} onSelect={setActiveSport} visibleTabs={visibleSportTabs} />
       <FeaturedHotTakeCard
         sport={activeSport}
