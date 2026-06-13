@@ -1039,6 +1039,8 @@ export type Database = {
           display_name: string | null;
           message_text: string;
           created_at: string;
+          edited_at: string | null;
+          user_id: string | null;
         };
         Insert: {
           id?: string;
@@ -1048,6 +1050,8 @@ export type Database = {
           display_name?: string | null;
           message_text: string;
           created_at?: string;
+          edited_at?: string | null;
+          user_id?: string | null;
         };
         Update: {
           id?: string;
@@ -1057,6 +1061,8 @@ export type Database = {
           display_name?: string | null;
           message_text?: string;
           created_at?: string;
+          edited_at?: string | null;
+          user_id?: string | null;
         };
         Relationships: [];
       };

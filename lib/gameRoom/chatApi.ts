@@ -95,4 +95,34 @@ export async function sendRoomChatMessage(gameId: string, roomCode: string | nul
   return { message: payload.message, error: null };
 }
 
+export async function editRoomChatMessage(messageId: string, newBody: string) {
+  const senderKey = getOrCreateVoterKey();
+  if (!senderKey) {
+    return { message: null as MatchRoomMessage | null, error: "Unable to edit message." };
+  }
+
+  const response = await fetch("/api/game-room/chat/message", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      messageId,
+      newBody,
+      senderKey,
+    }),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | { message?: MatchRoomMessage; error?: string }
+    | null;
+
+  if (!response.ok || !payload?.message) {
+    return {
+      message: null,
+      error: payload?.error ?? "Unable to edit message.",
+    };
+  }
+
+  return { message: payload.message, error: null };
+}
+
 export type { MatchRoomMessage };

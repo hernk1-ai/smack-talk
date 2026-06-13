@@ -8,6 +8,7 @@ import { enforceRateLimit, jsonError } from "@/lib/security/api";
 import { validateDisplayName } from "@/lib/security/contentPolicy";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSupabaseAdminSetupError } from "@/lib/supabase/env";
+import { createClient } from "@/lib/supabase/server";
 
 function getAdminOrError() {
   const setupError = getSupabaseAdminSetupError();
@@ -130,6 +131,15 @@ export async function POST(request: Request) {
     return adminError ?? jsonError("Supabase is not configured.", 503);
   }
 
+  let userId: string | null = null;
+  const supabase = await createClient();
+  if (supabase) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    userId = user?.id ?? null;
+  }
+
   // Private rooms (with a roomCode) must exist; the public match room is open.
   if (roomCodeCheck.value) {
     const roomError = await ensurePrivateRoom(admin, gameIdCheck.value, roomCodeCheck.value);
@@ -144,6 +154,7 @@ export async function POST(request: Request) {
     senderKey: senderKeyCheck.value,
     displayName,
     messageText: messageCheck.value,
+    userId,
   });
 
   if (error || !message) {
