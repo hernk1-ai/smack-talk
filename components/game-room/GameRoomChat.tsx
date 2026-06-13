@@ -5,11 +5,15 @@ import {
   editRoomChatMessage,
   fetchRoomChatMessages,
   getChatDisplayName,
+  getChatLabelFromProfile,
   sendRoomChatMessage,
+  setChatDisplayName as persistChatDisplayName,
   type MatchRoomMessage,
 } from "@/lib/gameRoom/chatApi";
 import { canEditChatMessageLocally, validateRoomChatMessage } from "@/lib/gameRoom/chatValidation";
 import { getOrCreateVoterKey } from "@/lib/gameRoom/voterKey";
+import { createClient } from "@/lib/supabase/client";
+import { getCurrentProfile } from "@/lib/supabase/profiles";
 import { COMMENT_TEXT_MAX } from "@/lib/security/constants";
 
 /** Stable placeholder for SSR and the first client paint — avoids hydration mismatch. */
@@ -37,9 +41,35 @@ export function GameRoomChat({ gameId, roomCode = null }: GameRoomChatProps) {
   const [editError, setEditError] = useState<string | null>(null);
 
   useEffect(() => {
-    setChatDisplayName(getChatDisplayName());
-    setSenderKey(getOrCreateVoterKey());
-    setNowMs(Date.now());
+    let mounted = true;
+
+    async function loadChatIdentity() {
+      const supabase = createClient();
+      if (supabase) {
+        const { profile } = await getCurrentProfile(supabase);
+        const profileLabel = getChatLabelFromProfile(profile);
+
+        if (mounted && profileLabel) {
+          setChatDisplayName(profileLabel);
+          persistChatDisplayName(profileLabel);
+          setSenderKey(getOrCreateVoterKey());
+          setNowMs(Date.now());
+          return;
+        }
+      }
+
+      if (mounted) {
+        setChatDisplayName(getChatDisplayName());
+        setSenderKey(getOrCreateVoterKey());
+        setNowMs(Date.now());
+      }
+    }
+
+    void loadChatIdentity();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -98,7 +128,12 @@ export function GameRoomChat({ gameId, roomCode = null }: GameRoomChatProps) {
     setSending(true);
     setError(null);
 
-    const { message, error: sendError } = await sendRoomChatMessage(gameId, roomCode, validation.value);
+    const { message, error: sendError } = await sendRoomChatMessage(
+      gameId,
+      roomCode,
+      validation.value,
+      chatDisplayName,
+    );
     setSending(false);
 
     if (sendError || !message) {

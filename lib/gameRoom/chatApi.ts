@@ -1,8 +1,28 @@
 import type { MatchRoomMessage } from "@/lib/gameRoom/chatServer";
 import { getOrAssignSoccerNickname } from "@/lib/gameRoom/soccerNickname";
 import { getOrCreateVoterKey } from "@/lib/gameRoom/voterKey";
+import type { Profile } from "@/lib/supabase/types";
 
 const DISPLAY_NAME_STORAGE = "lockt-room-chat-display-name";
+
+/** Profile username/display_name — matches Settings identity when logged in. */
+export function getChatLabelFromProfile(profile: Profile | null | undefined) {
+  const label = profile?.username?.trim() || profile?.display_name?.trim();
+  if (!label) {
+    return null;
+  }
+
+  return label.replace(/^@/, "").slice(0, 20);
+}
+
+export function resolveChatDisplayName(profile?: Profile | null) {
+  const fromProfile = getChatLabelFromProfile(profile);
+  if (fromProfile) {
+    return fromProfile;
+  }
+
+  return getChatDisplayName();
+}
 
 export function getChatDisplayName() {
   if (typeof window === "undefined") {
@@ -63,11 +83,18 @@ export async function fetchRoomChatMessages(gameId: string, roomCode: string | n
   };
 }
 
-export async function sendRoomChatMessage(gameId: string, roomCode: string | null, messageText: string) {
+export async function sendRoomChatMessage(
+  gameId: string,
+  roomCode: string | null,
+  messageText: string,
+  displayNameOverride?: string | null,
+) {
   const senderKey = getOrCreateVoterKey();
   if (!senderKey) {
     return { message: null as MatchRoomMessage | null, error: "Unable to send message." };
   }
+
+  const displayName = displayNameOverride?.trim() || getChatDisplayName();
 
   const response = await fetch("/api/game-room/chat", {
     method: "POST",
@@ -76,7 +103,7 @@ export async function sendRoomChatMessage(gameId: string, roomCode: string | nul
       gameId,
       roomCode: roomCode ?? undefined,
       senderKey,
-      displayName: getChatDisplayName(),
+      displayName,
       messageText,
     }),
   });

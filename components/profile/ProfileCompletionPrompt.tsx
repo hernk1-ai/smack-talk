@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 
+import { setChatDisplayName } from "@/lib/gameRoom/chatApi";
 import {
   dismissProfileCompletion,
   profileNeedsCompletion,
@@ -84,7 +85,9 @@ export function ProfileCompletionPrompt({
       return;
     }
 
-    onUpdated?.(data as Profile);
+    const updatedProfile = data as Profile;
+    setChatDisplayName(validation.value);
+    onUpdated?.(updatedProfile);
   }
 
   function handleDismiss() {

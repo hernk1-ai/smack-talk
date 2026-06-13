@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { postGuestJoin } from "@/lib/arena/arenaApi";
+import { setChatDisplayName } from "@/lib/gameRoom/chatApi";
 import { getCurrentProfile } from "@/lib/supabase/profiles";
 import type { Profile } from "@/lib/supabase/types";
 import type { User } from "@supabase/supabase-js";
@@ -106,6 +107,8 @@ export function useGuestParticipation(loginNext?: string) {
         setJoinError("Unable to join the Game Room right now.");
         return;
       }
+
+      setChatDisplayName(displayName.trim());
       setModalOpen(false);
 
       const pending = pendingActionRef.current;

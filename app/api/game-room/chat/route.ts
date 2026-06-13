@@ -117,15 +117,6 @@ export async function POST(request: Request) {
     return jsonError(messageCheck.error);
   }
 
-  let displayName: string | null = null;
-  if (typeof body?.displayName === "string" && body.displayName.trim()) {
-    const nameCheck = validateDisplayName(body.displayName);
-    if (!nameCheck.valid) {
-      return jsonError(nameCheck.error);
-    }
-    displayName = nameCheck.value;
-  }
-
   const { admin, error: adminError } = getAdminOrError();
   if (adminError || !admin) {
     return adminError ?? jsonError("Supabase is not configured.", 503);
@@ -138,6 +129,29 @@ export async function POST(request: Request) {
       data: { user },
     } = await supabase.auth.getUser();
     userId = user?.id ?? null;
+  }
+
+  let displayName: string | null = null;
+
+  if (userId) {
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("username, display_name")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const profileLabel = profile?.username?.trim() || profile?.display_name?.trim();
+    if (profileLabel) {
+      displayName = profileLabel.replace(/^@/, "").slice(0, 20);
+    }
+  }
+
+  if (!displayName && typeof body?.displayName === "string" && body.displayName.trim()) {
+    const nameCheck = validateDisplayName(body.displayName);
+    if (!nameCheck.valid) {
+      return jsonError(nameCheck.error);
+    }
+    displayName = nameCheck.value;
   }
 
   // Private rooms (with a roomCode) must exist; the public match room is open.
