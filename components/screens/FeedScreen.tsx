@@ -32,6 +32,7 @@ import { getWorldCupKickoffIso, getWorldCupMatchId, worldCupSchedule, type World
 import { MatchHubWorldCupNews } from "@/components/world-cup/MatchHubWorldCupNews";
 import { ACTIVE_SPORT, getVisibleSportTabs, isMatchHubMode, SHOW_MULTI_SPORT } from "@/lib/productConfig";
 import { getWorldCupMatchPublicCta } from "@/lib/worldCupPublicNav";
+import { formatMatchupLabel, formatMatchupScoreCompact, formatMatchupScoreLine } from "@/lib/worldCup/matchupDisplay";
 import {
   getLiveMatchStatusLabel,
   getMatchHubFocus,
@@ -613,10 +614,10 @@ function LiveNowModule({
       <div className="rounded-2xl border border-lime-300/35 bg-lime-400/[0.08] p-4 shadow-[0_0_34px_rgba(132,204,22,0.12)]">
         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-lime-300">Live Now</p>
         <h3 className="sports-display mt-2 text-3xl italic leading-none text-white sm:text-4xl">
-          {awayTeam} vs {homeTeam}
+          {formatMatchupLabel(homeTeam, awayTeam)}
         </h3>
         <p className="mt-3 text-2xl font-black text-white">
-          {awayTeam} {awayScore} — {homeScore} {homeTeam}
+          {formatMatchupScoreLine(homeTeam, homeScore, awayTeam, awayScore)}
         </p>
         <p className="mt-2 text-sm font-black uppercase tracking-[0.12em] text-lime-200">{statusLabel}</p>
         {venueLine ? <p className="mt-2 text-xs font-semibold text-gray-400">{venueLine}</p> : null}
@@ -650,7 +651,7 @@ function RecentFinalModule({ match, game }: { match: WorldCupMatch; game: WorldC
       <div className="rounded-2xl border border-white/10 bg-black/45 p-4">
         <p className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-400">Recent Result</p>
         <p className="mt-1 text-base font-black text-white">
-          {awayTeam} {awayScore} — {homeScore} {homeTeam}
+          {formatMatchupScoreLine(homeTeam, homeScore, awayTeam, awayScore)}
         </p>
         <p className="mt-1 text-xs font-semibold text-gray-400">Final · {match.city}</p>
       </div>
@@ -1011,10 +1012,10 @@ function gameToLiveArenaCard(game: Game): LiveArenaCard {
   return {
     id: game.id,
     league: getGameSportFromRow(game),
-    matchup: `${game.away_team} vs ${game.home_team}`,
+    matchup: formatMatchupLabel(game.home_team, game.away_team),
     quarter: [game.period, game.clock].filter(Boolean).join(" ") || formatGameStatus(game.status),
     viewers: formatCompact(game.watching_count),
-    score: `${game.away_score} - ${game.home_score}`,
+    score: formatMatchupScoreCompact(game.home_score, game.away_score),
     riding: `${ridePercent}% Riding ${game.away_team}`,
     fading: `${fadePercent}% Fading ${game.home_team}`,
     heat: formatCompact(game.heat),
@@ -1037,11 +1038,11 @@ function FeaturedHotTakeCard({
   onOpenTake?: () => void;
 }) {
   const fallbackTake = featuredHotTakesBySport[sport];
-  const matchup = game ? `${game.away_team} vs ${game.home_team}` : fallbackTake.matchup;
+  const matchup = game ? formatMatchupLabel(game.home_team, game.away_team) : fallbackTake.matchup;
   const period = game ? [game.period, game.clock].filter(Boolean).join(" · ") : fallbackTake.period;
   const watching = game ? `${formatCompact(game.watching_count)} watching` : fallbackTake.watching;
   const score = game
-    ? `${game.away_team} ${game.away_score} — ${game.home_score} ${game.home_team}`
+    ? formatMatchupScoreLine(game.home_team, game.home_score, game.away_team, game.away_score)
     : fallbackTake.score;
   const heat = take ? formatCompact(take.heat) : game ? formatCompact(game.heat) : fallbackTake.heat;
   const rides = take ? formatCompact(take.ride_count) : game ? formatCompact(game.ride_count) : fallbackTake.rides;
@@ -1800,8 +1801,8 @@ function LiveArenas({
                 </div>
               </div>
               <div className="mt-4 flex justify-between gap-2 text-[10px] font-black uppercase">
-                <span className="text-lime-300">{arena.riding}</span>
                 <span className="text-purple-300">{arena.fading}</span>
+                <span className="text-lime-300">{arena.riding}</span>
               </div>
               <div className="mt-4 flex items-center justify-between text-xs font-black uppercase">
                 <span className="text-lime-300">🔥 {arena.heat} Heat</span>
@@ -1876,9 +1877,9 @@ function ScheduledGameCard({
         <span className="rounded-md border border-white/15 bg-white/[0.04] px-2 py-1 text-gray-300">Scheduled</span>
       </div>
       <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
-        <p className="sports-display text-4xl leading-none text-white">{game.away_team}</p>
-        <span className="text-xs font-black text-purple-200">VS</span>
         <p className="sports-display text-4xl leading-none text-white">{game.home_team}</p>
+        <span className="text-xs font-black text-purple-200">VS</span>
+        <p className="sports-display text-4xl leading-none text-white">{game.away_team}</p>
       </div>
       <p className="mt-4 text-center text-xs font-black uppercase tracking-[0.12em] text-lime-300">
         {startTime}
@@ -1909,11 +1910,11 @@ function FinalGames({ games, onEnterArena }: { games: Game[]; onEnterArena: (gam
             className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-2xl border border-white/10 bg-black/35 px-3 py-3 text-center transition hover:border-purple-300/25 hover:bg-white/[0.03] active:scale-[0.99]"
           >
             <span className="text-sm font-black text-white">
-              {game.away_team} <span className="text-lime-300">{game.away_score}</span>
+              {game.home_team} <span className="text-purple-300">{game.home_score}</span>
             </span>
             <span className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-500">Final</span>
             <span className="text-sm font-black text-white">
-              {game.home_team} <span className="text-purple-300">{game.home_score}</span>
+              {game.away_team} <span className="text-lime-300">{game.away_score}</span>
             </span>
           </button>
         ))}

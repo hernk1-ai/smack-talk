@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { formatMatchupLabel } from "@/lib/worldCup/matchupDisplay";
 import type { MatchPick } from "@/lib/supabase/types";
 
 export type TournamentRecord = {
@@ -49,7 +50,7 @@ export function buildRecentPicks(picks: MatchPick[], limit = 5): RecentPickItem[
     .slice(0, limit)
     .map((pick) => ({
       team: pick.selected_winner!,
-      matchLabel: pick.away_team && pick.home_team ? `${pick.away_team} vs ${pick.home_team}` : pick.match_id,
+      matchLabel: pick.away_team && pick.home_team ? formatMatchupLabel(pick.home_team, pick.away_team) : pick.match_id,
       result:
         pick.winner_result === "hit"
           ? "hit"

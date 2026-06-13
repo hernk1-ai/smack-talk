@@ -166,12 +166,12 @@ export function GameRoomBacking({
       {totalFans > 0 ? (
         <div className="space-y-2">
           <div className="flex h-2 overflow-hidden rounded-full bg-black/50">
-            <div className="bg-lime-400/80 transition-all duration-500" style={{ width: `${awayPct}%` }} />
             <div className="bg-purple-400/80 transition-all duration-500" style={{ width: `${homePct}%` }} />
+            <div className="bg-lime-400/80 transition-all duration-500" style={{ width: `${awayPct}%` }} />
           </div>
           <div className="flex justify-between text-[10px] font-black uppercase tracking-[0.1em] text-gray-400">
-            <span className="text-lime-300">{awayTeam} — {awayPct}%</span>
             <span className="text-purple-300">{homeTeam} — {homePct}%</span>
+            <span className="text-lime-300">{awayTeam} — {awayPct}%</span>
           </div>
         </div>
       ) : null}
@@ -187,13 +187,13 @@ export function GameRoomBacking({
 
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-2 sm:gap-3">
         <BackingTeamCard
-          team={awayTeam}
-          fanCount={rooting.awayCount}
-          pct={awayPct}
-          selected={rooting.choice === "away"}
-          tone="away"
+          team={homeTeam}
+          fanCount={rooting.homeCount}
+          pct={homePct}
+          selected={rooting.choice === "home"}
+          tone="home"
           disabled={loading || savingSide !== null}
-          onSelect={() => void handleBack("away")}
+          onSelect={() => void handleBack("home")}
         />
 
         <div className="flex items-center justify-center px-1 pb-2">
@@ -203,13 +203,13 @@ export function GameRoomBacking({
         </div>
 
         <BackingTeamCard
-          team={homeTeam}
-          fanCount={rooting.homeCount}
-          pct={homePct}
-          selected={rooting.choice === "home"}
-          tone="home"
+          team={awayTeam}
+          fanCount={rooting.awayCount}
+          pct={awayPct}
+          selected={rooting.choice === "away"}
+          tone="away"
           disabled={loading || savingSide !== null}
-          onSelect={() => void handleBack("home")}
+          onSelect={() => void handleBack("away")}
         />
       </div>
 

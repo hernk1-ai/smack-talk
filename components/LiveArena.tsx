@@ -810,7 +810,7 @@ function ArenaScoreboard({
         </p>
       ) : null}
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2 text-center sm:gap-3">
-        <ScoreTeam team={awayTeam} score={awayScore} label={`Team ${awayTeam}`} tone="ride" />
+        <ScoreTeam team={homeTeam} score={homeScore} label={`Team ${homeTeam}`} tone="fade" />
 
         <div className="pb-1">
           <span className="rounded-md border border-red-400/60 bg-red-500/10 px-2.5 py-1 text-xs font-black uppercase text-red-300">
@@ -834,19 +834,19 @@ function ArenaScoreboard({
           </span>
         </div>
 
-        <ScoreTeam team={homeTeam} score={homeScore} label={`Team ${homeTeam}`} tone="fade" />
+        <ScoreTeam team={awayTeam} score={awayScore} label={`Team ${awayTeam}`} tone="ride" />
       </div>
 
       {showCrowdSplit ? (
         <div className="mt-5">
           <div className="flex items-center justify-between gap-3 text-xs font-black uppercase">
-            <span className="text-lime-300">{ridePct}% Riding {awayTeam}</span>
             <span className="text-purple-300">{fadePct}% Fading {homeTeam}</span>
+            <span className="text-lime-300">{ridePct}% Riding {awayTeam}</span>
           </div>
           <div className="mt-2 flex h-3 overflow-hidden rounded-full bg-white/10">
-            <div className="bg-gradient-to-r from-lime-400 to-lime-300" style={{ width: `${ridePct}%` }} />
-            <div className="w-3 bg-white/30" />
             <div className="bg-gradient-to-r from-purple-700 to-purple-400" style={{ width: `${Math.max(fadePct - 3, 0)}%` }} />
+            <div className="w-3 bg-white/30" />
+            <div className="bg-gradient-to-r from-lime-400 to-lime-300" style={{ width: `${ridePct}%` }} />
           </div>
         </div>
       ) : null}
@@ -1481,15 +1481,15 @@ function ControlRoomPanel({ game }: { game: Game | null }) {
       <p className="mt-4 text-[10px] font-black uppercase text-gray-400">Crowd Sentiment</p>
       <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
         <div>
-          <p className="scoreboard-number text-4xl text-lime-300">{ridePct}%</p>
-          <p className="text-[10px] font-black uppercase text-lime-300">Riding {game?.away_team ?? "AWAY"}</p>
+          <p className="scoreboard-number text-4xl text-purple-300">{fadePct}%</p>
+          <p className="text-[10px] font-black uppercase text-purple-300">Fading {game?.home_team ?? "HOME"}</p>
         </div>
-        <div className="relative h-16 w-16 rounded-full bg-[conic-gradient(#84cc16_0_62%,#a855f7_62%_100%)]">
+        <div className="relative h-16 w-16 rounded-full bg-[conic-gradient(#a855f7_0_62%,#84cc16_62%_100%)]">
           <div className="absolute inset-3 rounded-full bg-black" />
         </div>
         <div className="text-right">
-          <p className="scoreboard-number text-4xl text-purple-300">{fadePct}%</p>
-          <p className="text-[10px] font-black uppercase text-purple-300">Fading {game?.home_team ?? "HOME"}</p>
+          <p className="scoreboard-number text-4xl text-lime-300">{ridePct}%</p>
+          <p className="text-[10px] font-black uppercase text-lime-300">Riding {game?.away_team ?? "AWAY"}</p>
         </div>
       </div>
 
@@ -1501,7 +1501,7 @@ function ControlRoomPanel({ game }: { game: Game | null }) {
       <div className="mt-4 space-y-3">
         <SignalRow icon="◉" label="Crowd Confidence" value="85%" note="Very high" tone="ride" />
         <SignalRow icon="🔥" label="Overcommitment" value={`${Math.max(game?.ride_count ?? 0, game?.fade_count ?? 0)} picks`} note="Crowd side" tone="ride" />
-        <SignalRow icon="ϟ" label={status === "live" ? "Momentum Shift" : "Room Lean"} value={[game?.away_team ?? "AWAY", game?.home_team ?? "HOME"].join(" ↔ ")} note={status === "live" ? "Game-state" : "Pregame read"} tone="ride" />
+        <SignalRow icon="ϟ" label={status === "live" ? "Momentum Shift" : "Room Lean"} value={[game?.home_team ?? "HOME", game?.away_team ?? "AWAY"].join(" ↔ ")} note={status === "live" ? "Game-state" : "Pregame read"} tone="ride" />
         <SignalRow icon="☿" label="Upset Threat" value="68%" note="High" tone="fade" />
       </div>
     </section>

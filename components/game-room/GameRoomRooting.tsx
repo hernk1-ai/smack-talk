@@ -63,14 +63,14 @@ export function GameRoomRooting({ gameId, roomCode = null, homeTeam, awayTeam }:
         </p>
       ) : null}
 
-      <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-2 sm:gap-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-2 sm:gap-3">
         <RootingTeamCard
-          team={awayTeam}
-          count={state.awayCount}
-          selected={state.choice === "away"}
-          tone="away"
+          team={homeTeam}
+          count={state.homeCount}
+          selected={state.choice === "home"}
+          tone="home"
           disabled={loading || savingSide !== null}
-          onRoot={() => void handleRoot("away")}
+          onRoot={() => void handleRoot("home")}
         />
 
         <div className="flex items-center justify-center px-1 pb-2">
@@ -80,12 +80,12 @@ export function GameRoomRooting({ gameId, roomCode = null, homeTeam, awayTeam }:
         </div>
 
         <RootingTeamCard
-          team={homeTeam}
-          count={state.homeCount}
-          selected={state.choice === "home"}
-          tone="home"
+          team={awayTeam}
+          count={state.awayCount}
+          selected={state.choice === "away"}
+          tone="away"
           disabled={loading || savingSide !== null}
-          onRoot={() => void handleRoot("home")}
+          onRoot={() => void handleRoot("away")}
         />
       </div>
     </section>
