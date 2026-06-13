@@ -53,6 +53,32 @@ export type WorldCupVideoInput = {
   isActive?: boolean;
 };
 
+export type WorldCupVideoUpdateInput = {
+  id: string;
+  title: string;
+  sourceLabel?: string | null;
+  youtubeUrl?: string;
+  youtubeId?: string;
+  category: WorldCupVideoCategory;
+  relatedMatchId?: string | null;
+  relatedTeam?: string | null;
+  matchPhase?: WorldCupVideoMatchPhase;
+  priority?: number;
+  isActive?: boolean;
+};
+
+function resolveYoutubeId(youtubeUrl?: string, youtubeId?: string) {
+  if (youtubeId?.trim()) {
+    return extractYoutubeId(youtubeId.trim());
+  }
+
+  if (youtubeUrl?.trim()) {
+    return extractYoutubeId(youtubeUrl);
+  }
+
+  return null;
+}
+
 function mapRow(row: WorldCupVideoRow): WorldCupVideo {
   return {
     id: row.id,
@@ -266,6 +292,69 @@ export async function createWorldCupVideo(admin: AdminClient, input: WorldCupVid
   }
 
   const { data, error } = await admin.from("world_cup_videos").insert(validated.value).select("*").single();
+
+  if (error) {
+    return { video: null, error: error.message };
+  }
+
+  return { video: mapRow(data), error: null };
+}
+
+export function validateWorldCupVideoUpdateInput(input: WorldCupVideoUpdateInput) {
+  const id = input.id.trim();
+  if (!id) {
+    return { valid: false as const, error: "Video id is required." };
+  }
+
+  const title = input.title.trim();
+  if (!title) {
+    return { valid: false as const, error: "Title is required." };
+  }
+
+  const youtube_id = resolveYoutubeId(input.youtubeUrl, input.youtubeId);
+  if (!youtube_id) {
+    return { valid: false as const, error: "Enter a valid YouTube URL or video ID." };
+  }
+
+  if (!WORLD_CUP_VIDEO_CATEGORIES.includes(input.category)) {
+    return { valid: false as const, error: "Choose a valid category." };
+  }
+
+  const matchPhase = input.matchPhase ?? "any";
+  if (!WORLD_CUP_VIDEO_MATCH_PHASES.includes(matchPhase)) {
+    return { valid: false as const, error: "Choose a valid match phase." };
+  }
+
+  const priority = Number.isFinite(input.priority) ? Math.trunc(input.priority ?? 0) : 0;
+
+  return {
+    valid: true as const,
+    value: {
+      title,
+      source_label: input.sourceLabel?.trim() || null,
+      youtube_id,
+      category: input.category,
+      related_match_id: input.relatedMatchId?.trim() || null,
+      related_team: input.relatedTeam?.trim() || null,
+      match_phase: matchPhase,
+      priority,
+      is_active: input.isActive ?? true,
+    },
+  };
+}
+
+export async function updateWorldCupVideo(admin: AdminClient, input: WorldCupVideoUpdateInput) {
+  const validated = validateWorldCupVideoUpdateInput(input);
+  if (!validated.valid) {
+    return { video: null as WorldCupVideo | null, error: validated.error };
+  }
+
+  const { data, error } = await admin
+    .from("world_cup_videos")
+    .update(validated.value)
+    .eq("id", input.id.trim())
+    .select("*")
+    .single();
 
   if (error) {
     return { video: null, error: error.message };

@@ -11,6 +11,7 @@ import {
   type WorldCupVideo,
   type WorldCupVideoCategory,
 } from "@/lib/worldCup/worldCupVideos";
+import { buildYoutubeWatchUrl } from "@/lib/worldCup/youtube";
 
 const SECRET_STORAGE_KEY = "lockt_admin_secret";
 
@@ -38,12 +39,27 @@ const emptyForm = (): VideoForm => ({
   isActive: true,
 });
 
+function formFromVideo(video: WorldCupVideo): VideoForm {
+  return {
+    title: video.title,
+    youtubeUrl: buildYoutubeWatchUrl(video.youtubeId),
+    sourceLabel: video.sourceLabel ?? "",
+    category: video.category,
+    relatedMatchId: video.relatedMatchId ?? "",
+    relatedTeam: video.relatedTeam ?? "",
+    matchPhase: video.matchPhase,
+    priority: String(video.priority),
+    isActive: video.isActive,
+  };
+}
+
 export default function WorldCupVideosAdminPage() {
   const [secret, setSecret] = useState("");
   const [secretInput, setSecretInput] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [videos, setVideos] = useState<WorldCupVideo[]>([]);
   const [form, setForm] = useState<VideoForm>(emptyForm);
+  const [editingVideoId, setEditingVideoId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -110,28 +126,51 @@ export default function WorldCupVideosAdminPage() {
     setSecret("");
     setUnlocked(false);
     setVideos([]);
+    cancelEdit();
   };
 
-  const handleCreate = async (event: React.FormEvent) => {
+  function cancelEdit() {
+    setEditingVideoId(null);
+    setForm(emptyForm());
+    setFormMessage(null);
+  }
+
+  function startEdit(video: WorldCupVideo) {
+    setEditingVideoId(video.id);
+    setForm(formFromVideo(video));
+    setFormMessage(null);
+    setGlobalError(null);
+  }
+
+  async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setSaving(true);
     setFormMessage(null);
 
+    const payload = {
+      title: form.title,
+      youtubeUrl: form.youtubeUrl,
+      sourceLabel: form.sourceLabel || null,
+      category: form.category,
+      relatedMatchId: form.relatedMatchId || null,
+      relatedTeam: form.relatedTeam || null,
+      matchPhase: form.matchPhase,
+      priority: Number(form.priority) || 0,
+      isActive: form.isActive,
+    };
+
     try {
       const res = await fetch("/api/admin/world-cup-videos", {
-        method: "POST",
+        method: editingVideoId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json", "x-admin-secret": secret },
-        body: JSON.stringify({
-          title: form.title,
-          youtubeUrl: form.youtubeUrl,
-          sourceLabel: form.sourceLabel || null,
-          category: form.category,
-          relatedMatchId: form.relatedMatchId || null,
-          relatedTeam: form.relatedTeam || null,
-          matchPhase: form.matchPhase,
-          priority: Number(form.priority) || 0,
-          isActive: form.isActive,
-        }),
+        body: JSON.stringify(
+          editingVideoId
+            ? {
+                id: editingVideoId,
+                ...payload,
+              }
+            : payload,
+        ),
       });
 
       const data = (await res.json().catch(() => null)) as { video?: WorldCupVideo; error?: string } | null;
@@ -141,15 +180,21 @@ export default function WorldCupVideosAdminPage() {
         return;
       }
 
-      setVideos((current) => [data.video!, ...current]);
-      setForm(emptyForm());
-      setFormMessage("Video added.");
+      if (editingVideoId) {
+        setVideos((current) => current.map((row) => (row.id === data.video!.id ? data.video! : row)));
+        cancelEdit();
+        setFormMessage("Video updated.");
+      } else {
+        setVideos((current) => [data.video!, ...current.filter((item) => item.id !== data.video!.id)]);
+        setForm(emptyForm());
+        setFormMessage("Video added.");
+      }
     } catch {
       setFormMessage("Network error while saving video.");
     } finally {
       setSaving(false);
     }
-  };
+  }
 
   const toggleActive = async (video: WorldCupVideo) => {
     try {
@@ -166,6 +211,10 @@ export default function WorldCupVideosAdminPage() {
       }
 
       setVideos((current) => current.map((row) => (row.id === video.id ? data.video! : row)));
+
+      if (editingVideoId === video.id) {
+        setForm((current) => ({ ...current, isActive: data.video!.isActive }));
+      }
     } catch {
       setGlobalError("Network error while updating video.");
     }
@@ -212,8 +261,10 @@ export default function WorldCupVideosAdminPage() {
         </button>
       </div>
 
-      <form onSubmit={handleCreate} className="mt-6 space-y-3 rounded-2xl border border-white/10 bg-black/40 p-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">Add Video</p>
+      <form onSubmit={handleSubmit} className="mt-6 space-y-3 rounded-2xl border border-white/10 bg-black/40 p-4">
+        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-lime-300">
+          {editingVideoId ? "Edit Video" : "Add Video"}
+        </p>
         <input
           value={form.title}
           onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
@@ -293,13 +344,25 @@ export default function WorldCupVideosAdminPage() {
           />
           Active
         </label>
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded-xl border border-lime-300/40 bg-lime-400/10 px-4 py-2 text-xs font-black uppercase text-lime-200 disabled:opacity-60"
-        >
-          {saving ? "Saving..." : "Add Video"}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="submit"
+            disabled={saving}
+            className="rounded-xl border border-lime-300/40 bg-lime-400/10 px-4 py-2 text-xs font-black uppercase text-lime-200 disabled:opacity-60"
+          >
+            {saving ? "Saving..." : editingVideoId ? "Save Changes" : "Add Video"}
+          </button>
+          {editingVideoId ? (
+            <button
+              type="button"
+              onClick={cancelEdit}
+              disabled={saving}
+              className="rounded-xl border border-white/15 bg-black/45 px-4 py-2 text-xs font-black uppercase text-gray-300 disabled:opacity-60"
+            >
+              Cancel Edit
+            </button>
+          ) : null}
+        </div>
         {formMessage ? <p className="text-sm text-gray-300">{formMessage}</p> : null}
       </form>
 
@@ -309,7 +372,12 @@ export default function WorldCupVideosAdminPage() {
         {globalError ? <p className="text-sm text-red-300">{globalError}</p> : null}
         {!loading && !videos.length ? <p className="text-sm text-gray-400">No videos yet.</p> : null}
         {videos.map((video) => (
-          <article key={video.id} className="rounded-xl border border-white/10 bg-black/45 p-3">
+          <article
+            key={video.id}
+            className={`rounded-xl border bg-black/45 p-3 ${
+              editingVideoId === video.id ? "border-lime-300/40" : "border-white/10"
+            }`}
+          >
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-black text-white">{video.title}</p>
@@ -324,17 +392,26 @@ export default function WorldCupVideosAdminPage() {
                   {video.relatedTeam ? ` · Team: ${video.relatedTeam}` : ""}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => void toggleActive(video)}
-                className={`rounded-lg px-3 py-1 text-[10px] font-black uppercase ${
-                  video.isActive
-                    ? "border border-lime-300/40 bg-lime-400/10 text-lime-200"
-                    : "border border-white/15 bg-black/40 text-gray-400"
-                }`}
-              >
-                {video.isActive ? "Active" : "Inactive"}
-              </button>
+              <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => startEdit(video)}
+                  className="rounded-lg border border-white/15 bg-black/40 px-3 py-1 text-[10px] font-black uppercase text-gray-300 transition hover:border-purple-300/40 hover:text-purple-200"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void toggleActive(video)}
+                  className={`rounded-lg px-3 py-1 text-[10px] font-black uppercase ${
+                    video.isActive
+                      ? "border border-lime-300/40 bg-lime-400/10 text-lime-200"
+                      : "border border-white/15 bg-black/40 text-gray-400"
+                  }`}
+                >
+                  {video.isActive ? "Active" : "Inactive"}
+                </button>
+              </div>
             </div>
           </article>
         ))}
