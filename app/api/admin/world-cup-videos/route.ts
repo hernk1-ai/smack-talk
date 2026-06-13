@@ -12,6 +12,7 @@ import {
   type WorldCupVideoCategory,
   type WorldCupVideoInput,
 } from "@/lib/worldCup/worldCupVideos";
+import { WORLD_CUP_VIDEO_MATCH_PHASES, type WorldCupVideoMatchPhase } from "@/lib/worldCup/matchPhase";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,7 +70,7 @@ export async function GET(request: Request) {
     return jsonError(error ?? "Unable to load videos.", 500);
   }
 
-  return NextResponse.json({ videos, categories: WORLD_CUP_VIDEO_CATEGORIES });
+  return NextResponse.json({ videos, categories: WORLD_CUP_VIDEO_CATEGORIES, phases: WORLD_CUP_VIDEO_MATCH_PHASES });
 }
 
 export async function POST(request: Request) {
@@ -91,6 +92,7 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => null)) as Partial<WorldCupVideoInput> | null;
   const category = typeof body?.category === "string" ? body.category : "general";
+  const matchPhase = typeof body?.matchPhase === "string" ? body.matchPhase : "any";
 
   const { admin, error: adminError } = getAdminOrError();
   if (adminError || !admin) {
@@ -106,6 +108,9 @@ export async function POST(request: Request) {
       : "general",
     relatedMatchId: typeof body?.relatedMatchId === "string" ? body.relatedMatchId : null,
     relatedTeam: typeof body?.relatedTeam === "string" ? body.relatedTeam : null,
+    matchPhase: (WORLD_CUP_VIDEO_MATCH_PHASES as readonly string[]).includes(matchPhase)
+      ? (matchPhase as WorldCupVideoMatchPhase)
+      : "any",
     startsShowingAt: typeof body?.startsShowingAt === "string" ? body.startsShowingAt : null,
     expiresAt: typeof body?.expiresAt === "string" ? body.expiresAt : null,
     priority: typeof body?.priority === "number" ? body.priority : Number(body?.priority) || 0,

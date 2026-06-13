@@ -1,9 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { getWorldCupKickoffIso, getWorldCupMatchById } from "@/data/worldCupSchedule";
 import type { Database } from "@/lib/supabase/types";
+import {
+  resolveWorldCupMatchPhase,
+  WORLD_CUP_VIDEO_MATCH_PHASES,
+  type WorldCupMatchPhase,
+  type WorldCupVideoMatchPhase,
+} from "@/lib/worldCup/matchPhase";
 import { extractYoutubeId } from "@/lib/worldCup/youtube";
 
 type AdminClient = SupabaseClient<Database>;
+type WorldCupVideoRow = Database["public"]["Tables"]["world_cup_videos"]["Row"];
 
 export const WORLD_CUP_VIDEO_CATEGORIES = [
   "preview",
@@ -23,6 +31,7 @@ export type WorldCupVideo = {
   category: WorldCupVideoCategory;
   relatedMatchId: string | null;
   relatedTeam: string | null;
+  matchPhase: WorldCupVideoMatchPhase;
   startsShowingAt: string | null;
   expiresAt: string | null;
   priority: number;
@@ -37,13 +46,14 @@ export type WorldCupVideoInput = {
   category: WorldCupVideoCategory;
   relatedMatchId?: string | null;
   relatedTeam?: string | null;
+  matchPhase?: WorldCupVideoMatchPhase;
   startsShowingAt?: string | null;
   expiresAt?: string | null;
   priority?: number;
   isActive?: boolean;
 };
 
-function mapRow(row: Database["public"]["Tables"]["world_cup_videos"]["Row"]): WorldCupVideo {
+function mapRow(row: WorldCupVideoRow): WorldCupVideo {
   return {
     id: row.id,
     title: row.title,
@@ -52,6 +62,7 @@ function mapRow(row: Database["public"]["Tables"]["world_cup_videos"]["Row"]): W
     category: row.category as WorldCupVideoCategory,
     relatedMatchId: row.related_match_id,
     relatedTeam: row.related_team,
+    matchPhase: (row.match_phase ?? "any") as WorldCupVideoMatchPhase,
     startsShowingAt: row.starts_showing_at,
     expiresAt: row.expires_at,
     priority: row.priority,
@@ -60,10 +71,7 @@ function mapRow(row: Database["public"]["Tables"]["world_cup_videos"]["Row"]): W
   };
 }
 
-function isVisibleNow(
-  row: Database["public"]["Tables"]["world_cup_videos"]["Row"],
-  now: Date,
-): boolean {
+function isVisibleNow(row: WorldCupVideoRow, now: Date): boolean {
   if (!row.is_active) {
     return false;
   }
@@ -80,36 +88,47 @@ function isVisibleNow(
 }
 
 function selectionTier(
-  row: Database["public"]["Tables"]["world_cup_videos"]["Row"],
+  row: WorldCupVideoRow,
   matchId: string,
   teams: string[],
+  currentPhase: WorldCupMatchPhase,
 ): number {
-  if (row.related_match_id && row.related_match_id === matchId) {
-    return 3;
+  const videoPhase = (row.match_phase ?? "any") as WorldCupVideoMatchPhase;
+  const phaseMatches = videoPhase === currentPhase;
+  const phaseAny = videoPhase === "any";
+
+  const isMatch = Boolean(row.related_match_id && row.related_match_id === matchId);
+  const isTeam = Boolean(row.related_team && teams.includes(row.related_team));
+  const isGeneral = !row.related_match_id && !row.related_team;
+
+  if (phaseMatches) {
+    if (isMatch) return 6;
+    if (isTeam) return 5;
+    if (isGeneral) return 4;
   }
 
-  if (row.related_team && teams.includes(row.related_team)) {
-    return 2;
-  }
-
-  if (!row.related_match_id && !row.related_team) {
-    return 1;
+  if (phaseAny) {
+    if (isMatch) return 3;
+    if (isTeam) return 2;
+    if (isGeneral) return 1;
   }
 
   return 0;
 }
 
 export function pickFeaturedWorldCupVideo(
-  rows: Database["public"]["Tables"]["world_cup_videos"]["Row"][],
+  rows: WorldCupVideoRow[],
   {
     matchId,
     homeTeam,
     awayTeam,
+    matchPhase,
     now = new Date(),
   }: {
     matchId: string;
     homeTeam: string;
     awayTeam: string;
+    matchPhase: WorldCupMatchPhase;
     now?: Date;
   },
 ): WorldCupVideo | null {
@@ -117,7 +136,7 @@ export function pickFeaturedWorldCupVideo(
 
   const ranked = rows
     .filter((row) => isVisibleNow(row, now))
-    .map((row) => ({ row, tier: selectionTier(row, matchId, teams) }))
+    .map((row) => ({ row, tier: selectionTier(row, matchId, teams, matchPhase) }))
     .filter((entry) => entry.tier > 0)
     .sort((a, b) => {
       if (b.tier !== a.tier) {
@@ -133,6 +152,20 @@ export function pickFeaturedWorldCupVideo(
 
   const winner = ranked[0]?.row;
   return winner ? mapRow(winner) : null;
+}
+
+export function resolveWorldCupVideoMatchContext(gameId: string) {
+  const scheduleMatchId = gameId.match(/^wc-2026-(\d+)$/)?.[1];
+  const scheduleMatch = scheduleMatchId ? getWorldCupMatchById(Number(scheduleMatchId)) : null;
+  const startsAt = scheduleMatch ? getWorldCupKickoffIso(scheduleMatch) : null;
+
+  return {
+    matchId: gameId,
+    homeTeam: scheduleMatch?.homeTeam ?? "HOME",
+    awayTeam: scheduleMatch?.awayTeam ?? "AWAY",
+    startsAt,
+    status: null as string | null,
+  };
 }
 
 export async function listActiveWorldCupVideos(admin: AdminClient) {
@@ -155,22 +188,35 @@ export async function getFeaturedWorldCupVideoForMatch(
     matchId,
     homeTeam,
     awayTeam,
+    status,
+    startsAt,
     now = new Date(),
   }: {
     matchId: string;
     homeTeam: string;
     awayTeam: string;
+    status?: string | null;
+    startsAt?: string | null;
     now?: Date;
   },
 ) {
+  const matchPhase = resolveWorldCupMatchPhase({ status, startsAt, now });
+
   const { data, error } = await admin.from("world_cup_videos").select("*").eq("is_active", true);
 
   if (error) {
-    return { video: null as WorldCupVideo | null, error: error.message };
+    return { video: null as WorldCupVideo | null, matchPhase, error: error.message };
   }
 
-  const video = pickFeaturedWorldCupVideo(data ?? [], { matchId, homeTeam, awayTeam, now });
-  return { video, error: null };
+  const video = pickFeaturedWorldCupVideo(data ?? [], {
+    matchId,
+    homeTeam,
+    awayTeam,
+    matchPhase,
+    now,
+  });
+
+  return { video, matchPhase, error: null };
 }
 
 export function validateWorldCupVideoInput(input: WorldCupVideoInput) {
@@ -188,6 +234,11 @@ export function validateWorldCupVideoInput(input: WorldCupVideoInput) {
     return { valid: false as const, error: "Choose a valid category." };
   }
 
+  const matchPhase = input.matchPhase ?? "any";
+  if (!WORLD_CUP_VIDEO_MATCH_PHASES.includes(matchPhase)) {
+    return { valid: false as const, error: "Choose a valid match phase." };
+  }
+
   const priority = Number.isFinite(input.priority) ? Math.trunc(input.priority ?? 0) : 0;
 
   return {
@@ -199,6 +250,7 @@ export function validateWorldCupVideoInput(input: WorldCupVideoInput) {
       category: input.category,
       related_match_id: input.relatedMatchId?.trim() || null,
       related_team: input.relatedTeam?.trim() || null,
+      match_phase: matchPhase,
       starts_showing_at: input.startsShowingAt || null,
       expires_at: input.expiresAt || null,
       priority,
@@ -235,4 +287,123 @@ export async function updateWorldCupVideoActive(admin: AdminClient, id: string, 
   }
 
   return { video: mapRow(data), error: null };
+}
+
+type SelectionCheck = { name: string; pass: boolean; detail: string };
+
+function makeRow(
+  overrides: Partial<WorldCupVideoRow> & Pick<WorldCupVideoRow, "id" | "title" | "youtube_id">,
+): WorldCupVideoRow {
+  return {
+    source_label: null,
+    category: "general",
+    related_match_id: null,
+    related_team: null,
+    match_phase: "any",
+    starts_showing_at: null,
+    expires_at: null,
+    priority: 0,
+    is_active: true,
+    created_at: "2026-06-12T12:00:00.000Z",
+    ...overrides,
+  };
+}
+
+/** Dev-safe checks for phase-aware video selection. */
+export function validateWorldCupVideoSelection(): { ok: boolean; checks: SelectionCheck[] } {
+  const matchId = "wc-2026-3";
+  const homeTeam = "Canada";
+  const awayTeam = "Bosnia and Herzegovina";
+  const kickoff = "2026-06-12T21:00:00.000Z";
+  const checks: SelectionCheck[] = [];
+
+  const anyGeneral = makeRow({
+    id: "any-general",
+    title: "Any general",
+    youtube_id: "anygeneral11",
+    match_phase: "any",
+    priority: 0,
+  });
+
+  const preMatchGeneral = makeRow({
+    id: "pre-general",
+    title: "Pre general",
+    youtube_id: "pregeneral11",
+    match_phase: "pre_match",
+    priority: 0,
+  });
+
+  const liveGeneral = makeRow({
+    id: "live-general",
+    title: "Live general",
+    youtube_id: "livegeneral1",
+    match_phase: "live",
+    priority: 0,
+  });
+
+  const postMatchGeneral = makeRow({
+    id: "post-general",
+    title: "Post general",
+    youtube_id: "postgeneral1",
+    match_phase: "post_match",
+    priority: 0,
+  });
+
+  const beforeKickoff = pickFeaturedWorldCupVideo([anyGeneral, preMatchGeneral, liveGeneral], {
+    matchId,
+    homeTeam,
+    awayTeam,
+    matchPhase: "pre_match",
+    now: new Date("2026-06-12T20:00:00.000Z"),
+  });
+
+  checks.push({
+    name: "pre_match video before kickoff",
+    pass: beforeKickoff?.id === "pre-general",
+    detail: beforeKickoff?.title ?? "none",
+  });
+
+  const anyOnlyBeforeKickoff = pickFeaturedWorldCupVideo([anyGeneral], {
+    matchId,
+    homeTeam,
+    awayTeam,
+    matchPhase: "pre_match",
+    now: new Date("2026-06-12T20:00:00.000Z"),
+  });
+
+  checks.push({
+    name: "any video still appears",
+    pass: anyOnlyBeforeKickoff?.id === "any-general",
+    detail: anyOnlyBeforeKickoff?.title ?? "none",
+  });
+
+  const duringLive = pickFeaturedWorldCupVideo([anyGeneral, liveGeneral], {
+    matchId,
+    homeTeam,
+    awayTeam,
+    matchPhase: "live",
+    now: new Date(kickoff),
+  });
+
+  checks.push({
+    name: "live video beats any during live match",
+    pass: duringLive?.id === "live-general",
+    detail: duringLive?.title ?? "none",
+  });
+
+  const afterFinal = pickFeaturedWorldCupVideo([anyGeneral, postMatchGeneral], {
+    matchId,
+    homeTeam,
+    awayTeam,
+    matchPhase: "post_match",
+    now: new Date("2026-06-13T02:00:00.000Z"),
+  });
+
+  checks.push({
+    name: "post_match video beats any after final",
+    pass: afterFinal?.id === "post-general",
+    detail: afterFinal?.title ?? "none",
+  });
+
+  return { ok: checks.every((check) => check.pass), checks };
 }

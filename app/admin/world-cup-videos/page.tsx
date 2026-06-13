@@ -2,7 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { WORLD_CUP_VIDEO_CATEGORIES, type WorldCupVideo, type WorldCupVideoCategory } from "@/lib/worldCup/worldCupVideos";
+import {
+  WORLD_CUP_VIDEO_PHASE_OPTIONS,
+  type WorldCupVideoMatchPhase,
+} from "@/lib/worldCup/matchPhase";
+import {
+  WORLD_CUP_VIDEO_CATEGORIES,
+  type WorldCupVideo,
+  type WorldCupVideoCategory,
+} from "@/lib/worldCup/worldCupVideos";
 
 const SECRET_STORAGE_KEY = "lockt_admin_secret";
 
@@ -13,6 +21,7 @@ type VideoForm = {
   category: WorldCupVideoCategory;
   relatedMatchId: string;
   relatedTeam: string;
+  matchPhase: WorldCupVideoMatchPhase;
   priority: string;
   isActive: boolean;
 };
@@ -24,6 +33,7 @@ const emptyForm = (): VideoForm => ({
   category: "general",
   relatedMatchId: "",
   relatedTeam: "",
+  matchPhase: "any",
   priority: "0",
   isActive: true,
 });
@@ -118,6 +128,7 @@ export default function WorldCupVideosAdminPage() {
           category: form.category,
           relatedMatchId: form.relatedMatchId || null,
           relatedTeam: form.relatedTeam || null,
+          matchPhase: form.matchPhase,
           priority: Number(form.priority) || 0,
           isActive: form.isActive,
         }),
@@ -245,6 +256,23 @@ export default function WorldCupVideosAdminPage() {
             className="rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm"
           />
         </div>
+        <label className="block text-xs font-semibold text-gray-400">Show during</label>
+        <select
+          value={form.matchPhase}
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              matchPhase: event.target.value as WorldCupVideoMatchPhase,
+            }))
+          }
+          className="w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm"
+        >
+          {WORLD_CUP_VIDEO_PHASE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
         <input
           value={form.relatedMatchId}
           onChange={(event) => setForm((current) => ({ ...current, relatedMatchId: event.target.value }))}
@@ -290,7 +318,9 @@ export default function WorldCupVideosAdminPage() {
                   {video.sourceLabel ? ` · ${video.sourceLabel}` : ""} · priority {video.priority}
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
-                  {video.relatedMatchId ? `Match: ${video.relatedMatchId}` : "No match"}
+                  {WORLD_CUP_VIDEO_PHASE_OPTIONS.find((option) => option.value === video.matchPhase)?.label ??
+                    video.matchPhase}
+                  {video.relatedMatchId ? ` · Match: ${video.relatedMatchId}` : ""}
                   {video.relatedTeam ? ` · Team: ${video.relatedTeam}` : ""}
                 </p>
               </div>

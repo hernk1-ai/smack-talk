@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { WorldCupVideoCard } from "@/components/game-room/WorldCupVideoCard";
+import type { WorldCupMatchPhase } from "@/lib/worldCup/matchPhase";
 import type { WorldCupVideo } from "@/lib/worldCup/worldCupVideos";
 
 type GameRoomWorldCupTvProps = {
@@ -13,6 +14,7 @@ type GameRoomWorldCupTvProps = {
 
 export function GameRoomWorldCupTv({ gameId, homeTeam, awayTeam }: GameRoomWorldCupTvProps) {
   const [video, setVideo] = useState<WorldCupVideo | null>(null);
+  const [matchPhase, setMatchPhase] = useState<WorldCupMatchPhase | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadVideo = useCallback(async () => {
@@ -22,8 +24,13 @@ export function GameRoomWorldCupTv({ gameId, homeTeam, awayTeam }: GameRoomWorld
       cache: "no-store",
     });
 
-    const payload = (await response.json().catch(() => null)) as { video?: WorldCupVideo | null } | null;
+    const payload = (await response.json().catch(() => null)) as {
+      video?: WorldCupVideo | null;
+      matchPhase?: WorldCupMatchPhase;
+    } | null;
+
     setVideo(payload?.video ?? null);
+    setMatchPhase(payload?.matchPhase ?? null);
     setLoading(false);
   }, [gameId, homeTeam, awayTeam]);
 
@@ -49,6 +56,7 @@ export function GameRoomWorldCupTv({ gameId, homeTeam, awayTeam }: GameRoomWorld
       sourceLabel={video.sourceLabel}
       youtubeId={video.youtubeId}
       category={video.category}
+      matchPhase={matchPhase ?? undefined}
     />
   );
 }

@@ -1,4 +1,5 @@
 import { buildYoutubeWatchUrl } from "@/lib/worldCup/youtube";
+import { WORLD_CUP_TV_SUBTITLES, type WorldCupMatchPhase } from "@/lib/worldCup/matchPhase";
 import type { WorldCupVideoCategory } from "@/lib/worldCup/worldCupVideos";
 
 type WorldCupVideoCardProps = {
@@ -6,6 +7,7 @@ type WorldCupVideoCardProps = {
   sourceLabel?: string | null;
   youtubeId: string;
   category: WorldCupVideoCategory;
+  matchPhase?: WorldCupMatchPhase;
 };
 
 const CATEGORY_LABELS: Record<WorldCupVideoCategory, string> = {
@@ -16,17 +18,22 @@ const CATEGORY_LABELS: Record<WorldCupVideoCategory, string> = {
   general: "World Cup TV",
 };
 
-export function WorldCupVideoCard({ title, sourceLabel, youtubeId, category }: WorldCupVideoCardProps) {
+export function WorldCupVideoCard({
+  title,
+  sourceLabel,
+  youtubeId,
+  category,
+  matchPhase,
+}: WorldCupVideoCardProps) {
   const watchUrl = buildYoutubeWatchUrl(youtubeId);
   const embedUrl = `https://www.youtube.com/embed/${youtubeId}`;
+  const subtitle = WORLD_CUP_TV_SUBTITLES[matchPhase ?? "any"];
 
   return (
     <section className="space-y-3 rounded-[1.5rem] border border-white/10 bg-black/30 p-4 shadow-[0_18px_48px_rgba(0,0,0,0.34)]">
       <div>
         <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime-300">World Cup TV</p>
-        <p className="mt-1 text-sm font-semibold text-gray-300">
-          Preview, highlights, and fan videos for this match.
-        </p>
+        <p className="mt-1 text-sm font-semibold text-gray-300">{subtitle}</p>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-white/10 bg-black/50">

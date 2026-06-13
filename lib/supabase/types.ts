@@ -235,6 +235,7 @@ export type Database = {
           category: "preview" | "highlight" | "press_conference" | "fan_video" | "general";
           related_match_id: string | null;
           related_team: string | null;
+          match_phase: "any" | "pre_match" | "live" | "post_match";
           starts_showing_at: string | null;
           expires_at: string | null;
           priority: number;
@@ -249,6 +250,7 @@ export type Database = {
           category?: "preview" | "highlight" | "press_conference" | "fan_video" | "general";
           related_match_id?: string | null;
           related_team?: string | null;
+          match_phase?: "any" | "pre_match" | "live" | "post_match";
           starts_showing_at?: string | null;
           expires_at?: string | null;
           priority?: number;
@@ -263,6 +265,7 @@ export type Database = {
           category?: "preview" | "highlight" | "press_conference" | "fan_video" | "general";
           related_match_id?: string | null;
           related_team?: string | null;
+          match_phase?: "any" | "pre_match" | "live" | "post_match";
           starts_showing_at?: string | null;
           expires_at?: string | null;
           priority?: number;
