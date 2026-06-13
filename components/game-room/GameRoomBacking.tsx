@@ -19,12 +19,22 @@ type GameRoomBackingProps = {
   awayTeam: string;
   worldCupMatch: WorldCupMatch;
   game: Game | null;
-  now: Date;
+  now: Date | null;
   hasSession: boolean;
   onRequireParticipation: (action: () => Promise<void>) => void | Promise<void>;
 };
 
-function resolveStatus(match: WorldCupMatch, game: Game | null, now: Date): RoomStatus {
+function resolveStatus(match: WorldCupMatch, game: Game | null, now: Date | null): RoomStatus {
+  if (!now) {
+    if (game?.status === "final") {
+      return "final";
+    }
+    if (game?.status === "live") {
+      return "live";
+    }
+    return "scheduled";
+  }
+
   const lifecycle = getWorldCupMatchStatus(match, now);
   const scheduleStatus: RoomStatus =
     lifecycle === "finished" ? "final" : lifecycle === "live" ? "live" : "scheduled";

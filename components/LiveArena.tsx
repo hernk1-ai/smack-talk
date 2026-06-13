@@ -30,6 +30,7 @@ import { getShareUrl } from "@/lib/site-url";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 import { GameRoomChat } from "@/components/game-room/GameRoomChat";
 import { GameRoomBacking } from "@/components/game-room/GameRoomBacking";
+import { GameRoomPulse } from "@/components/game-room/GameRoomPulse";
 import { GameRoomWorldCupTv } from "@/components/game-room/GameRoomWorldCupTv";
 import { PublicGameRoomShareSection, PrivateGameRoomShareSection } from "@/components/game-room/CreatePrivateRoomPanel";
 import { buildPrivateRoomPath } from "@/lib/gameRoom/roomCode";
@@ -115,7 +116,8 @@ export function LiveArena({
   const [privateRoomError, setPrivateRoomError] = useState<string | null>(null);
   // Ticking clock so the scoreboard recalculates match status (upcoming → live →
   // final) while the room stays open, without requiring a page refresh/refetch.
-  const [now, setNow] = useState<Date>(() => new Date());
+  // Defer clock to client mount so SSR and hydration agree (avoids estimated-match mismatch).
+  const [now, setNow] = useState<Date | null>(null);
   // Live viewers ("fans in the room"); null = hidden (presence unavailable).
   const [viewerCount, setViewerCount] = useState<number | null>(null);
   const worldCupMatch = useMemo(() => parseWorldCupMatchFromGameId(gameId), [gameId]);
@@ -123,6 +125,18 @@ export function LiveArena({
   // still shows the correct matchup if Supabase/the game API is unavailable.
   const awayTeam = game?.away_team ?? worldCupMatch?.awayTeam ?? "AWAY";
   const homeTeam = game?.home_team ?? worldCupMatch?.homeTeam ?? "HOME";
+  const worldCupRoomStatus = useMemo((): "scheduled" | "live" | "final" => {
+    if (game?.status === "live" || game?.status === "final") {
+      return game.status;
+    }
+
+    if (!worldCupMatch || !now) {
+      return "scheduled";
+    }
+
+    const lifecycle = getWorldCupMatchStatus(worldCupMatch, now);
+    return lifecycle === "finished" ? "final" : lifecycle === "live" ? "live" : "scheduled";
+  }, [worldCupMatch, game?.status, now]);
 
   const totalFeedCount = feedTakes.length;
   const visibleTakes = useMemo(() => feedTakes.slice(0, 30), [feedTakes]);
@@ -187,6 +201,7 @@ export function LiveArena({
   }, [gameId, guest.user?.id]);
 
   useEffect(() => {
+    setNow(new Date());
     const interval = window.setInterval(() => setNow(new Date()), 60_000);
     return () => window.clearInterval(interval);
   }, []);
@@ -606,6 +621,9 @@ export function LiveArena({
           quickPickCrowdLine={quickPickCrowdLine}
           onQuickPick={lockQuickPick}
         />
+        {showWorldCupFanRoom && privateRoomValid ? (
+          <GameRoomPulse gameId={gameId} roomCode={roomCode} roomStatus={worldCupRoomStatus} />
+        ) : null}
         {showWorldCupFanRoom && privateRoomValid && worldCupMatch ? (
           <GameRoomBacking
             gameId={gameId}
@@ -746,7 +764,7 @@ function ArenaScoreboard({
 }: {
   game: Game | null;
   worldCupMatch: ReturnType<typeof getWorldCupMatchById>;
-  now: Date;
+  now: Date | null;
   simplifiedRoom: boolean;
   showQuickPicks: boolean;
   quickPickQuestions: QuickPickQuestion[];
@@ -763,7 +781,7 @@ function ArenaScoreboard({
   const homeScore = String(game?.home_score ?? 0);
   // Status from the static schedule, recomputed on every `now` tick so the room
   // transitions upcoming → live → final on its own while open.
-  const scheduleStatus = worldCupMatch
+  const scheduleStatus = worldCupMatch && now
     ? (() => {
         const lifecycle = getWorldCupMatchStatus(worldCupMatch, now);
         return lifecycle === "finished" ? "final" : lifecycle === "live" ? "live" : "scheduled";
@@ -777,9 +795,12 @@ function ArenaScoreboard({
   const period = game?.period ?? (status === "live" ? "LIVE" : status === "final" ? "Final" : "Pregame");
   const clock = status === "live" ? game?.clock ?? "--:--" : null;
   const watching = game?.watching_count ?? 0;
-  const startsAt = game?.starts_at
-    ? new Date(game.starts_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
-    : "TBD";
+  const startsAt =
+    game?.starts_at && now
+      ? new Date(game.starts_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+      : game?.starts_at
+        ? "soon"
+        : "TBD";
   const rideCount = game?.ride_count ?? 0;
   const fadeCount = game?.fade_count ?? 0;
   const totalPicks = rideCount + fadeCount;
@@ -794,7 +815,7 @@ function ArenaScoreboard({
   const venueLabel = worldCupMatch ? `${worldCupMatch.city} · ${worldCupMatch.venue}` : null;
   // Estimated match clock (display only), recomputed on each 60s `now` tick.
   // Null when schedule data is unavailable → fall back to existing status text.
-  const estimatedMatchDisplay = worldCupMatch ? getEstimatedMatchDisplay(worldCupMatch, now) : null;
+  const estimatedMatchDisplay = worldCupMatch && now ? getEstimatedMatchDisplay(worldCupMatch, now) : null;
 
   return (
     <section className="arena-scoreboard overflow-hidden rounded-[1.75rem] border border-white/10 p-4 pt-5 shadow-[0_26px_80px_rgba(0,0,0,0.56),0_0_34px_rgba(168,85,247,0.08)] sm:p-5">
