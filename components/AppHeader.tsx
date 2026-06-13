@@ -22,16 +22,21 @@ export function AppHeader({
   profile?: Profile | null;
   rightAriaLabel?: string;
 }) {
+  const [mounted, setMounted] = useState(false);
   const [resolvedProfile, setResolvedProfile] = useState<Profile | null>(null);
-  const activeProfile = profile ?? resolvedProfile;
-  const username = activeProfile?.username || "LOCKT";
+  const displayProfile = profile ?? (mounted ? resolvedProfile : null);
+  const username = displayProfile?.username || "LOCKT";
   const accountHref = SHOW_PROFILES ? "/profile" : "/settings";
 
   useEffect(() => {
-    let mounted = true;
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
 
     async function loadCurrentProfile() {
-      if (profile) {
+      if (profile || !mounted) {
         return;
       }
 
@@ -44,7 +49,7 @@ export function AppHeader({
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (!user || !mounted) {
+      if (!user || cancelled) {
         return;
       }
 
@@ -54,19 +59,19 @@ export function AppHeader({
         .eq("id", user.id)
         .maybeSingle();
 
-      if (!mounted) {
+      if (cancelled) {
         return;
       }
 
       setResolvedProfile((data as Profile | null) ?? null);
     }
 
-    loadCurrentProfile();
+    void loadCurrentProfile();
 
     return () => {
-      mounted = false;
+      cancelled = true;
     };
-  }, [profile]);
+  }, [mounted, profile]);
 
   return (
     <header className="app-header-shell relative z-40 rounded-[1.75rem] border border-white/10 bg-black/35 px-3 py-2.5 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur sm:px-3.5 sm:py-3">
@@ -99,7 +104,7 @@ export function AppHeader({
             className="relative grid h-11 w-11 place-items-center rounded-2xl border border-white/15 bg-white/[0.04] text-xl text-white shadow-[0_0_22px_rgba(255,255,255,0.06)] transition hover:-translate-y-0.5 hover:border-purple-300/35 hover:bg-white/[0.07] active:scale-95 sm:h-12 sm:w-12"
             aria-label={rightAriaLabel}
           >
-            <UserAvatar avatarUrl={activeProfile?.avatar_url} initials={getInitials(username)} size="sm" />
+            <UserAvatar avatarUrl={displayProfile?.avatar_url} initials={getInitials(username)} size="sm" />
           </Link>
         </div>
       </div>

@@ -84,7 +84,7 @@ export function LocktApp({
   return (
     <>
       {appView === "live-arena" ? (
-        <LiveArena gameId={activeGameRoomId} roomCode={activeRoomCode} onBack={goToArena} />
+        <LiveArena gameId={activeGameRoomId} roomCode={activeRoomCode} profile={profile} onBack={goToArena} />
       ) : appView === "arena" ? (
         <ArenaView onJoinLive={joinLive} profile={profile} />
       ) : appView === "receipts" ? (

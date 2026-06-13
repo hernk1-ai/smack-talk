@@ -30,7 +30,7 @@ export function GameRoomChat({ gameId, roomCode = null }: GameRoomChatProps) {
   const [error, setError] = useState<string | null>(null);
   const [chatDisplayName, setChatDisplayName] = useState(CHAT_DISPLAY_NAME_PLACEHOLDER);
   const [senderKey, setSenderKey] = useState("");
-  const [nowMs, setNowMs] = useState(() => Date.now());
+  const [nowMs, setNowMs] = useState<number | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
@@ -39,15 +39,20 @@ export function GameRoomChat({ gameId, roomCode = null }: GameRoomChatProps) {
   useEffect(() => {
     setChatDisplayName(getChatDisplayName());
     setSenderKey(getOrCreateVoterKey());
+    setNowMs(Date.now());
   }, []);
 
   useEffect(() => {
+    if (nowMs === null) {
+      return;
+    }
+
     const intervalId = window.setInterval(() => {
       setNowMs(Date.now());
     }, 30000);
 
     return () => window.clearInterval(intervalId);
-  }, []);
+  }, [nowMs]);
 
   const loadMessages = useCallback(async () => {
     const { messages: nextMessages, error: loadError } = await fetchRoomChatMessages(gameId, roomCode);
@@ -72,7 +77,7 @@ export function GameRoomChat({ gameId, roomCode = null }: GameRoomChatProps) {
   }, [loadMessages]);
 
   const editableMessageIds = useMemo(() => {
-    if (!senderKey) {
+    if (!senderKey || nowMs === null) {
       return new Set<string>();
     }
 

@@ -43,6 +43,7 @@ import { ReportModal } from "@/components/moderation/ReportModal";
 import { shouldShowClaimPrompt } from "@/lib/supabase/guest";
 import { useGuestParticipation } from "@/hooks/useGuestParticipation";
 import type { Game, Take, TakeReaction } from "@/lib/supabase/types";
+import type { Profile } from "@/lib/supabase/types";
 import type { ReportTargetType } from "@/lib/supabase/moderation";
 
 type ArenaTab = "calls" | "control-room";
@@ -78,10 +79,12 @@ export function LiveArena({
   gameId = ACTIVE_GAME_ID,
   roomCode = null,
   onBack,
+  profile = null,
 }: {
   gameId?: string;
   roomCode?: string | null;
   onBack: () => void;
+  profile?: Profile | null;
 }) {
   const { showToast } = useToast();
   const supabase = createClient();
@@ -577,7 +580,7 @@ export function LiveArena({
         />
       ) : null}
       <div className="arena-shell screen-safe-bottom space-y-5">
-        <AppHeader subtitle="Game Room · Watch together and react live." rightAriaLabel="Account" />
+        <AppHeader profile={profile} subtitle="Game Room · Watch together and react live." rightAriaLabel="Account" />
         <button
           type="button"
           onClick={onBack}
