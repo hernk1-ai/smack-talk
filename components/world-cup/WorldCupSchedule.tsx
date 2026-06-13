@@ -2,8 +2,15 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { getWorldCupFixtureSourceUrls, getWorldCupKickoffIso, getWorldCupMatchId, worldCupSchedule, type WorldCupGroup, type WorldCupMatch } from "@/data/worldCupSchedule";
+import { getWorldCupFixtureSourceUrls, getWorldCupMatchId, worldCupSchedule, type WorldCupGroup, type WorldCupMatch } from "@/data/worldCupSchedule";
 import { SHOW_GAME_ROOM } from "@/lib/productConfig";
+import {
+  formatLocalKickoff,
+  getKickoffMs,
+  getLocalDateKey,
+  getLocalDateLabel,
+  WORLD_CUP_SCHEDULE_FALLBACK_TIME_ZONE,
+} from "@/lib/worldCup/localSchedule";
 import type { ScheduleMatchState, ScheduleMatchStatus } from "@/lib/worldCup/scheduleStatus";
 
 /**
@@ -11,50 +18,6 @@ import type { ScheduleMatchState, ScheduleMatchStatus } from "@/lib/worldCup/sch
  * markup match (avoids hydration errors). After mount we switch to the viewer's
  * actual browser timezone, which is the real source of truth for grouping/sorting.
  */
-const FALLBACK_TIME_ZONE = "America/New_York";
-
-/** Absolute kickoff instant (UTC) for a match; equals games.starts_at. */
-function getKickoffMs(match: WorldCupMatch): number {
-  const iso = getWorldCupKickoffIso(match);
-  const ms = iso ? new Date(iso).getTime() : Number.NaN;
-  // Matches with an unknown kickoff sort to the end rather than crashing.
-  return Number.isFinite(ms) ? ms : Number.MAX_SAFE_INTEGER;
-}
-
-/** Sortable local calendar-day key (YYYY-MM-DD) in the given timezone. */
-function getLocalDateKey(match: WorldCupMatch, timeZone: string): string {
-  const iso = getWorldCupKickoffIso(match);
-  if (!iso) return "9999-12-31";
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(iso));
-}
-
-/** Human day header (e.g. "Saturday, June 13") in the given timezone. */
-function getLocalDateLabel(match: WorldCupMatch, timeZone: string): string {
-  const iso = getWorldCupKickoffIso(match);
-  if (!iso) return "Date TBD";
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  }).format(new Date(iso));
-}
-
-/** Local kickoff time (e.g. "9:00 PM") in the given timezone. */
-function formatLocalKickoff(match: WorldCupMatch, timeZone: string): string {
-  const iso = getWorldCupKickoffIso(match);
-  if (!iso) return match.kickoffET;
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(iso));
-}
 
 const groupFilters: Array<{ value: "ALL" | WorldCupGroup; label: string }> = [
   { value: "ALL", label: "All Groups" },
@@ -95,7 +58,7 @@ export function WorldCupSchedule({
   const [selectedTeam, setSelectedTeam] = useState("All Teams");
   // Source of truth for grouping/sorting. ET on the server + first paint, then
   // the viewer's real browser timezone after mount (keeps hydration stable).
-  const [timeZone, setTimeZone] = useState(FALLBACK_TIME_ZONE);
+  const [timeZone, setTimeZone] = useState(WORLD_CUP_SCHEDULE_FALLBACK_TIME_ZONE);
   useEffect(() => {
     const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (resolved) {

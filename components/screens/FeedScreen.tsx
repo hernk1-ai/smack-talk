@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent, type MouseEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppHeader } from "@/components/AppHeader";
@@ -36,13 +36,20 @@ import {
   getLiveMatchStatusLabel,
   getMatchHubFocus,
   getNextWorldCupMatch,
+  resolveWorldCupMatchLifecycle,
   type MatchHubFocus,
   type WorldCupGameSnapshot,
 } from "@/lib/worldCupMatchResolver";
 import { fetchWorldCupGameSnapshots } from "@/lib/worldCupNavClient";
+import {
+  formatLocalKickoff,
+  getKickoffMs,
+  getLocalDateKey,
+  getTodayLocalDateKey,
+  WORLD_CUP_SCHEDULE_FALLBACK_TIME_ZONE,
+} from "@/lib/worldCup/localSchedule";
 import { buildSiteUrl } from "@/lib/site-url";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
-import { getWorldCupMatchStatus } from "@/lib/worldCupMatchStatus";
 import type { Game, Profile, TakeReaction } from "@/lib/supabase/types";
 
 type Side = "ride" | "fade";
@@ -455,11 +462,12 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
         <FeedHeader profile={profile} />
         <MatchHubIntro />
         <MatchHubPrimaryFocus />
-        <WorldCupUpcomingMatches />
+        <MatchHubWorldCupNews />
+        <WorldCupTodayMatches />
         <PreTournamentStorylines />
         <FeaturedPlayers />
         <HostCityCommentary />
-        <PreTournamentNews />
+        <MatchHubFollowLockt />
       </div>
     );
   }
@@ -781,18 +789,15 @@ function PreTournamentStorylines() {
   );
 }
 
-function PreTournamentNews() {
+function MatchHubFollowLockt() {
   return (
-    <>
-      <MatchHubWorldCupNews />
-      <FeedSection title="Follow Lockt" icon="" action="">
-        <SocialLinks
-          embedded
-          compact
-          subtext="World Cup matches, schedule updates, and Game Room links."
-        />
-      </FeedSection>
-    </>
+    <FeedSection title="Follow Lockt" icon="" action="">
+      <SocialLinks
+        embedded
+        compact
+        subtext="World Cup matches, schedule updates, and Game Room links."
+      />
+    </FeedSection>
   );
 }
 
@@ -851,46 +856,100 @@ function MatchHubIntro() {
   );
 }
 
-const MATCH_HUB_UPCOMING_LIMIT = 4;
+function WorldCupTodayMatches() {
+  const [now, setNow] = useState(() => new Date());
+  const [timeZone, setTimeZone] = useState(WORLD_CUP_SCHEDULE_FALLBACK_TIME_ZONE);
+  const [games, setGames] = useState<WorldCupGameSnapshot[]>([]);
 
-function WorldCupUpcomingMatches() {
-  const now = new Date();
-  const upcoming = worldCupSchedule
-    .filter((match) => getWorldCupMatchStatus(match, now) === "upcoming")
-    .slice(0, MATCH_HUB_UPCOMING_LIMIT);
+  useEffect(() => {
+    const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (resolved) {
+      setTimeZone(resolved);
+    }
+  }, []);
 
-  if (!upcoming.length) {
-    return null;
-  }
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function refreshGames() {
+      const snapshots = await fetchWorldCupGameSnapshots();
+      if (mounted) {
+        setGames(snapshots);
+      }
+    }
+
+    void refreshGames();
+    const intervalId = window.setInterval(() => {
+      void refreshGames();
+    }, 30_000);
+
+    return () => {
+      mounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  const todayMatches = useMemo(() => {
+    const todayKey = getTodayLocalDateKey(timeZone, now);
+    const gamesById = new Map(games.map((game) => [game.id, game]));
+
+    return worldCupSchedule
+      .filter((match) => getLocalDateKey(match, timeZone) === todayKey)
+      .filter((match) => {
+        const lifecycle = resolveWorldCupMatchLifecycle(
+          match,
+          now,
+          gamesById.get(getWorldCupMatchId(match)) ?? null,
+        );
+        return lifecycle === "upcoming" || lifecycle === "live";
+      })
+      .sort((a, b) => getKickoffMs(a) - getKickoffMs(b));
+  }, [games, now, timeZone]);
 
   return (
-    <FeedSection title="Upcoming Matches" icon="◷" action="">
-      <div className="space-y-2">
-        {upcoming.map((match) => {
-          const cta = getWorldCupMatchPublicCta(match, now);
-          return (
-            <div
-              key={match.id}
-              className="grid gap-2 rounded-xl border border-white/10 bg-black/45 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
-            >
-              <div className="min-w-0">
-                <p className="text-sm font-black text-white">
-                  {match.homeTeam} vs {match.awayTeam ?? "TBD"}
-                </p>
-                <p className="mt-0.5 text-xs font-semibold text-gray-400">
-                  {formatDateLabel(match.date)} · {match.kickoffET} · {match.city}
-                </p>
-              </div>
-              <Link
-                href={cta.href}
-                className="inline-flex min-h-10 items-center justify-center rounded-lg border border-purple-300/45 bg-purple-500/10 px-3 text-[10px] font-black uppercase tracking-[0.1em] text-purple-200"
+    <FeedSection title="Today's Matches" icon="◷" action="">
+      {todayMatches.length ? (
+        <div className="space-y-2">
+          {todayMatches.map((match) => {
+            const cta = getWorldCupMatchPublicCta(match, now);
+            return (
+              <div
+                key={match.id}
+                className="grid gap-2 rounded-xl border border-white/10 bg-black/45 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
               >
-                {cta.label}
-              </Link>
-            </div>
-          );
-        })}
-      </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-black text-white">
+                    {match.homeTeam} vs {match.awayTeam ?? "TBD"}
+                  </p>
+                  <p className="mt-0.5 text-xs font-semibold text-gray-400">
+                    {formatLocalKickoff(match, timeZone)} · {match.city}
+                  </p>
+                </div>
+                <Link
+                  href={cta.href}
+                  className="inline-flex min-h-10 items-center justify-center rounded-lg border border-purple-300/45 bg-purple-500/10 px-3 text-[10px] font-black uppercase tracking-[0.1em] text-purple-200"
+                >
+                  {cta.label}
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-white/10 bg-[var(--surface-card)] p-4">
+          <p className="text-sm font-semibold text-gray-300">
+            No more matches today.{" "}
+            <Link href="/schedule" className="font-black text-lime-300 underline-offset-2 hover:underline">
+              View the full schedule.
+            </Link>
+          </p>
+        </div>
+      )}
     </FeedSection>
   );
 }
