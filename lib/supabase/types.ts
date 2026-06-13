@@ -226,6 +226,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      world_cup_videos: {
+        Row: {
+          id: string;
+          title: string;
+          source_label: string | null;
+          youtube_id: string;
+          category: "preview" | "highlight" | "press_conference" | "fan_video" | "general";
+          related_match_id: string | null;
+          related_team: string | null;
+          starts_showing_at: string | null;
+          expires_at: string | null;
+          priority: number;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          source_label?: string | null;
+          youtube_id: string;
+          category?: "preview" | "highlight" | "press_conference" | "fan_video" | "general";
+          related_match_id?: string | null;
+          related_team?: string | null;
+          starts_showing_at?: string | null;
+          expires_at?: string | null;
+          priority?: number;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          source_label?: string | null;
+          youtube_id?: string;
+          category?: "preview" | "highlight" | "press_conference" | "fan_video" | "general";
+          related_match_id?: string | null;
+          related_team?: string | null;
+          starts_showing_at?: string | null;
+          expires_at?: string | null;
+          priority?: number;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       game_picks: {
         Row: {
           id: string;

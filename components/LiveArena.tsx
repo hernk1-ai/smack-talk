@@ -30,7 +30,7 @@ import { getShareUrl } from "@/lib/site-url";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
 import { GameRoomChat } from "@/components/game-room/GameRoomChat";
 import { GameRoomBacking } from "@/components/game-room/GameRoomBacking";
-import { FansAreSaying } from "@/components/game-room/FansAreSaying";
+import { GameRoomWorldCupTv } from "@/components/game-room/GameRoomWorldCupTv";
 import { PublicGameRoomShareSection, PrivateGameRoomShareSection } from "@/components/game-room/CreatePrivateRoomPanel";
 import { buildPrivateRoomPath } from "@/lib/gameRoom/roomCode";
 import { validatePrivateRoom } from "@/lib/gameRoom/rootingApi";
@@ -570,7 +570,7 @@ export function LiveArena({
         >
           ← Back to Match Hub
         </button>
-        {worldCupMatch ? (
+        {worldCupMatch && !showWorldCupFanRoom ? (
           isPrivateRoom && roomCode ? (
             <PrivateGameRoomShareSection gameId={gameId} roomCode={roomCode} onSharePrivate={shareGameRoom} />
           ) : (
@@ -621,6 +621,16 @@ export function LiveArena({
         ) : null}
         {showWorldCupFanRoom && privateRoomValid ? (
           <GameRoomChat gameId={gameId} roomCode={roomCode} />
+        ) : null}
+        {showWorldCupFanRoom && privateRoomValid ? (
+          <GameRoomWorldCupTv gameId={gameId} homeTeam={homeTeam} awayTeam={awayTeam} />
+        ) : null}
+        {showWorldCupFanRoom && worldCupMatch ? (
+          isPrivateRoom && roomCode ? (
+            <PrivateGameRoomShareSection gameId={gameId} roomCode={roomCode} onSharePrivate={shareGameRoom} />
+          ) : (
+            <PublicGameRoomShareSection gameId={gameId} onSharePublic={shareGameRoom} />
+          )
         ) : null}
         {showWorldCupFanRoom ? null : !simplifiedRoom ? (
           <ArenaTabs activeTab={activeTab} onSelect={setActiveTab} earlyCallCount={totalFeedCount} />
@@ -687,11 +697,7 @@ export function LiveArena({
 
           <aside className="space-y-4">
             {activeTab !== "control-room" && !simplifiedRoom ? <ControlRoomPanel game={game} /> : null}
-            {showWorldCupFanRoom ? (
-              <FansAreSaying gameId={gameId} roomCode={roomCode} />
-            ) : (
-              <ArenaVibePanel />
-            )}
+            {!showWorldCupFanRoom ? <ArenaVibePanel /> : null}
             {simplifiedRoom ? (
               <section className="rounded-[1.5rem] border border-white/10 bg-black/35 p-4">
                 <p className="text-sm font-semibold text-gray-300">
