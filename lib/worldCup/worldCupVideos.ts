@@ -17,11 +17,44 @@ export const WORLD_CUP_VIDEO_CATEGORIES = [
   "preview",
   "highlight",
   "press_conference",
+  "injury",
+  "news",
   "fan_video",
   "general",
 ] as const;
 
 export type WorldCupVideoCategory = (typeof WORLD_CUP_VIDEO_CATEGORIES)[number];
+
+export const WORLD_CUP_VIDEO_CATEGORY_OPTIONS = [
+  { value: "preview", label: "Preview" },
+  { value: "highlight", label: "Highlight" },
+  { value: "press_conference", label: "Press conference" },
+  { value: "injury", label: "Injury report" },
+  { value: "news", label: "Tournament news" },
+  { value: "fan_video", label: "Fan video" },
+  { value: "general", label: "General" },
+] as const;
+
+export const WORLD_CUP_VIDEO_CATEGORY_LABELS: Record<WorldCupVideoCategory, string> = {
+  preview: "Preview",
+  highlight: "Highlight",
+  press_conference: "Press Conference",
+  injury: "Injury Report",
+  news: "Tournament News",
+  fan_video: "Fan Video",
+  general: "World Cup TV",
+};
+
+export const MATCH_HUB_NEWS_CATEGORIES = ["injury", "press_conference", "news", "general"] as const;
+
+export type MatchHubNewsCategory = (typeof MATCH_HUB_NEWS_CATEGORIES)[number];
+
+const MATCH_HUB_NEWS_CATEGORY_PRIORITY: Record<MatchHubNewsCategory, number> = {
+  injury: 4,
+  press_conference: 3,
+  news: 2,
+  general: 1,
+};
 
 export type WorldCupVideo = {
   id: string;
@@ -178,6 +211,45 @@ export function pickFeaturedWorldCupVideo(
 
   const winner = ranked[0]?.row;
   return winner ? mapRow(winner) : null;
+}
+
+function matchHubNewsCategoryTier(category: string): number {
+  return MATCH_HUB_NEWS_CATEGORY_PRIORITY[category as MatchHubNewsCategory] ?? 0;
+}
+
+export function pickFeaturedMatchHubNewsVideo(
+  rows: WorldCupVideoRow[],
+  now = new Date(),
+): WorldCupVideo | null {
+  const ranked = rows
+    .filter((row) => isVisibleNow(row, now))
+    .map((row) => ({ row, tier: matchHubNewsCategoryTier(row.category) }))
+    .filter((entry) => entry.tier > 0)
+    .sort((a, b) => {
+      if (b.tier !== a.tier) {
+        return b.tier - a.tier;
+      }
+
+      if (b.row.priority !== a.row.priority) {
+        return b.row.priority - a.row.priority;
+      }
+
+      return new Date(b.row.created_at).getTime() - new Date(a.row.created_at).getTime();
+    });
+
+  const winner = ranked[0]?.row;
+  return winner ? mapRow(winner) : null;
+}
+
+export async function getFeaturedMatchHubNewsVideo(admin: AdminClient, now = new Date()) {
+  const { data, error } = await admin.from("world_cup_videos").select("*").eq("is_active", true);
+
+  if (error) {
+    return { video: null as WorldCupVideo | null, error: error.message };
+  }
+
+  const video = pickFeaturedMatchHubNewsVideo(data ?? [], now);
+  return { video, error: null };
 }
 
 export function resolveWorldCupVideoMatchContext(gameId: string) {
@@ -492,6 +564,52 @@ export function validateWorldCupVideoSelection(): { ok: boolean; checks: Selecti
     name: "post_match video beats any after final",
     pass: afterFinal?.id === "post-general",
     detail: afterFinal?.title ?? "none",
+  });
+
+  return { ok: checks.every((check) => check.pass), checks };
+}
+
+/** Dev-safe checks for Match Hub news desk video selection. */
+export function validateMatchHubNewsSelection(): { ok: boolean; checks: SelectionCheck[] } {
+  const checks: SelectionCheck[] = [];
+
+  const injury = makeRow({
+    id: "injury-1",
+    title: "Injury report",
+    youtube_id: "injuryvid11",
+    category: "injury",
+    priority: 0,
+  });
+
+  const general = makeRow({
+    id: "general-1",
+    title: "General news",
+    youtube_id: "generalvid1",
+    category: "general",
+    priority: 100,
+  });
+
+  const injuryPick = pickFeaturedMatchHubNewsVideo([general, injury]);
+  checks.push({
+    name: "injury beats general on Match Hub",
+    pass: injuryPick?.id === "injury-1",
+    detail: injuryPick?.title ?? "none",
+  });
+
+  const generalOnly = pickFeaturedMatchHubNewsVideo([general]);
+  checks.push({
+    name: "general appears when no injury/news/press video",
+    pass: generalOnly?.id === "general-1",
+    detail: generalOnly?.title ?? "none",
+  });
+
+  const none = pickFeaturedMatchHubNewsVideo([
+    makeRow({ id: "preview-1", title: "Preview", youtube_id: "previewvid1", category: "preview" }),
+  ]);
+  checks.push({
+    name: "preview category excluded from Match Hub",
+    pass: none === null,
+    detail: none?.title ?? "none",
   });
 
   return { ok: checks.every((check) => check.pass), checks };

@@ -232,7 +232,7 @@ export type Database = {
           title: string;
           source_label: string | null;
           youtube_id: string;
-          category: "preview" | "highlight" | "press_conference" | "fan_video" | "general";
+          category: "preview" | "highlight" | "press_conference" | "injury" | "news" | "fan_video" | "general";
           related_match_id: string | null;
           related_team: string | null;
           match_phase: "any" | "pre_match" | "live" | "post_match";
@@ -247,7 +247,7 @@ export type Database = {
           title: string;
           source_label?: string | null;
           youtube_id: string;
-          category?: "preview" | "highlight" | "press_conference" | "fan_video" | "general";
+          category?: "preview" | "highlight" | "press_conference" | "injury" | "news" | "fan_video" | "general";
           related_match_id?: string | null;
           related_team?: string | null;
           match_phase?: "any" | "pre_match" | "live" | "post_match";
@@ -262,7 +262,7 @@ export type Database = {
           title?: string;
           source_label?: string | null;
           youtube_id?: string;
-          category?: "preview" | "highlight" | "press_conference" | "fan_video" | "general";
+          category?: "preview" | "highlight" | "press_conference" | "injury" | "news" | "fan_video" | "general";
           related_match_id?: string | null;
           related_team?: string | null;
           match_phase?: "any" | "pre_match" | "live" | "post_match";

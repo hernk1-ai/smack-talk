@@ -29,6 +29,7 @@ import { getGameSport, sportTabs, type SportKey } from "@/data/sportsStructure";
 import { worldCupStorylines } from "@/data/worldCupStorylines";
 import { worldCupChaosAlerts, worldCupFeaturedMatch, worldCupLiveArenas, worldCupTrendingTakes } from "@/data/worldCupMvp";
 import { getWorldCupKickoffIso, getWorldCupMatchId, worldCupSchedule, type WorldCupMatch } from "@/data/worldCupSchedule";
+import { MatchHubWorldCupNews } from "@/components/world-cup/MatchHubWorldCupNews";
 import { ACTIVE_SPORT, getVisibleSportTabs, isMatchHubMode, SHOW_MULTI_SPORT } from "@/lib/productConfig";
 import { getWorldCupMatchPublicCta } from "@/lib/worldCupPublicNav";
 import {
@@ -783,13 +784,7 @@ function PreTournamentStorylines() {
 function PreTournamentNews() {
   return (
     <>
-      <FeedSection title="Team News / Injury Watch" icon="⚽" action="Coming Soon">
-        <div className="rounded-2xl border border-white/10 bg-[var(--surface-card)] p-4">
-          <p className="text-sm font-semibold text-gray-300">
-            Team news and injury updates will appear here as kickoff approaches.
-          </p>
-        </div>
-      </FeedSection>
+      <MatchHubWorldCupNews />
       <FeedSection title="Follow Lockt" icon="" action="">
         <SocialLinks
           embedded

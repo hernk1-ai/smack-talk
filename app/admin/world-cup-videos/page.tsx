@@ -7,7 +7,8 @@ import {
   type WorldCupVideoMatchPhase,
 } from "@/lib/worldCup/matchPhase";
 import {
-  WORLD_CUP_VIDEO_CATEGORIES,
+  WORLD_CUP_VIDEO_CATEGORY_OPTIONS,
+  WORLD_CUP_VIDEO_CATEGORY_LABELS,
   type WorldCupVideo,
   type WorldCupVideoCategory,
 } from "@/lib/worldCup/worldCupVideos";
@@ -314,9 +315,9 @@ export default function WorldCupVideosAdminPage() {
             }
             className="rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm"
           >
-            {WORLD_CUP_VIDEO_CATEGORIES.map((category) => (
-              <option key={category} value={category}>
-                {category}
+            {WORLD_CUP_VIDEO_CATEGORY_OPTIONS.map((category) => (
+              <option key={category.value} value={category.value}>
+                {category.label}
               </option>
             ))}
           </select>
@@ -426,7 +427,7 @@ export default function WorldCupVideosAdminPage() {
               <div>
                 <p className="text-sm font-black text-white">{video.title}</p>
                 <p className="mt-1 text-xs text-gray-400">
-                  {video.category}
+                  {WORLD_CUP_VIDEO_CATEGORY_LABELS[video.category] ?? video.category}
                   {video.sourceLabel ? ` · ${video.sourceLabel}` : ""} · priority {video.priority}
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
