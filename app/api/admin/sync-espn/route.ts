@@ -9,6 +9,7 @@ import {
 } from "@/lib/admin/secret";
 import { enforceRateLimit, jsonError } from "@/lib/security/api";
 import {
+  autoMapTodaysWorldCupGames,
   fetchEspnWorldCupEventsForDates,
   proposeEspnMatchMappings,
   syncEspnWorldCupScores,
@@ -67,6 +68,12 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   if (!admin) {
     return jsonError(getSupabaseAdminSetupError() ?? "Supabase admin client is not configured.", 503);
+  }
+
+  const mode = new URL(request.url).searchParams.get("mode");
+  if (mode === "auto-map-today") {
+    const report = await autoMapTodaysWorldCupGames(admin);
+    return NextResponse.json({ mode: "auto-map-today", report });
   }
 
   const summary = await syncEspnWorldCupScores(admin);

@@ -6,10 +6,16 @@ import {
   worldCupSchedule,
   type WorldCupMatch,
 } from "@/data/worldCupSchedule";
+import { teamsMatch } from "@/lib/sports/espnTeamNames";
 import type { Database } from "@/lib/supabase/types";
 
 type AdminClient = SupabaseClient<Database>;
 type GameUpdate = Database["public"]["Tables"]["games"]["Update"];
+type WorldCupGameRow = Pick<
+  Database["public"]["Tables"]["games"]["Row"],
+  "id" | "home_team" | "away_team" | "starts_at" | "status"
+>;
+type EspnMatchMapRow = Database["public"]["Tables"]["espn_match_map"]["Row"];
 
 export const ESPN_WORLD_CUP_SCOREBOARD_URL =
   "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard";
@@ -71,6 +77,22 @@ export type EspnSyncSummary = {
   mappedEvents: number;
   updatedGames: number;
   skipped: EspnSyncSkip[];
+  errors: string[];
+  autoMapped: EspnAutoMapResult[];
+};
+
+export type EspnAutoMapResult = {
+  locktGameId: string;
+  match: string;
+  espnEventId?: string;
+  status: "mapped" | "ambiguous" | "failed" | "skipped_existing";
+  reason?: string;
+};
+
+export type EspnAutoMapReport = {
+  scannedGames: number;
+  fetchedEvents: number;
+  results: EspnAutoMapResult[];
   errors: string[];
 };
 
@@ -223,14 +245,318 @@ export async function fetchEspnWorldCupEventsForDates(dates: string[]): Promise<
   return [...byId.values()];
 }
 
+/** Two kickoffs are considered the same match window within this tolerance. */
+export const ESPN_KICKOFF_TOLERANCE_MS = 6 * 60 * 60 * 1000;
+
+const WORLD_CUP_SCHEDULE_TIME_ZONE = "America/New_York";
+
+/** A game is live or within the auto-map kickoff window. */
+export function isNearLiveWorldCupGame(game: WorldCupGameRow, now = new Date()): boolean {
+  if (game.status === "live") {
+    return true;
+  }
+
+  if (!game.starts_at) {
+    return false;
+  }
+
+  const kickoffMs = new Date(game.starts_at).getTime();
+  if (!Number.isFinite(kickoffMs)) {
+    return false;
+  }
+
+  return Math.abs(kickoffMs - now.getTime()) <= ESPN_KICKOFF_TOLERANCE_MS;
+}
+
+function getLocalDateKey(iso: string, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(iso));
+}
+
+function getTodayLocalDateKey(now = new Date(), timeZone = WORLD_CUP_SCHEDULE_TIME_ZONE): string {
+  return getLocalDateKey(now.toISOString(), timeZone);
+}
+
+function isGameOnLocalDate(game: WorldCupGameRow, dateKey: string, timeZone = WORLD_CUP_SCHEDULE_TIME_ZONE): boolean {
+  if (!game.starts_at) {
+    return false;
+  }
+
+  return getLocalDateKey(game.starts_at, timeZone) === dateKey;
+}
+
+function mergeEspnEventsById(...groups: EspnParsedEvent[][]): EspnParsedEvent[] {
+  const byId = new Map<string, EspnParsedEvent>();
+  for (const group of groups) {
+    for (const event of group) {
+      byId.set(event.espnEventId, event);
+    }
+  }
+
+  return [...byId.values()];
+}
+
+/** Does an ESPN event match a Lockt game on teams + kickoff window? */
+export function gameMatchesEspnEvent(
+  game: Pick<WorldCupGameRow, "home_team" | "away_team" | "starts_at">,
+  event: EspnParsedEvent,
+  toleranceMs = ESPN_KICKOFF_TOLERANCE_MS,
+): boolean {
+  if (!event.homeTeam || !event.awayTeam || !event.date || !game.starts_at) {
+    return false;
+  }
+
+  const gameTime = new Date(game.starts_at).getTime();
+  const espnTime = new Date(event.date).getTime();
+  if (!Number.isFinite(gameTime) || !Number.isFinite(espnTime)) {
+    return false;
+  }
+
+  if (Math.abs(gameTime - espnTime) > toleranceMs) {
+    return false;
+  }
+
+  const direct =
+    teamsMatch(game.home_team, event.homeTeam) && teamsMatch(game.away_team, event.awayTeam);
+  const swapped =
+    teamsMatch(game.home_team, event.awayTeam) && teamsMatch(game.away_team, event.homeTeam);
+
+  return direct || swapped;
+}
+
+export function findEspnEventsForGame(
+  game: WorldCupGameRow,
+  events: EspnParsedEvent[],
+): EspnParsedEvent[] {
+  return events.filter((event) => gameMatchesEspnEvent(game, event));
+}
+
+function formatGameMatchLabel(game: WorldCupGameRow): string {
+  return `${game.home_team} vs ${game.away_team}`;
+}
+
+async function loadEspnMatchMappings(admin: AdminClient) {
+  const { data, error } = await admin.from("espn_match_map").select("*");
+
+  if (error) {
+    return { mappings: null as EspnMatchMapRow[] | null, error: error.message };
+  }
+
+  return { mappings: data ?? [], error: null };
+}
+
+async function insertEspnMatchMapping(
+  admin: AdminClient,
+  {
+    locktGameId,
+    espnEventId,
+    espnEventName,
+    startsAt,
+  }: {
+    locktGameId: string;
+    espnEventId: string;
+    espnEventName: string;
+    startsAt: string | null;
+  },
+) {
+  const { data, error } = await admin
+    .from("espn_match_map")
+    .insert({
+      lockt_game_id: locktGameId,
+      espn_event_id: espnEventId,
+      espn_event_name: espnEventName,
+      starts_at: startsAt,
+    })
+    .select("*")
+    .single();
+
+  if (error) {
+    return { mapping: null as EspnMatchMapRow | null, error: error.message };
+  }
+
+  return { mapping: data, error: null };
+}
+
+function collectEspnDatesForGames(games: WorldCupGameRow[], now = new Date()): string[] {
+  const dates = new Set<string>();
+
+  for (const game of games) {
+    if (game.starts_at) {
+      dates.add(getLocalDateKey(game.starts_at, WORLD_CUP_SCHEDULE_TIME_ZONE));
+    }
+  }
+
+  const todayKey = getTodayLocalDateKey(now, WORLD_CUP_SCHEDULE_TIME_ZONE);
+  dates.add(todayKey);
+
+  return [...dates];
+}
+
+async function autoDiscoverEspnMappingsForGames(
+  admin: AdminClient,
+  games: WorldCupGameRow[],
+  mappings: EspnMatchMapRow[],
+  events: EspnParsedEvent[],
+): Promise<{ results: EspnAutoMapResult[]; mappings: EspnMatchMapRow[]; errors: string[] }> {
+  const results: EspnAutoMapResult[] = [];
+  const errors: string[] = [];
+  const mappingByGameId = new Map(mappings.map((row) => [row.lockt_game_id, row]));
+  const mappingByEspnId = new Map(mappings.map((row) => [row.espn_event_id, row]));
+
+  for (const game of games) {
+    if (mappingByGameId.has(game.id)) {
+      results.push({
+        locktGameId: game.id,
+        match: formatGameMatchLabel(game),
+        status: "skipped_existing",
+        reason: "Mapping already exists.",
+      });
+      continue;
+    }
+
+    const matches = findEspnEventsForGame(game, events);
+    if (matches.length === 0) {
+      results.push({
+        locktGameId: game.id,
+        match: formatGameMatchLabel(game),
+        status: "failed",
+        reason: "No ESPN event matched teams and kickoff window.",
+      });
+      continue;
+    }
+
+    if (matches.length > 1) {
+      results.push({
+        locktGameId: game.id,
+        match: formatGameMatchLabel(game),
+        status: "ambiguous",
+        reason: `Multiple ESPN events matched (${matches.map((event) => event.espnEventId).join(", ")}).`,
+      });
+      continue;
+    }
+
+    const event = matches[0];
+    const existingEspnMapping = mappingByEspnId.get(event.espnEventId);
+    if (existingEspnMapping && existingEspnMapping.lockt_game_id !== game.id) {
+      results.push({
+        locktGameId: game.id,
+        match: formatGameMatchLabel(game),
+        status: "ambiguous",
+        reason: `ESPN event ${event.espnEventId} is already mapped to ${existingEspnMapping.lockt_game_id}.`,
+      });
+      continue;
+    }
+
+    const { mapping, error } = await insertEspnMatchMapping(admin, {
+      locktGameId: game.id,
+      espnEventId: event.espnEventId,
+      espnEventName: event.name,
+      startsAt: event.date,
+    });
+
+    if (error || !mapping) {
+      errors.push(`${game.id}: ${error ?? "Unable to insert mapping."}`);
+      results.push({
+        locktGameId: game.id,
+        match: formatGameMatchLabel(game),
+        status: "failed",
+        reason: error ?? "Unable to insert mapping.",
+      });
+      continue;
+    }
+
+    mappingByGameId.set(game.id, mapping);
+    mappingByEspnId.set(event.espnEventId, mapping);
+    results.push({
+      locktGameId: game.id,
+      match: formatGameMatchLabel(game),
+      espnEventId: event.espnEventId,
+      status: "mapped",
+      reason: `Auto-created mapping for ESPN event ${event.espnEventId}.`,
+    });
+  }
+
+  return { results, mappings: [...mappingByGameId.values()], errors };
+}
+
+async function getWorldCupGames(admin: AdminClient) {
+  const { data, error } = await admin
+    .from("games")
+    .select("id, home_team, away_team, starts_at, status")
+    .eq("league", "World Cup");
+
+  if (error) {
+    return { games: null as WorldCupGameRow[] | null, error: error.message };
+  }
+
+  return { games: data ?? [], error: null };
+}
+
+/**
+ * Auto-map today's World Cup games from the games table to ESPN events.
+ * Persists new rows in espn_match_map; never overwrites existing mappings.
+ */
+export async function autoMapTodaysWorldCupGames(
+  admin: AdminClient,
+  now = new Date(),
+): Promise<EspnAutoMapReport> {
+  const report: EspnAutoMapReport = {
+    scannedGames: 0,
+    fetchedEvents: 0,
+    results: [],
+    errors: [],
+  };
+
+  const { games, error: gamesError } = await getWorldCupGames(admin);
+  if (gamesError || !games) {
+    report.errors.push(gamesError ?? "Unable to load World Cup games.");
+    return report;
+  }
+
+  const todayKey = getTodayLocalDateKey(now, WORLD_CUP_SCHEDULE_TIME_ZONE);
+  const todaysGames = games.filter((game) => isGameOnLocalDate(game, todayKey));
+  report.scannedGames = todaysGames.length;
+
+  if (!todaysGames.length) {
+    return report;
+  }
+
+  const { mappings, error: mapError } = await loadEspnMatchMappings(admin);
+  if (mapError || !mappings) {
+    report.errors.push(mapError ?? "Unable to read espn_match_map.");
+    return report;
+  }
+
+  let events: EspnParsedEvent[];
+  try {
+    events = await fetchEspnWorldCupEventsForDates([todayKey]);
+    report.fetchedEvents = events.length;
+  } catch (error) {
+    report.errors.push(error instanceof Error ? error.message : "Failed to fetch ESPN scoreboard.");
+    return report;
+  }
+
+  const { results, errors } = await autoDiscoverEspnMappingsForGames(
+    admin,
+    todaysGames,
+    mappings,
+    events,
+  );
+
+  report.results = results;
+  report.errors.push(...errors);
+  return report;
+}
+
 /**
  * Sync ESPN scores/status into the games table for every mapped event.
  *
- * NEVER creates rows: it only issues UPDATEs scoped by id + league = 'World Cup'
- * (no insert/upsert). The games table is seeded as the source of truth from the
- * canonical FIFA schedule; if a mapped row does not exist yet, the event is
- * skipped rather than created. Only home_score, away_score, status and
- * updated_at are ever written.
+ * Before updating scores, auto-discovers ESPN mappings for near-live World Cup
+ * games that do not yet have a row in espn_match_map.
  */
 export async function syncEspnWorldCupScores(admin: AdminClient): Promise<EspnSyncSummary> {
   const summary: EspnSyncSummary = {
@@ -239,27 +565,57 @@ export async function syncEspnWorldCupScores(admin: AdminClient): Promise<EspnSy
     updatedGames: 0,
     skipped: [],
     errors: [],
+    autoMapped: [],
   };
+
+  const now = new Date();
+
+  const { games, error: gamesError } = await getWorldCupGames(admin);
+  if (gamesError || !games) {
+    summary.errors.push(gamesError ?? "Unable to load World Cup games.");
+    return summary;
+  }
+
+  const nearLiveGames = games.filter((game) => isNearLiveWorldCupGame(game, now));
+
+  const { mappings: initialMappings, error: mapError } = await loadEspnMatchMappings(admin);
+  if (mapError || !initialMappings) {
+    summary.errors.push(mapError ?? "Unable to read espn_match_map.");
+    return summary;
+  }
+
+  let mappings = initialMappings;
+  const mappedGameIds = new Set(mappings.map((row) => row.lockt_game_id));
+  const unmappedNearLiveGames = nearLiveGames.filter((game) => !mappedGameIds.has(game.id));
 
   let events: EspnParsedEvent[];
   try {
-    events = await fetchEspnWorldCupScoreboard();
+    const dateKeys = collectEspnDatesForGames(
+      unmappedNearLiveGames.length ? unmappedNearLiveGames : nearLiveGames,
+      now,
+    );
+    const datedEvents = dateKeys.length ? await fetchEspnWorldCupEventsForDates(dateKeys) : [];
+    const currentEvents = await fetchEspnWorldCupScoreboard();
+    events = mergeEspnEventsById(datedEvents, currentEvents);
+    summary.fetchedEvents = events.length;
   } catch (error) {
     summary.errors.push(error instanceof Error ? error.message : "Failed to fetch ESPN scoreboard.");
     return summary;
   }
-  summary.fetchedEvents = events.length;
 
-  const { data: mappings, error: mapError } = await admin
-    .from("espn_match_map")
-    .select("lockt_game_id, espn_event_id");
-
-  if (mapError) {
-    summary.errors.push(`Unable to read espn_match_map: ${mapError.message}`);
-    return summary;
+  if (unmappedNearLiveGames.length) {
+    const discovery = await autoDiscoverEspnMappingsForGames(
+      admin,
+      unmappedNearLiveGames,
+      mappings,
+      events,
+    );
+    summary.autoMapped = discovery.results;
+    summary.errors.push(...discovery.errors);
+    mappings = discovery.mappings;
   }
 
-  const gameIdByEspnId = new Map((mappings ?? []).map((row) => [row.espn_event_id, row.lockt_game_id]));
+  const gameIdByEspnId = new Map(mappings.map((row) => [row.espn_event_id, row.lockt_game_id]));
 
   for (const event of events) {
     const locktGameId = gameIdByEspnId.get(event.espnEventId);
@@ -323,54 +679,10 @@ export async function syncEspnWorldCupScores(admin: AdminClient): Promise<EspnSy
 
 // ---- Optional mapping helper (dry-run; never writes) -----------------------
 
-/** Two kickoffs are considered the same match window within this tolerance. */
-const KICKOFF_TOLERANCE_MS = 3 * 60 * 60 * 1000;
-
-/** FIFA-vs-ESPN naming differences that token overlap alone cannot bridge. */
-const TEAM_ALIASES: Record<string, string> = {
-  turkiye: "turkey",
-  cotedivoire: "ivorycoast",
-  czechrepublic: "czechia",
-  korearepublic: "southkorea",
-  irislamicrepubliciran: "iran",
-  iriran: "iran",
-};
-
-const TEAM_STOPWORDS = new Set(["and", "of", "the", "republic", "rep", "ir", "fr"]);
-
-/** Tokenize a team name into comparable parts, applying known aliases. */
-function teamTokens(value: string): Set<string> {
-  const cleaned = value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-  const tokens = cleaned.split(/[^a-z]+/).filter(Boolean);
-  const joined = tokens.join("");
-  if (TEAM_ALIASES[joined]) {
-    return new Set([TEAM_ALIASES[joined]]);
-  }
-  const meaningful = tokens.filter((token) => !TEAM_STOPWORDS.has(token));
-  return new Set(meaningful.length > 0 ? meaningful : tokens);
-}
-
-/** Heuristic: do two team names refer to the same side? Best-effort only. */
-function teamsMatch(a: string, b: string): boolean {
-  const ta = teamTokens(a);
-  const tb = teamTokens(b);
-  if (ta.size === 0 || tb.size === 0) return false;
-  for (const token of ta) {
-    if (tb.has(token)) return true;
-  }
-  const ja = [...ta].join("");
-  const jb = [...tb].join("");
-  return ja === jb || ja.includes(jb) || jb.includes(ja);
-}
-
 /**
  * Propose espn_match_map rows by matching ESPN events to the static schedule on
  * kickoff instant (UTC-safe, within a tolerance) plus both team names. Returns
- * suggestions only — it never writes. Manual review / SQL insert is expected
- * before trusting these.
+ * suggestions only — it never writes.
  */
 export function proposeEspnMatchMappings(
   events: EspnParsedEvent[],
@@ -382,23 +694,23 @@ export function proposeEspnMatchMappings(
     if (!event.homeTeam || !event.awayTeam || !event.date) {
       continue;
     }
-    const espnTime = new Date(event.date).getTime();
-    if (!Number.isFinite(espnTime)) {
-      continue;
-    }
 
     const match = schedule.find((candidate) => {
       const home = candidate.homeTeam;
       const away = candidate.awayTeam;
-      if (!home || !away) return false;
+      if (!home || !away) {
+        return false;
+      }
 
       const iso = getWorldCupKickoffIso(candidate);
-      if (!iso) return false;
-      if (Math.abs(new Date(iso).getTime() - espnTime) > KICKOFF_TOLERANCE_MS) return false;
+      if (!iso) {
+        return false;
+      }
 
-      const direct = teamsMatch(home, event.homeTeam!) && teamsMatch(away, event.awayTeam!);
-      const swapped = teamsMatch(home, event.awayTeam!) && teamsMatch(away, event.homeTeam!);
-      return direct || swapped;
+      return gameMatchesEspnEvent(
+        { home_team: home, away_team: away, starts_at: iso },
+        event,
+      );
     });
 
     if (!match) {
@@ -416,4 +728,91 @@ export function proposeEspnMatchMappings(
   }
 
   return proposals;
+}
+
+type AutoMapCheck = { name: string; pass: boolean; detail: string };
+
+/** Dev-safe checks for ESPN auto-mapping heuristics. */
+export function validateEspnAutoMapping(): { ok: boolean; checks: AutoMapCheck[] } {
+  const checks: AutoMapCheck[] = [];
+
+  const qatarSwitzerlandGame: WorldCupGameRow = {
+    id: "wc-2026-8",
+    home_team: "Qatar",
+    away_team: "Switzerland",
+    starts_at: "2026-06-13T15:00:00-04:00",
+    status: "scheduled",
+  };
+
+  const qatarSwitzerlandEvent: EspnParsedEvent = {
+    espnEventId: "760420",
+    name: "Qatar vs Switzerland",
+    date: "2026-06-13T19:00Z",
+    status: "scheduled",
+    homeScore: 0,
+    awayScore: 0,
+    homeTeam: "Qatar",
+    awayTeam: "Switzerland",
+  };
+
+  const directMatch = gameMatchesEspnEvent(qatarSwitzerlandGame, qatarSwitzerlandEvent);
+  checks.push({
+    name: "wc-2026-8 matches Qatar vs Switzerland ESPN event",
+    pass: directMatch,
+    detail: directMatch ? "matched" : "no match",
+  });
+
+  const swappedEvent: EspnParsedEvent = {
+    ...qatarSwitzerlandEvent,
+    homeTeam: "Switzerland",
+    awayTeam: "Qatar",
+  };
+
+  const swappedMatch = gameMatchesEspnEvent(qatarSwitzerlandGame, swappedEvent);
+  checks.push({
+    name: "wc-2026-8 matches reversed home/away ESPN teams",
+    pass: swappedMatch,
+    detail: swappedMatch ? "matched" : "no match",
+  });
+
+  const farKickoffEvent: EspnParsedEvent = {
+    ...qatarSwitzerlandEvent,
+    date: "2026-06-14T19:00Z",
+  };
+
+  checks.push({
+    name: "wc-2026-8 rejects kickoff outside tolerance",
+    pass: !gameMatchesEspnEvent(qatarSwitzerlandGame, farKickoffEvent),
+    detail: farKickoffEvent.date ?? "null",
+  });
+
+  const duplicateMatches = findEspnEventsForGame(qatarSwitzerlandGame, [
+    qatarSwitzerlandEvent,
+    { ...qatarSwitzerlandEvent, espnEventId: "duplicate" },
+  ]);
+
+  checks.push({
+    name: "duplicate ESPN matches are detectable",
+    pass: duplicateMatches.length === 2,
+    detail: String(duplicateMatches.length),
+  });
+
+  const aliasChecks: Array<[string, string]> = [
+    ["United States", "USMNT"],
+    ["Bosnia and Herzegovina", "Bosnia-Herzegovina"],
+    ["Côte d'Ivoire", "Ivory Coast"],
+    ["Czechia", "Czech Republic"],
+    ["Türkiye", "Turkey"],
+    ["Curacao", "Curaçao"],
+  ];
+
+  for (const [left, right] of aliasChecks) {
+    checks.push({
+      name: `team alias: ${left} / ${right}`,
+      pass: teamsMatch(left, right),
+      detail: teamsMatch(left, right) ? "matched" : "no match",
+    });
+  }
+
+  return { ok: checks.every((check) => check.pass), checks };
 }
