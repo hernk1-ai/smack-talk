@@ -25,6 +25,7 @@ type VideoForm = {
   matchPhase: WorldCupVideoMatchPhase;
   priority: string;
   isActive: boolean;
+  showForAllTeams: boolean;
 };
 
 const emptyForm = (): VideoForm => ({
@@ -37,20 +38,40 @@ const emptyForm = (): VideoForm => ({
   matchPhase: "any",
   priority: "0",
   isActive: true,
+  showForAllTeams: false,
 });
 
 function formFromVideo(video: WorldCupVideo): VideoForm {
+  const showForAllTeams = !video.relatedMatchId && !video.relatedTeam;
+
   return {
     title: video.title,
     youtubeUrl: buildYoutubeWatchUrl(video.youtubeId),
     sourceLabel: video.sourceLabel ?? "",
     category: video.category,
-    relatedMatchId: video.relatedMatchId ?? "",
-    relatedTeam: video.relatedTeam ?? "",
+    relatedMatchId: showForAllTeams ? "" : (video.relatedMatchId ?? ""),
+    relatedTeam: showForAllTeams ? "" : (video.relatedTeam ?? ""),
     matchPhase: video.matchPhase,
     priority: String(video.priority),
     isActive: video.isActive,
+    showForAllTeams,
   };
+}
+
+function formatVideoTargeting(video: WorldCupVideo) {
+  if (!video.relatedMatchId && !video.relatedTeam) {
+    return "All teams";
+  }
+
+  const parts: string[] = [];
+  if (video.relatedMatchId) {
+    parts.push(`Match: ${video.relatedMatchId}`);
+  }
+  if (video.relatedTeam) {
+    parts.push(`Team: ${video.relatedTeam}`);
+  }
+
+  return parts.join(" · ");
 }
 
 export default function WorldCupVideosAdminPage() {
@@ -152,8 +173,8 @@ export default function WorldCupVideosAdminPage() {
       youtubeUrl: form.youtubeUrl,
       sourceLabel: form.sourceLabel || null,
       category: form.category,
-      relatedMatchId: form.relatedMatchId || null,
-      relatedTeam: form.relatedTeam || null,
+      relatedMatchId: form.showForAllTeams ? null : form.relatedMatchId || null,
+      relatedTeam: form.showForAllTeams ? null : form.relatedTeam || null,
       matchPhase: form.matchPhase,
       priority: Number(form.priority) || 0,
       isActive: form.isActive,
@@ -324,17 +345,40 @@ export default function WorldCupVideosAdminPage() {
             </option>
           ))}
         </select>
+        <label className="flex items-start gap-2 rounded-xl border border-white/10 bg-black/35 p-3">
+          <input
+            type="checkbox"
+            checked={form.showForAllTeams}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                showForAllTeams: event.target.checked,
+                relatedMatchId: event.target.checked ? "" : current.relatedMatchId,
+                relatedTeam: event.target.checked ? "" : current.relatedTeam,
+              }))
+            }
+            className="mt-0.5"
+          />
+          <span>
+            <span className="block text-sm font-semibold text-gray-300">Show for all teams</span>
+            <span className="mt-1 block text-xs font-semibold text-gray-500">
+              Use this video across every World Cup Game Room.
+            </span>
+          </span>
+        </label>
         <input
           value={form.relatedMatchId}
           onChange={(event) => setForm((current) => ({ ...current, relatedMatchId: event.target.value }))}
           placeholder="Related match id (wc-2026-3)"
-          className="w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm"
+          disabled={form.showForAllTeams}
+          className="w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
         />
         <input
           value={form.relatedTeam}
           onChange={(event) => setForm((current) => ({ ...current, relatedTeam: event.target.value }))}
           placeholder="Related team (Canada)"
-          className="w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm"
+          disabled={form.showForAllTeams}
+          className="w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
         />
         <label className="flex items-center gap-2 text-sm font-semibold text-gray-300">
           <input
@@ -388,8 +432,8 @@ export default function WorldCupVideosAdminPage() {
                 <p className="mt-1 text-xs text-gray-500">
                   {WORLD_CUP_VIDEO_PHASE_OPTIONS.find((option) => option.value === video.matchPhase)?.label ??
                     video.matchPhase}
-                  {video.relatedMatchId ? ` · Match: ${video.relatedMatchId}` : ""}
-                  {video.relatedTeam ? ` · Team: ${video.relatedTeam}` : ""}
+                  {" · "}
+                  {formatVideoTargeting(video)}
                 </p>
               </div>
               <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
