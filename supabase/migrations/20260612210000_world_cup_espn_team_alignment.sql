@@ -1,0 +1,8 @@
+-- World Cup home/away ordering follows ESPN competitor data.
+--
+-- Seeded games already use FIFA fixture order, which matches ESPN home/away for
+-- mapped fixtures. If a live games row drifts, correct it with:
+--   POST /api/admin/sync-espn?mode=align-teams
+--
+-- The live ESPN sync also re-aligns mapped games before writing scores so
+-- home_score / away_score always map to ESPN home / away competitors.

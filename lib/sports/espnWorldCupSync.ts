@@ -7,6 +7,12 @@ import {
   type WorldCupMatch,
 } from "@/data/worldCupSchedule";
 import { teamsMatch } from "@/lib/sports/espnTeamNames";
+import {
+  buildAlignedScorePatch,
+  getEspnTeamAlignment,
+  parseEspnAtEventName,
+  resolveEspnTeams,
+} from "@/lib/sports/espnTeamAlignment";
 import type { Database } from "@/lib/supabase/types";
 
 type AdminClient = SupabaseClient<Database>;
@@ -15,6 +21,8 @@ type WorldCupGameRow = Pick<
   Database["public"]["Tables"]["games"]["Row"],
   "id" | "home_team" | "away_team" | "starts_at" | "status"
 >;
+type WorldCupGameWithScores = WorldCupGameRow &
+  Pick<Database["public"]["Tables"]["games"]["Row"], "home_score" | "away_score">;
 type EspnMatchMapRow = Database["public"]["Tables"]["espn_match_map"]["Row"];
 
 export const ESPN_WORLD_CUP_SCOREBOARD_URL =
@@ -93,6 +101,21 @@ export type EspnAutoMapReport = {
   scannedGames: number;
   fetchedEvents: number;
   results: EspnAutoMapResult[];
+  errors: string[];
+};
+
+export type EspnTeamAlignResult = {
+  locktGameId: string;
+  match: string;
+  espnEventId?: string;
+  status: "aligned" | "swapped" | "unchanged" | "failed" | "skipped";
+  reason: string;
+};
+
+export type EspnTeamAlignReport = {
+  scannedMappings: number;
+  fetchedEvents: number;
+  results: EspnTeamAlignResult[];
   errors: string[];
 };
 
@@ -552,6 +575,320 @@ export async function autoMapTodaysWorldCupGames(
   return report;
 }
 
+async function swapRootingVotesForGame(admin: AdminClient, gameId: string) {
+  const { data: votes, error } = await admin
+    .from("match_rooting_votes")
+    .select("id, team_key")
+    .eq("game_id", gameId);
+
+  if (error) {
+    return { error: error.message, swapped: 0 };
+  }
+
+  let swapped = 0;
+  for (const vote of votes ?? []) {
+    if (vote.team_key !== "home" && vote.team_key !== "away") {
+      continue;
+    }
+
+    const nextKey = vote.team_key === "home" ? "away" : "home";
+    const { error: updateError } = await admin
+      .from("match_rooting_votes")
+      .update({ team_key: nextKey })
+      .eq("id", vote.id);
+
+    if (updateError) {
+      return { error: updateError.message, swapped };
+    }
+
+    swapped += 1;
+  }
+
+  return { error: null, swapped };
+}
+
+async function syncMatchPickTeamsForGame(
+  admin: AdminClient,
+  gameId: string,
+  homeTeam: string,
+  awayTeam: string,
+  swapped: boolean,
+) {
+  const { data: picks, error } = await admin
+    .from("match_picks")
+    .select("id, home_score, away_score")
+    .eq("match_id", gameId);
+
+  if (error) {
+    return { error: error.message, updated: 0 };
+  }
+
+  let updated = 0;
+  for (const pick of picks ?? []) {
+    const patch: Database["public"]["Tables"]["match_picks"]["Update"] = {
+      home_team: homeTeam,
+      away_team: awayTeam,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (
+      swapped &&
+      pick.home_score !== null &&
+      pick.away_score !== null
+    ) {
+      patch.home_score = pick.away_score;
+      patch.away_score = pick.home_score;
+    }
+
+    const { error: updateError } = await admin.from("match_picks").update(patch).eq("id", pick.id);
+    if (updateError) {
+      return { error: updateError.message, updated };
+    }
+
+    updated += 1;
+  }
+
+  return { error: null, updated };
+}
+
+async function applyEspnTeamAlignmentToGame(
+  admin: AdminClient,
+  game: WorldCupGameWithScores,
+  event: EspnParsedEvent,
+  options: { applyScores?: boolean } = {},
+): Promise<EspnTeamAlignResult> {
+  const applyScores = options.applyScores ?? true;
+  const alignment = getEspnTeamAlignment(game, event);
+  const label = `${game.home_team} vs ${game.away_team}`;
+
+  if (!alignment.confident) {
+    return {
+      locktGameId: game.id,
+      match: label,
+      espnEventId: event.espnEventId,
+      status: "failed",
+      reason: alignment.reason,
+    };
+  }
+
+  const namesChanged =
+    game.home_team !== alignment.espnHomeTeam || game.away_team !== alignment.espnAwayTeam;
+  const scores = buildAlignedScorePatch(game, alignment, event);
+  const statusPatch = event.status ?? undefined;
+
+  const scoreChanged =
+    scores.homeScore !== game.home_score || scores.awayScore !== game.away_score;
+  const hasEspnScores = event.homeScore !== null || event.awayScore !== null;
+
+  if (!alignment.needsSwap && !namesChanged) {
+    if (!applyScores || (!scoreChanged && !hasEspnScores && statusPatch === undefined)) {
+      return {
+        locktGameId: game.id,
+        match: label,
+        espnEventId: event.espnEventId,
+        status: "unchanged",
+        reason: alignment.reason,
+      };
+    }
+
+    const patch: GameUpdate = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (applyScores && hasEspnScores) {
+      patch.home_score = scores.homeScore;
+      patch.away_score = scores.awayScore;
+    }
+
+    if (statusPatch !== undefined) {
+      patch.status = statusPatch;
+    }
+
+    const { error: gameError } = await admin
+      .from("games")
+      .update(patch)
+      .eq("id", game.id)
+      .eq("league", "World Cup");
+
+    if (gameError) {
+      return {
+        locktGameId: game.id,
+        match: label,
+        espnEventId: event.espnEventId,
+        status: "failed",
+        reason: gameError.message,
+      };
+    }
+
+    return {
+      locktGameId: game.id,
+      match: label,
+      espnEventId: event.espnEventId,
+      status: "aligned",
+      reason: "Updated ESPN scores/status.",
+    };
+  }
+
+  const patch: GameUpdate = {
+    home_team: alignment.espnHomeTeam,
+    away_team: alignment.espnAwayTeam,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (applyScores && hasEspnScores) {
+    patch.home_score = scores.homeScore;
+    patch.away_score = scores.awayScore;
+  } else if (alignment.needsSwap) {
+    patch.home_score = scores.homeScore;
+    patch.away_score = scores.awayScore;
+  }
+
+  if (statusPatch !== undefined) {
+    patch.status = statusPatch;
+  }
+
+  const { error: gameError } = await admin
+    .from("games")
+    .update(patch)
+    .eq("id", game.id)
+    .eq("league", "World Cup");
+
+  if (gameError) {
+    return {
+      locktGameId: game.id,
+      match: label,
+      espnEventId: event.espnEventId,
+      status: "failed",
+      reason: gameError.message,
+    };
+  }
+
+  if (alignment.needsSwap) {
+    const { error: rootingError } = await swapRootingVotesForGame(admin, game.id);
+    if (rootingError) {
+      return {
+        locktGameId: game.id,
+        match: label,
+        espnEventId: event.espnEventId,
+        status: "failed",
+        reason: `Aligned teams but failed to migrate rooting votes: ${rootingError}`,
+      };
+    }
+  }
+
+  const { error: picksError } = await syncMatchPickTeamsForGame(
+    admin,
+    game.id,
+    alignment.espnHomeTeam,
+    alignment.espnAwayTeam,
+    alignment.needsSwap,
+  );
+
+  if (picksError) {
+    return {
+      locktGameId: game.id,
+      match: label,
+      espnEventId: event.espnEventId,
+      status: "failed",
+      reason: `Aligned teams but failed to update match picks: ${picksError}`,
+    };
+  }
+
+  return {
+    locktGameId: game.id,
+    match: label,
+    espnEventId: event.espnEventId,
+    status: alignment.needsSwap ? "swapped" : "aligned",
+    reason: alignment.reason,
+  };
+}
+
+/**
+ * Align mapped World Cup games to ESPN home/away ordering.
+ * Only updates games with a row in espn_match_map and a resolvable ESPN event.
+ */
+export async function alignMappedWorldCupGamesToEspn(admin: AdminClient): Promise<EspnTeamAlignReport> {
+  const report: EspnTeamAlignReport = {
+    scannedMappings: 0,
+    fetchedEvents: 0,
+    results: [],
+    errors: [],
+  };
+
+  const { mappings, error: mapError } = await loadEspnMatchMappings(admin);
+  if (mapError || !mappings) {
+    report.errors.push(mapError ?? "Unable to read espn_match_map.");
+    return report;
+  }
+
+  report.scannedMappings = mappings.length;
+  if (!mappings.length) {
+    return report;
+  }
+
+  const locktGameIds = mappings.map((row) => row.lockt_game_id);
+  const { data: games, error: gamesError } = await admin
+    .from("games")
+    .select("id, home_team, away_team, starts_at, status, home_score, away_score")
+    .eq("league", "World Cup")
+    .in("id", locktGameIds);
+
+  if (gamesError || !games) {
+    report.errors.push(gamesError?.message ?? "Unable to load mapped World Cup games.");
+    return report;
+  }
+
+  const gamesById = new Map(games.map((game) => [game.id, game]));
+  const dateKeys = collectEspnDatesForGames(games);
+
+  let events: EspnParsedEvent[];
+  try {
+    const datedEvents = dateKeys.length ? await fetchEspnWorldCupEventsForDates(dateKeys) : [];
+    const currentEvents = await fetchEspnWorldCupScoreboard();
+    events = mergeEspnEventsById(datedEvents, currentEvents);
+    report.fetchedEvents = events.length;
+  } catch (error) {
+    report.errors.push(error instanceof Error ? error.message : "Failed to fetch ESPN scoreboard.");
+    return report;
+  }
+
+  const eventsById = new Map(events.map((event) => [event.espnEventId, event]));
+
+  for (const mapping of mappings) {
+    const game = gamesById.get(mapping.lockt_game_id);
+    if (!game) {
+      report.results.push({
+        locktGameId: mapping.lockt_game_id,
+        match: mapping.espn_event_name ?? mapping.lockt_game_id,
+        espnEventId: mapping.espn_event_id,
+        status: "skipped",
+        reason: "No matching World Cup games row.",
+      });
+      continue;
+    }
+
+    const event = eventsById.get(mapping.espn_event_id);
+    if (!event) {
+      report.results.push({
+        locktGameId: game.id,
+        match: `${game.home_team} vs ${game.away_team}`,
+        espnEventId: mapping.espn_event_id,
+        status: "skipped",
+        reason: "Mapped ESPN event not found in fetched scoreboard window.",
+      });
+      continue;
+    }
+
+    const result = await applyEspnTeamAlignmentToGame(admin, game, event);
+    report.results.push(result);
+    if (result.status === "failed") {
+      report.errors.push(`${game.id}: ${result.reason}`);
+    }
+  }
+
+  return report;
+}
+
 /**
  * Sync ESPN scores/status into the games table for every mapped event.
  *
@@ -585,8 +922,8 @@ export async function syncEspnWorldCupScores(admin: AdminClient): Promise<EspnSy
   }
 
   let mappings = initialMappings;
-  const mappedGameIds = new Set(mappings.map((row) => row.lockt_game_id));
-  const unmappedNearLiveGames = nearLiveGames.filter((game) => !mappedGameIds.has(game.id));
+  const mappedGameIdSet = new Set(mappings.map((row) => row.lockt_game_id));
+  const unmappedNearLiveGames = nearLiveGames.filter((game) => !mappedGameIdSet.has(game.id));
 
   let events: EspnParsedEvent[];
   try {
@@ -616,6 +953,19 @@ export async function syncEspnWorldCupScores(admin: AdminClient): Promise<EspnSy
   }
 
   const gameIdByEspnId = new Map(mappings.map((row) => [row.espn_event_id, row.lockt_game_id]));
+  const mappedGameIds = [...new Set(mappings.map((row) => row.lockt_game_id))];
+  const { data: mappedGames, error: mappedGamesError } = await admin
+    .from("games")
+    .select("id, home_team, away_team, starts_at, status, home_score, away_score")
+    .eq("league", "World Cup")
+    .in("id", mappedGameIds);
+
+  if (mappedGamesError) {
+    summary.errors.push(`Unable to load mapped games: ${mappedGamesError.message}`);
+    return summary;
+  }
+
+  const gamesById = new Map((mappedGames ?? []).map((game) => [game.id, game]));
 
   for (const event of events) {
     const locktGameId = gameIdByEspnId.get(event.espnEventId);
@@ -626,43 +976,8 @@ export async function syncEspnWorldCupScores(admin: AdminClient): Promise<EspnSy
 
     summary.mappedEvents += 1;
 
-    const patch: GameUpdate = { updated_at: new Date().toISOString() };
-    if (event.homeScore !== null) {
-      patch.home_score = event.homeScore;
-    }
-    if (event.awayScore !== null) {
-      patch.away_score = event.awayScore;
-    }
-    if (event.status !== null) {
-      patch.status = event.status;
-    }
-
-    const hasMeaningfulUpdate =
-      patch.home_score !== undefined || patch.away_score !== undefined || patch.status !== undefined;
-
-    if (!hasMeaningfulUpdate) {
-      summary.skipped.push({
-        espnEventId: event.espnEventId,
-        locktGameId,
-        reason: "No parseable score or status from ESPN.",
-      });
-      continue;
-    }
-
-    const { data, error } = await admin
-      .from("games")
-      .update(patch)
-      .eq("id", locktGameId)
-      .eq("league", "World Cup")
-      .select("id")
-      .maybeSingle();
-
-    if (error) {
-      summary.errors.push(`${locktGameId}: ${error.message}`);
-      continue;
-    }
-
-    if (!data) {
+    const game = gamesById.get(locktGameId);
+    if (!game) {
       summary.skipped.push({
         espnEventId: event.espnEventId,
         locktGameId,
@@ -670,6 +985,30 @@ export async function syncEspnWorldCupScores(admin: AdminClient): Promise<EspnSy
       });
       continue;
     }
+
+    const alignmentResult = await applyEspnTeamAlignmentToGame(admin, game, event);
+    if (alignmentResult.status === "failed") {
+      summary.errors.push(`${locktGameId}: ${alignmentResult.reason}`);
+      continue;
+    }
+
+    if (alignmentResult.status === "unchanged") {
+      summary.skipped.push({
+        espnEventId: event.espnEventId,
+        locktGameId,
+        reason: "No team, score, or status changes from ESPN.",
+      });
+      continue;
+    }
+
+    gamesById.set(locktGameId, {
+      ...game,
+      home_team: event.homeTeam ?? game.home_team,
+      away_team: event.awayTeam ?? game.away_team,
+      home_score: event.homeScore ?? game.home_score,
+      away_score: event.awayScore ?? game.away_score,
+      status: event.status ?? game.status,
+    });
 
     summary.updatedGames += 1;
   }

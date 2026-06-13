@@ -9,6 +9,7 @@ import {
 } from "@/lib/admin/secret";
 import { enforceRateLimit, jsonError } from "@/lib/security/api";
 import {
+  alignMappedWorldCupGamesToEspn,
   autoMapTodaysWorldCupGames,
   fetchEspnWorldCupEventsForDates,
   proposeEspnMatchMappings,
@@ -74,6 +75,11 @@ export async function POST(request: Request) {
   if (mode === "auto-map-today") {
     const report = await autoMapTodaysWorldCupGames(admin);
     return NextResponse.json({ mode: "auto-map-today", report });
+  }
+
+  if (mode === "align-teams") {
+    const report = await alignMappedWorldCupGamesToEspn(admin);
+    return NextResponse.json({ mode: "align-teams", report });
   }
 
   const summary = await syncEspnWorldCupScores(admin);
