@@ -795,7 +795,8 @@ function MatchHubFollowLockt() {
       <SocialLinks
         embedded
         compact
-        subtext="World Cup matches, schedule updates, and Game Room links."
+        withPlatformTaglines
+        subtext="Follow Lockt for match alerts, highlights, and Game Room updates."
       />
     </FeedSection>
   );

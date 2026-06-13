@@ -6,19 +6,20 @@ type SocialLinksProps = {
   embedded?: boolean;
   heading?: string;
   subtext?: string;
+  withPlatformTaglines?: boolean;
 };
 
 type SocialLinkDef = {
   platform: SocialPlatform;
   label: string;
   href: string;
+  tagline: string;
 };
 
 const linkDefs: SocialLinkDef[] = [
-  { platform: "x", label: "X", href: socialLinks.x },
-  { platform: "instagram", label: "Instagram", href: socialLinks.instagram },
-  { platform: "tiktok", label: "TikTok", href: socialLinks.tiktok },
-  { platform: "discord", label: "Discord", href: socialLinks.discord },
+  { platform: "x", label: "X", href: socialLinks.x, tagline: "Live match reactions" },
+  { platform: "instagram", label: "Instagram", href: socialLinks.instagram, tagline: "Highlights & updates" },
+  { platform: "discord", label: "Discord", href: socialLinks.discord, tagline: "Watch with the community" },
 ];
 
 export function SocialLinks({
@@ -27,9 +28,12 @@ export function SocialLinks({
   embedded = false,
   heading = "Follow Lockt",
   subtext = "World Cup calls, group breakdowns, receipt drops, and tournament storylines.",
+  withPlatformTaglines = false,
 }: SocialLinksProps) {
+  const gridClass = "grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3";
+
   const links = (
-    <div className={`grid gap-2 ${compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-4"} ${embedded ? "" : "mt-4"}`}>
+    <div className={`${gridClass} ${embedded ? "" : "mt-4"}`}>
       {linkDefs.map((link) => (
         <a
           key={link.platform}
@@ -37,9 +41,20 @@ export function SocialLinks({
           target="_blank"
           rel="noopener noreferrer"
           aria-label={`Follow Lockt on ${link.label}`}
-          className="group inline-flex min-h-11 items-center justify-between gap-2 rounded-xl border border-white/10 bg-[var(--surface-card)] px-3 py-2 text-xs font-black uppercase tracking-[0.1em] text-white transition hover:border-lime-300/45 hover:text-lime-200"
+          className={`group rounded-xl border border-white/10 bg-[var(--surface-card)] px-3 py-2 text-white transition hover:border-lime-300/45 hover:text-lime-200 ${
+            withPlatformTaglines
+              ? "flex min-h-[4.5rem] flex-col items-start justify-center gap-1 py-3"
+              : "inline-flex min-h-11 items-center justify-between gap-2 text-xs font-black uppercase tracking-[0.1em]"
+          }`}
         >
-          <span>{link.label}</span>
+          <span className={withPlatformTaglines ? "text-xs font-black uppercase tracking-[0.1em]" : ""}>
+            {link.label}
+          </span>
+          {withPlatformTaglines ? (
+            <span className="text-[11px] font-semibold normal-case tracking-normal text-gray-400 transition group-hover:text-lime-200/85">
+              {link.tagline}
+            </span>
+          ) : null}
         </a>
       ))}
     </div>
