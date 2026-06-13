@@ -10,6 +10,7 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { avatarOptions, isImageAvatar, normalizeAvatarKey, serializeAvatarKey, type AvatarKey } from "@/lib/avatar";
 import { ensurePushSubscription } from "@/lib/push/subscription";
 import { getInAppNotificationsEnabled, getSoundMutedPreference, setInAppNotificationsEnabled, setSoundMutedPreference } from "@/lib/preferences";
+import { SHOW_RECEIPTS_PAGE } from "@/lib/productConfig";
 import { createClient } from "@/lib/supabase/client";
 import { getMyNotificationPreferences, updateMyNotificationPreferences, type NotificationPreferences } from "@/lib/supabase/notificationPreferences";
 import type { Profile } from "@/lib/supabase/types";
@@ -189,12 +190,14 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
                 <p className="mt-2 text-sm font-semibold text-gray-400">Account, profile, privacy, and session.</p>
               </div>
             </div>
-            <Link
-              href="/receipts"
-              className="min-h-11 rounded-2xl border border-purple-300/35 bg-purple-500/10 px-4 py-3 text-center text-xs font-black uppercase tracking-[0.12em] text-purple-200 transition hover:-translate-y-0.5 hover:bg-purple-500/15 active:scale-95"
-            >
-              Back to Receipts
-            </Link>
+            {SHOW_RECEIPTS_PAGE ? (
+              <Link
+                href="/receipts"
+                className="min-h-11 rounded-2xl border border-purple-300/35 bg-purple-500/10 px-4 py-3 text-center text-xs font-black uppercase tracking-[0.12em] text-purple-200 transition hover:-translate-y-0.5 hover:bg-purple-500/15 active:scale-95"
+              >
+                Back to Receipts
+              </Link>
+            ) : null}
           </div>
         </section>
 
@@ -240,7 +243,7 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
           <SettingsCard title="Preferences" eyebrow="Controls">
             <ToggleRow
               title="Sounds"
-              copy="Play LOCKT sounds for lock, ride/fade, replies, and follows."
+              copy="Play LOCKT sounds for match activity and notifications."
               enabled={soundsEnabled}
               onToggle={(enabled) => {
                 setSoundsEnabled(enabled);
@@ -260,7 +263,7 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="text-sm font-black uppercase tracking-[0.1em] text-white">Push notifications</p>
-                  <p className="mt-1 text-xs font-semibold leading-5 text-gray-400">Get browser alerts for follows, replies, reactions, and receipts.</p>
+                  <p className="mt-1 text-xs font-semibold leading-5 text-gray-400">Get browser alerts for follows, replies, reactions, and match activity.</p>
                 </div>
                 <button
                   type="button"
@@ -274,7 +277,7 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
             </div>
             <div className="rounded-2xl border border-white/10 bg-black/35 p-3">
               <p className="text-sm font-black uppercase tracking-[0.1em] text-white">Notification Types</p>
-              <p className="mt-1 text-xs font-semibold leading-5 text-gray-400">Choose the updates you want from follows, replies, reactions, and receipts.</p>
+              <p className="mt-1 text-xs font-semibold leading-5 text-gray-400">Choose the updates you want from follows, replies, reactions, and match activity.</p>
               <div className="mt-3 grid gap-2">
                 <ToggleRow
                   title="Follows"
@@ -295,8 +298,8 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
                   onToggle={(enabled) => setNotificationPrefs((current) => ({ ...current, reactions_enabled: enabled }))}
                 />
                 <ToggleRow
-                  title="Receipts"
-                  copy="Pick and receipt status updates."
+                  title="Match activity"
+                  copy="Pick results and match updates."
                   enabled={notificationPrefs.receipts_enabled}
                   onToggle={(enabled) => setNotificationPrefs((current) => ({ ...current, receipts_enabled: enabled }))}
                 />
@@ -335,8 +338,8 @@ export function SettingsPage({ email, profile }: { email?: string | null; profil
               <p className="text-sm font-black uppercase tracking-[0.1em] text-white">Account Privacy</p>
               <p className="mt-1 text-xs font-semibold text-gray-400">
                 {accountVisibility === "public"
-                  ? "Anyone can view your profile, follow you, and see your public receipts."
-                  : "Only approved followers can view your receipts."}
+                  ? "Anyone can view your profile, follow you, and see your public match activity."
+                  : "Only approved followers can view your match activity."}
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <button
@@ -400,7 +403,7 @@ function SettingsHeader({ profile, avatarUrl }: { profile?: Profile | null; avat
   const username = profile?.username || "LOCKT";
   void avatarUrl;
 
-  return <AppHeader profile={profile} subtitle="Account settings. Keep your identity clean." rightAriaLabel={`${username} settings`} />;
+  return <AppHeader profile={profile} subtitle="Manage your account and profile." rightAriaLabel={`${username} settings`} />;
 }
 
 function ProfilePictureSettings({
