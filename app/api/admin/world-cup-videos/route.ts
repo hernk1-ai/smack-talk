@@ -10,6 +10,7 @@ import {
   listActiveWorldCupVideos,
   updateWorldCupVideo,
   updateWorldCupVideoActive,
+  updateWorldCupVideoForMatchHub,
   WORLD_CUP_VIDEO_CATEGORIES,
   type WorldCupVideoCategory,
   type WorldCupVideoInput,
@@ -251,6 +252,18 @@ export async function PATCH(request: Request) {
   const { admin, error: adminError } = getAdminOrError();
   if (adminError || !admin) {
     return adminError ?? jsonError("Supabase is not configured.", 503);
+  }
+
+  const setForMatchHub =
+    body?.setForMatchHub === true || body?.set_for_match_hub === true;
+
+  if (setForMatchHub) {
+    const { video, error } = await updateWorldCupVideoForMatchHub(admin, id);
+    if (error || !video) {
+      return jsonError(error ?? "Unable to update video.", 400);
+    }
+
+    return NextResponse.json({ video });
   }
 
   if (isFullVideoUpdate(body)) {

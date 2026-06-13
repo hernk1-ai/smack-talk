@@ -56,6 +56,26 @@ const MATCH_HUB_NEWS_CATEGORY_PRIORITY: Record<MatchHubNewsCategory, number> = {
   general: 1,
 };
 
+const MATCH_HUB_PRESERVED_CATEGORIES = ["injury", "press_conference", "news"] as const;
+
+export function resolveMatchHubNewsDeskCategory(category: WorldCupVideoCategory): WorldCupVideoCategory {
+  if ((MATCH_HUB_PRESERVED_CATEGORIES as readonly string[]).includes(category)) {
+    return category;
+  }
+
+  return "news";
+}
+
+export function isMatchHubNewsDeskEligible(video: WorldCupVideo): boolean {
+  return (
+    video.isActive &&
+    (MATCH_HUB_NEWS_CATEGORIES as readonly string[]).includes(video.category) &&
+    !video.relatedMatchId &&
+    !video.relatedTeam &&
+    video.matchPhase === "any"
+  );
+}
+
 export type WorldCupVideo = {
   id: string;
   title: string;
@@ -440,6 +460,45 @@ export async function updateWorldCupVideoActive(admin: AdminClient, id: string, 
     .from("world_cup_videos")
     .update({ is_active: isActive })
     .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) {
+    return { video: null as WorldCupVideo | null, error: error.message };
+  }
+
+  return { video: mapRow(data), error: null };
+}
+
+export async function updateWorldCupVideoForMatchHub(admin: AdminClient, id: string) {
+  const trimmedId = id.trim();
+  if (!trimmedId) {
+    return { video: null as WorldCupVideo | null, error: "Video id is required." };
+  }
+
+  const { data: existing, error: fetchError } = await admin
+    .from("world_cup_videos")
+    .select("*")
+    .eq("id", trimmedId)
+    .single();
+
+  if (fetchError || !existing) {
+    return { video: null as WorldCupVideo | null, error: fetchError?.message ?? "Video not found." };
+  }
+
+  const category = resolveMatchHubNewsDeskCategory(existing.category as WorldCupVideoCategory);
+
+  const { data, error } = await admin
+    .from("world_cup_videos")
+    .update({
+      category,
+      related_match_id: null,
+      related_team: null,
+      is_active: true,
+      priority: 100,
+      match_phase: "any",
+    })
+    .eq("id", trimmedId)
     .select("*")
     .single();
 

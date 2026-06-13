@@ -9,6 +9,7 @@ import {
 import {
   WORLD_CUP_VIDEO_CATEGORY_OPTIONS,
   WORLD_CUP_VIDEO_CATEGORY_LABELS,
+  isMatchHubNewsDeskEligible,
   type WorldCupVideo,
   type WorldCupVideoCategory,
 } from "@/lib/worldCup/worldCupVideos";
@@ -86,6 +87,8 @@ export default function WorldCupVideosAdminPage() {
   const [saving, setSaving] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [formMessage, setFormMessage] = useState<string | null>(null);
+  const [catalogMessage, setCatalogMessage] = useState<string | null>(null);
+  const [matchHubSettingId, setMatchHubSettingId] = useState<string | null>(null);
 
   const loadVideos = useCallback(async (activeSecret: string) => {
     setLoading(true);
@@ -239,6 +242,37 @@ export default function WorldCupVideosAdminPage() {
       }
     } catch {
       setGlobalError("Network error while updating video.");
+    }
+  };
+
+  const setForMatchHub = async (video: WorldCupVideo) => {
+    setMatchHubSettingId(video.id);
+    setCatalogMessage(null);
+    setGlobalError(null);
+
+    try {
+      const res = await fetch("/api/admin/world-cup-videos", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-admin-secret": secret },
+        body: JSON.stringify({ id: video.id, setForMatchHub: true }),
+      });
+
+      const data = (await res.json().catch(() => null)) as { video?: WorldCupVideo; error?: string } | null;
+      if (!res.ok || !data?.video) {
+        setGlobalError(data?.error ?? "Unable to update video.");
+        return;
+      }
+
+      await loadVideos(secret);
+      setCatalogMessage("Video set for Match Hub.");
+
+      if (editingVideoId === video.id) {
+        setForm(formFromVideo(data.video));
+      }
+    } catch {
+      setGlobalError("Network error while updating video.");
+    } finally {
+      setMatchHubSettingId(null);
     }
   };
 
@@ -413,6 +447,7 @@ export default function WorldCupVideosAdminPage() {
 
       <section className="mt-8 space-y-3">
         <p className="text-[10px] font-black uppercase tracking-[0.12em] text-purple-300">Catalog</p>
+        {catalogMessage ? <p className="text-sm text-lime-300">{catalogMessage}</p> : null}
         {loading ? <p className="text-sm text-gray-400">Loading videos…</p> : null}
         {globalError ? <p className="text-sm text-red-300">{globalError}</p> : null}
         {!loading && !videos.length ? <p className="text-sm text-gray-400">No videos yet.</p> : null}
@@ -425,7 +460,14 @@ export default function WorldCupVideosAdminPage() {
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-black text-white">{video.title}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-black text-white">{video.title}</p>
+                  {isMatchHubNewsDeskEligible(video) ? (
+                    <span className="rounded-md border border-lime-300/35 bg-lime-400/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-lime-200">
+                      Match Hub
+                    </span>
+                  ) : null}
+                </div>
                 <p className="mt-1 text-xs text-gray-400">
                   {WORLD_CUP_VIDEO_CATEGORY_LABELS[video.category] ?? video.category}
                   {video.sourceLabel ? ` · ${video.sourceLabel}` : ""} · priority {video.priority}
@@ -438,6 +480,14 @@ export default function WorldCupVideosAdminPage() {
                 </p>
               </div>
               <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => void setForMatchHub(video)}
+                  disabled={matchHubSettingId === video.id}
+                  className="rounded-lg border border-purple-300/40 bg-purple-500/10 px-3 py-1 text-[10px] font-black uppercase text-purple-200 transition hover:border-purple-300/70 hover:text-purple-100 disabled:opacity-60"
+                >
+                  {matchHubSettingId === video.id ? "Saving..." : "Match Hub"}
+                </button>
                 <button
                   type="button"
                   onClick={() => startEdit(video)}
