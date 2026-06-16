@@ -1,7 +1,7 @@
 import Image, { StaticImageData } from "next/image";
 import mobilePreviewBacking from "@/public/marketing/mobile-preview-backing.jpg";
 import mobilePreviewCountdown from "@/public/marketing/mobile-preview-countdown.jpg";
-import mobilePreviewSchedule from "@/public/marketing/mobile-preview-schedule.png";
+import mobilePreviewSchedule from "@/public/marketing/mobile-preview-schedule-new.jpg";
 
 type Preview = {
   src: StaticImageData;
@@ -15,7 +15,7 @@ const PREVIEWS: Preview[] = [
     src: mobilePreviewCountdown,
     alt: "Lockt match hub countdown to the next match with join game room and view schedule actions",
     label: "Match Hub",
-    caption: "Join the Game Room before kickoff and lock in your side.",
+    caption: "Check when the next match starts. Find the latest World Cup news!",
   },
   {
     src: mobilePreviewSchedule,
