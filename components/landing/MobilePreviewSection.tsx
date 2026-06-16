@@ -1,7 +1,10 @@
-import Image from "next/image";
+import Image, { StaticImageData } from "next/image";
+import mobilePreviewBacking from "@/public/marketing/mobile-preview-backing.jpg";
+import mobilePreviewCountdown from "@/public/marketing/mobile-preview-countdown.jpg";
+import mobilePreviewSchedule from "@/public/marketing/mobile-preview-schedule.png";
 
 type Preview = {
-  src: string;
+  src: StaticImageData;
   alt: string;
   label: string;
   caption: string;
@@ -9,22 +12,22 @@ type Preview = {
 
 const PREVIEWS: Preview[] = [
   {
-    src: "/marketing/mobile-preview-game-room.png",
-    alt: "Lockt Game Room live scoreboard showing Mexico 2 – South Africa 0",
-    label: "Game Room",
-    caption: "Live scoreboard, updated as the match plays out.",
+    src: mobilePreviewCountdown,
+    alt: "Lockt match hub countdown to the next match with join game room and view schedule actions",
+    label: "Match Hub",
+    caption: "Join the Game Room before kickoff and lock in your side.",
   },
   {
-    src: "/marketing/mobile-preview-schedule.png",
+    src: mobilePreviewSchedule,
     alt: "Lockt World Cup 2026 schedule with upcoming matches",
     label: "Schedule",
     caption: "Find a match, open its room, and make your call.",
   },
   {
-    src: "/marketing/mobile-preview-game-room-live.png",
-    alt: "Lockt Game Room live match showing Paraguay 0 – United States 2 with fan backing",
+    src: mobilePreviewBacking,
+    alt: "Lockt game room showing United States versus Paraguay with room backing and fan voting",
     label: "Game Room",
-    caption: "React live and root for your team with friends and family.",
+    caption: "Back your side live and see the room momentum shift in real time.",
   },
 ];
 
@@ -44,13 +47,11 @@ export function MobilePreviewSection() {
 
         <ul className="mx-auto mt-10 grid max-w-5xl gap-6 sm:grid-cols-3">
           {PREVIEWS.map((preview) => (
-            <li key={preview.src} className="flex flex-col items-center">
+            <li key={preview.alt} className="flex flex-col items-center">
               <div className="w-full max-w-[280px] overflow-hidden rounded-[1.75rem] border border-white/12 bg-black/45 p-2 shadow-[0_22px_60px_rgba(0,0,0,0.45)]">
                 <Image
                   src={preview.src}
                   alt={preview.alt}
-                  width={472}
-                  height={1024}
                   sizes="(min-width: 640px) 280px, 80vw"
                   className="h-auto w-full rounded-[1.25rem]"
                 />
