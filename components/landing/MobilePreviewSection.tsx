@@ -21,8 +21,8 @@ const PREVIEWS: Preview[] = [
     caption: "Find a match, open its room, and make your call.",
   },
   {
-    src: "/marketing/mobile-preview-rooting.png",
-    alt: "Lockt Game Room rooting view with fans backing their team",
+    src: "/marketing/mobile-preview-game-room-live.png",
+    alt: "Lockt Game Room live match showing Paraguay 0 – United States 2 with fan backing",
     label: "Game Room",
     caption: "React live and root for your team with friends and family.",
   },
