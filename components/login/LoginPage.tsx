@@ -292,7 +292,7 @@ function LogoLockup({ size }: { size: "small" | "large" }) {
   const textSize = size === "large" ? "text-4xl" : "text-2xl";
 
   return (
-    <Link href="/" className="flex items-center gap-3 transition hover:-translate-y-0.5" aria-label="LOCKT home">
+    <Link href="/app" className="flex items-center gap-3 transition hover:-translate-y-0.5" aria-label="Go to Match Hub">
       <LocktLogo size={markSize} />
       <div className={`brand-lockup ${textSize} leading-[0.82]`}>
         <span className="block bg-gradient-to-r from-lime-300 via-white to-purple-400 bg-clip-text text-transparent">LOCKT</span>

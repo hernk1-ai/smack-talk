@@ -498,7 +498,7 @@ export default function TermsPage() {
       <div className="pointer-events-none fixed inset-0 -z-0 bg-[radial-gradient(circle_at_20%_0%,rgba(157,255,46,0.13),transparent_28%),radial-gradient(circle_at_80%_10%,rgba(155,77,255,0.16),transparent_32%),linear-gradient(180deg,#050508_0%,#07070d_48%,#050508_100%)]" />
       <div className="relative z-10 mx-auto flex w-[min(100%-32px,980px)] flex-col gap-10 py-6 sm:py-10">
         <header className="flex items-center justify-between gap-4 border-b border-white/10 pb-6">
-          <Link href="/" className="flex items-center gap-3 transition hover:opacity-90">
+          <Link href="/app" className="flex items-center gap-3 transition hover:opacity-90">
             <LocktLogo size={48} />
             <div>
               <p className="brand-lockup text-3xl leading-none">

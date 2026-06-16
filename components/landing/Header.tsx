@@ -18,7 +18,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0b0f0c]/78 backdrop-blur-xl">
       <div className="landing-shell flex min-h-18 items-center justify-between gap-4 py-2 sm:min-h-20">
-        <a href="#about" className="flex min-w-0 items-center gap-3" aria-label="LOCKT home">
+        <Link href="/app" className="flex min-w-0 items-center gap-3" aria-label="Go to Match Hub">
           <LocktLogo size={50} />
           <div className="leading-none">
             <p className="brand-lockup text-2xl sm:text-[2rem]">
@@ -26,7 +26,7 @@ export function Header() {
             </p>
             <p className="mt-1 text-[9px] font-black uppercase tracking-[0.2em] text-lime-300/75">World Cup 2026</p>
           </div>
-        </a>
+        </Link>
 
         <nav className="hidden items-center gap-8 text-xs font-black uppercase tracking-[0.18em] text-gray-300 md:flex">
           {navLinks.map((link) => (

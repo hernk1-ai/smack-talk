@@ -297,7 +297,7 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
               >
                 ‹
               </button>
-              <div className="flex min-w-0 items-center gap-3">
+              <Link href="/app" className="flex min-w-0 items-center gap-3 transition hover:-translate-y-0.5" aria-label="Go to Match Hub">
                 <LocktLogo size={54} />
                 <div className="min-w-0">
                   <h1 className="brand-lockup text-[1.8rem] leading-[0.82]">
@@ -307,7 +307,7 @@ export function TakeThreadScreen({ takeId, profile }: { takeId: string; profile?
                     </span>
                   </h1>
                 </div>
-              </div>
+              </Link>
               <div className="flex items-center gap-2">
                 <button
                   type="button"

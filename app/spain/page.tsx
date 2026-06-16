@@ -6,7 +6,7 @@ export default function SpainSplashPage() {
     <main className="min-h-dvh overflow-x-hidden bg-[#02040a] text-white">
       <div className="landing-shell py-8 sm:py-10">
         <header className="mx-auto flex w-full max-w-4xl items-center justify-between gap-3 rounded-3xl border border-white/10 bg-black/35 px-4 py-3">
-          <div className="flex items-center gap-3">
+          <Link href="/app" className="flex items-center gap-3 transition hover:-translate-y-0.5" aria-label="Go to Match Hub">
             <LocktLogo size={48} />
             <div>
               <p className="brand-lockup text-3xl leading-none">
@@ -14,7 +14,7 @@ export default function SpainSplashPage() {
               </p>
               <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-lime-300/75">World Cup 2026</p>
             </div>
-          </div>
+          </Link>
           <Link
             href="/app"
             className="inline-flex min-h-10 items-center justify-center rounded-xl border border-white/15 bg-white/[0.03] px-3 text-[11px] font-black uppercase tracking-[0.12em] text-white transition hover:border-purple-300/45"

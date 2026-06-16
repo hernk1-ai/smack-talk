@@ -48,13 +48,13 @@ export function ClaimPasswordPage({ nextPath }: { nextPath?: string }) {
   return (
     <main className="relative min-h-dvh overflow-hidden bg-[#02040a] px-4 py-8 text-white">
       <div className="mx-auto w-full max-w-md rounded-[1.75rem] border border-white/10 bg-black/45 p-6 shadow-[0_24px_70px_rgba(0,0,0,0.45)]">
-        <div className="flex items-center gap-3">
+        <Link href="/app" className="flex items-center gap-3 transition hover:-translate-y-0.5" aria-label="Go to Match Hub">
           <LocktLogo size={48} />
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.16em] text-lime-300">Claim profile</p>
             <h1 className="text-xl font-black text-white">Set your password</h1>
           </div>
-        </div>
+        </Link>
         <p className="mt-4 text-sm font-semibold leading-6 text-gray-300">
           Your email is verified. Add a password to keep your Game Room name and activity on any device.
         </p>
