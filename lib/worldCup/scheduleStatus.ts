@@ -1,5 +1,5 @@
-import { getWorldCupMatchId, worldCupSchedule, type WorldCupMatch } from "@/data/worldCupSchedule";
-import { getWorldCupMatchStatus } from "@/lib/worldCupMatchStatus";
+import { getWorldCupKickoffIso, getWorldCupMatchId, worldCupSchedule, type WorldCupMatch } from "@/data/worldCupSchedule";
+import { resolveFeedGameStatus, STALE_LIVE_FALLBACK_MS } from "@/lib/worldCup/gameStatus";
 
 /** Display lifecycle for a schedule row. `scheduled` maps to `upcoming`. */
 export type ScheduleMatchStatus = "upcoming" | "live" | "final";
@@ -19,17 +19,39 @@ export type ScheduleGameRow = {
 };
 
 /** Map a games.status value (scheduled | live | final) to a display status. */
-function normalizeDbStatus(status: string): ScheduleMatchStatus {
-  if (status === "final") return "final";
-  if (status === "live") return "live";
+function normalizeDbStatus(status: string, startsAt: string | null | undefined, now: Date): ScheduleMatchStatus {
+  const resolved = resolveFeedGameStatus(status, startsAt, now);
+  if (resolved === "final") return "final";
+  if (resolved === "live") return "live";
+  return "upcoming";
+}
+
+function scheduleFallbackStatus(match: WorldCupMatch, now: Date): ScheduleMatchStatus {
+  const kickoffIso = getWorldCupKickoffIso(match);
+  if (!kickoffIso) {
+    return "upcoming";
+  }
+
+  const kickoffMs = new Date(kickoffIso).getTime();
+  if (!Number.isFinite(kickoffMs)) {
+    return "upcoming";
+  }
+
+  if (now.getTime() < kickoffMs) {
+    return "upcoming";
+  }
+
+  if (now.getTime() > kickoffMs + STALE_LIVE_FALLBACK_MS) {
+    return "final";
+  }
+
   return "upcoming";
 }
 
 /**
  * Resolve a single match's display state.
- * Prefers the live games-table row when available; otherwise falls back to a
- * status derived from kickoff time so the schedule is always correct even when
- * Supabase/game-row data is unavailable.
+ * Prefers the live games-table row when available; without feed data, never
+ * infers live from kickoff time alone.
  */
 export function resolveScheduleMatchState(
   match: WorldCupMatch,
@@ -38,15 +60,13 @@ export function resolveScheduleMatchState(
 ): ScheduleMatchState {
   if (gameRow) {
     return {
-      status: normalizeDbStatus(gameRow.status),
+      status: normalizeDbStatus(gameRow.status, getWorldCupKickoffIso(match), now),
       homeScore: gameRow.home_score,
       awayScore: gameRow.away_score,
     };
   }
 
-  const lifecycle = getWorldCupMatchStatus(match, now);
-  const status: ScheduleMatchStatus = lifecycle === "finished" ? "final" : lifecycle;
-  return { status, homeScore: null, awayScore: null };
+  return { status: scheduleFallbackStatus(match, now), homeScore: null, awayScore: null };
 }
 
 /**

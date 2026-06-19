@@ -1,5 +1,5 @@
-import { getWorldCupMatchId, type WorldCupMatch } from "@/data/worldCupSchedule";
-import { getWorldCupMatchStatus } from "@/lib/worldCupMatchStatus";
+import { getWorldCupKickoffIso, getWorldCupMatchId, type WorldCupMatch } from "@/data/worldCupSchedule";
+import { isFeedGameLive } from "@/lib/worldCup/gameStatus";
 import { SHOW_GAME_ROOM } from "@/lib/productConfig";
 
 export type WorldCupMatchCta = {
@@ -7,19 +7,26 @@ export type WorldCupMatchCta = {
   href: string;
 };
 
-export function getWorldCupMatchPublicCta(match: WorldCupMatch, now = new Date()): WorldCupMatchCta {
-  const lifecycle = getWorldCupMatchStatus(match, now);
+export function getWorldCupMatchPublicCta(
+  match: WorldCupMatch,
+  now = new Date(),
+  feedStatus?: string | null,
+): WorldCupMatchCta {
   const gameRoomHref = `/game/${getWorldCupMatchId(match)}`;
   const matchRoomHref = `/matches/${match.id}`;
+  const startsAt = getWorldCupKickoffIso(match);
+  const isLive = feedStatus ? isFeedGameLive(feedStatus, startsAt, now) : false;
+  const kickoffMs = startsAt ? new Date(startsAt).getTime() : Number.NaN;
+  const beforeKickoff = Number.isFinite(kickoffMs) && now.getTime() < kickoffMs;
 
-  if (lifecycle === "live") {
+  if (isLive) {
     return {
       label: "Join Game Room",
       href: SHOW_GAME_ROOM ? matchRoomHref : gameRoomHref,
     };
   }
 
-  if (lifecycle === "upcoming") {
+  if (beforeKickoff) {
     return {
       label: "Join Game Room",
       href: gameRoomHref,

@@ -4,10 +4,16 @@ import {
   worldCupSchedule,
   type WorldCupMatch,
 } from "@/data/worldCupSchedule";
-import { getEstimatedMatchDisplay, getWorldCupMatchStatus, type WorldCupMatchLifecycle } from "@/lib/worldCupMatchStatus";
+import {
+  isFeedGameFinal,
+  isFeedGameLive,
+  resolveFeedGameStatus,
+  STALE_LIVE_FALLBACK_MS,
+} from "@/lib/worldCup/gameStatus";
+import { getEstimatedMatchDisplay, type WorldCupMatchLifecycle } from "@/lib/worldCupMatchStatus";
 import type { Game } from "@/lib/supabase/types";
 
-/** Live window fallback when DB status lags behind kickoff (2.5 hours). */
+/** @deprecated Use feed status via resolveWorldCupMatchLifecycle — kept for test imports. */
 export const LIVE_MATCH_WINDOW_MINUTES = 150;
 
 export type WorldCupGameSnapshot = Pick<
@@ -37,65 +43,59 @@ export function getWorldCupScheduleByKickoff(schedule: WorldCupMatch[] = worldCu
   });
 }
 
-const LIVE_DB_STATUSES = new Set(["live", "in_progress", "halftime", "first_half", "second_half"]);
-const FINAL_DB_STATUSES = new Set(["final", "finished"]);
-
 export function isLiveDbGameStatus(status: string | null | undefined): boolean {
-  if (!status) {
-    return false;
-  }
-
-  return LIVE_DB_STATUSES.has(status.toLowerCase());
+  return isFeedGameLive(status, null);
 }
 
 export function isFinalDbGameStatus(status: string | null | undefined): boolean {
-  if (!status) {
-    return false;
-  }
-
-  return FINAL_DB_STATUSES.has(status.toLowerCase());
+  return isFeedGameFinal(status, null);
 }
 
-function isWithinLiveKickoffWindow(
-  kickoffIso: string | null,
+function feedStatusToLifecycle(
+  status: string | null | undefined,
+  startsAt: string | null | undefined,
   now: Date,
-  windowMinutes = LIVE_MATCH_WINDOW_MINUTES,
-): boolean {
-  if (!kickoffIso) {
-    return false;
+): WorldCupMatchLifecycle {
+  const resolved = resolveFeedGameStatus(status, startsAt, now);
+  if (resolved === "final") {
+    return "finished";
   }
-
-  const kickoffMs = new Date(kickoffIso).getTime();
-  if (!Number.isFinite(kickoffMs)) {
-    return false;
+  if (resolved === "live") {
+    return "live";
   }
-
-  const nowMs = now.getTime();
-  return nowMs >= kickoffMs && nowMs <= kickoffMs + windowMinutes * 60 * 1000;
+  return "upcoming";
 }
 
-/** Resolve lifecycle using DB status when available, with schedule/time fallback. */
+/** Resolve lifecycle from feed status when available; never infers live from kickoff alone. */
 export function resolveWorldCupMatchLifecycle(
   match: WorldCupMatch,
   now: Date = new Date(),
   game?: WorldCupGameSnapshot | null,
 ): WorldCupMatchLifecycle {
-  if (game) {
-    if (isLiveDbGameStatus(game.status)) {
-      return "live";
-    }
+  const startsAt = game?.starts_at ?? getWorldCupKickoffIso(match) ?? null;
 
-    if (isFinalDbGameStatus(game.status)) {
-      return "finished";
-    }
+  if (game?.status) {
+    return feedStatusToLifecycle(game.status, startsAt, now);
   }
 
-  const kickoffIso = getWorldCupKickoffIso(match) ?? game?.starts_at ?? null;
-  if (isWithinLiveKickoffWindow(kickoffIso, now) && !isFinalDbGameStatus(game?.status)) {
-    return "live";
+  if (!startsAt) {
+    return "upcoming";
   }
 
-  return getWorldCupMatchStatus(match, now, LIVE_MATCH_WINDOW_MINUTES);
+  const kickoffMs = new Date(startsAt).getTime();
+  if (!Number.isFinite(kickoffMs)) {
+    return "upcoming";
+  }
+
+  if (now.getTime() < kickoffMs) {
+    return "upcoming";
+  }
+
+  if (now.getTime() > kickoffMs + STALE_LIVE_FALLBACK_MS) {
+    return "finished";
+  }
+
+  return "upcoming";
 }
 
 function gamesByMatchId(games: WorldCupGameSnapshot[] = []) {
@@ -125,15 +125,7 @@ export function getCurrentLiveWorldCupMatch(
   games: WorldCupGameSnapshot[] = [],
 ): WorldCupMatch | null {
   const liveMatches = findLiveMatches(now, schedule, games);
-  if (liveMatches.length) {
-    return liveMatches[0]?.match ?? null;
-  }
-
-  return (
-    getWorldCupScheduleByKickoff(schedule).find(
-      (match) => getWorldCupMatchStatus(match, now, LIVE_MATCH_WINDOW_MINUTES) === "live",
-    ) ?? null
-  );
+  return liveMatches[0]?.match ?? null;
 }
 
 export function getCurrentLiveWorldCupMatchWithGame(
@@ -143,13 +135,7 @@ export function getCurrentLiveWorldCupMatchWithGame(
 ): { match: WorldCupMatch; game: WorldCupGameSnapshot | null } | null {
   const liveMatches = findLiveMatches(now, schedule, games);
   if (!liveMatches.length) {
-    const match = getCurrentLiveWorldCupMatch(now, schedule, games);
-    if (!match) {
-      return null;
-    }
-
-    const gameMap = gamesByMatchId(games);
-    return { match, game: gameMap.get(getWorldCupMatchId(match)) ?? null };
+    return null;
   }
 
   const first = liveMatches[0];
@@ -289,11 +275,26 @@ export function validateWorldCupNav(): { ok: boolean; checks: NavCheck[] } {
     detail: `before kickoff → ${beforeTarget.href} (${beforeTarget.lifecycle ?? "none"})`,
   });
 
-  // 2) Live-match resolver: just after the first kickoff, nav points to the live opener.
+  // 2) Live-match resolver: feed marks the opener live at kickoff+10min.
   const duringOpener = opener
     ? new Date(new Date(getWorldCupKickoffIso(opener) ?? Date.now()).getTime() + 10 * 60 * 1000)
     : new Date();
-  const liveTarget = resolveGameRoomNavTarget(duringOpener);
+  const openerGameId = opener ? getWorldCupMatchId(opener) : "";
+  const liveFeedGame: WorldCupGameSnapshot | null = opener
+    ? {
+        id: openerGameId,
+        status: "live",
+        starts_at: getWorldCupKickoffIso(opener),
+        home_score: 0,
+        away_score: 0,
+        home_team: opener.homeTeam,
+        away_team: opener.awayTeam ?? "TBD",
+        clock: null,
+        period: null,
+        event_name: null,
+      }
+    : null;
+  const liveTarget = resolveGameRoomNavTarget(duringOpener, worldCupSchedule, liveFeedGame ? [liveFeedGame] : []);
   checks.push({
     name: "live-match resolver",
     pass: Boolean(opener) && liveTarget.lifecycle === "live" && liveTarget.match?.id === opener?.id,

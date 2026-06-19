@@ -77,7 +77,7 @@ function formatVideoTargeting(video: WorldCupVideo) {
 }
 
 export default function WorldCupVideosAdminPage() {
-  const [secret, setSecret] = useState("");
+  const [secret, setSecret] = useState(() => (typeof window === "undefined" ? "" : window.sessionStorage.getItem(SECRET_STORAGE_KEY) ?? ""));
   const [secretInput, setSecretInput] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [videos, setVideos] = useState<WorldCupVideo[]>([]);
@@ -126,12 +126,13 @@ export default function WorldCupVideosAdminPage() {
   }, []);
 
   useEffect(() => {
-    const stored = window.sessionStorage.getItem(SECRET_STORAGE_KEY);
-    if (stored) {
-      setSecret(stored);
-      void loadVideos(stored);
+    if (secret) {
+      const timeout = window.setTimeout(() => {
+        void loadVideos(secret);
+      }, 0);
+      return () => window.clearTimeout(timeout);
     }
-  }, [loadVideos]);
+  }, [loadVideos, secret]);
 
   const handleUnlock = async (event: React.FormEvent) => {
     event.preventDefault();

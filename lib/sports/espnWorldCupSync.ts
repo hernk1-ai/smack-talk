@@ -6,12 +6,11 @@ import {
   worldCupSchedule,
   type WorldCupMatch,
 } from "@/data/worldCupSchedule";
+import { applyStaleLiveFinalFallback, normalizeFeedGameStatus } from "@/lib/worldCup/gameStatus";
 import { teamsMatch } from "@/lib/sports/espnTeamNames";
 import {
   buildAlignedScorePatch,
   getEspnTeamAlignment,
-  parseEspnAtEventName,
-  resolveEspnTeams,
 } from "@/lib/sports/espnTeamAlignment";
 import type { Database } from "@/lib/supabase/types";
 
@@ -129,17 +128,33 @@ export type EspnMappingProposal = {
 };
 
 /**
- * Map an ESPN status.type.name to a Lockt game status.
+ * Map ESPN status fields to a Lockt game status.
+ * Soccer finals use STATUS_FULL_TIME; `state`/`completed` mirror the NBA normalizer.
  * Unknown values return null so the caller leaves games.status untouched.
  */
-export function mapEspnStatus(statusName: string | undefined): GameStatus | null {
+export function mapEspnStatus(
+  statusName: string | undefined,
+  state?: string,
+  completed?: boolean,
+): GameStatus | null {
+  if (completed || state === "post") {
+    return "final";
+  }
+
+  if (state === "in") {
+    return "live";
+  }
+
   switch (statusName) {
     case "STATUS_SCHEDULED":
       return "scheduled";
     case "STATUS_IN_PROGRESS":
     case "STATUS_HALFTIME":
+    case "STATUS_FIRST_HALF":
+    case "STATUS_SECOND_HALF":
       return "live";
     case "STATUS_FINAL":
+    case "STATUS_FULL_TIME":
       return "final";
     default:
       return null;
@@ -180,7 +195,11 @@ export function parseEspnScoreboard(scoreboard: EspnScoreboard): EspnParsedEvent
       espnEventId: event.id,
       name: event.name ?? event.shortName ?? `ESPN event ${event.id}`,
       date: event.date ?? null,
-      status: mapEspnStatus(event.status?.type?.name),
+      status: mapEspnStatus(
+        event.status?.type?.name,
+        event.status?.type?.state,
+        event.status?.type?.completed,
+      ),
       homeScore: parseScore(home?.score),
       awayScore: parseScore(away?.score),
       homeTeam: teamLabel(home),
@@ -1013,6 +1032,30 @@ export async function syncEspnWorldCupScores(admin: AdminClient): Promise<EspnSy
     summary.updatedGames += 1;
   }
 
+  for (const game of mappedGames ?? []) {
+    const normalized = normalizeFeedGameStatus(game.status);
+    const resolved = applyStaleLiveFinalFallback(normalized, game.starts_at, now);
+    if (normalized !== "live" || resolved !== "final") {
+      continue;
+    }
+
+    const { error: staleError } = await admin
+      .from("games")
+      .update({
+        status: "final",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", game.id)
+      .eq("league", "World Cup");
+
+    if (staleError) {
+      summary.errors.push(`${game.id}: stale-live finalization failed: ${staleError.message}`);
+      continue;
+    }
+
+    summary.updatedGames += 1;
+  }
+
   return summary;
 }
 
@@ -1152,6 +1195,12 @@ export function validateEspnAutoMapping(): { ok: boolean; checks: AutoMapCheck[]
       detail: teamsMatch(left, right) ? "matched" : "no match",
     });
   }
+
+  checks.push({
+    name: "STATUS_FULL_TIME maps to final",
+    pass: mapEspnStatus("STATUS_FULL_TIME", "post", true) === "final",
+    detail: "soccer full-time",
+  });
 
   return { ok: checks.every((check) => check.pass), checks };
 }

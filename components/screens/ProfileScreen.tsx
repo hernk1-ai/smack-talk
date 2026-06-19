@@ -27,16 +27,13 @@ type ActivityItem = {
 };
 
 export function ProfileScreen({ profile }: { profile?: Profile | null }) {
-  const [localProfile, setLocalProfile] = useState(profile ?? null);
+  const [profileOverride, setProfileOverride] = useState<Profile | null>(null);
   const [tournamentRecord, setTournamentRecord] = useState<TournamentRecord>({ wins: 0, losses: 0, draws: 0 });
   const [recentPicks, setRecentPicks] = useState<RecentPickItem[]>([]);
   const [teamsBacked, setTeamsBacked] = useState<string[]>([]);
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
   const [picksCount, setPicksCount] = useState(0);
-
-  useEffect(() => {
-    setLocalProfile(profile ?? null);
-  }, [profile]);
+  const localProfile = profileOverride ?? profile ?? null;
 
   useEffect(() => {
     let mounted = true;
@@ -97,19 +94,19 @@ export function ProfileScreen({ profile }: { profile?: Profile | null }) {
 
   return (
     <div className="page-rhythm">
-      <ProfileHeader profile={localProfile ?? profile} />
-      <ProfileIdentityCard profile={localProfile ?? profile} />
+      <ProfileHeader profile={localProfile} />
+      <ProfileIdentityCard profile={localProfile} />
       {localProfile?.id && profileNeedsCompletion(localProfile) ? (
         <ProfileCompletionPrompt
           profile={localProfile}
           userId={localProfile.id}
-          onUpdated={(updatedProfile) => setLocalProfile(updatedProfile)}
+          onUpdated={(updatedProfile) => setProfileOverride(updatedProfile)}
         />
       ) : null}
       <TournamentRecordSection recordLabel={recordLabel} picksCount={picksCount} />
       <RecentPicksSection picks={recentPicks} />
       <TeamsBackedSection teams={teamsBacked} />
-      <MatchActivitySection items={activityItems} profile={localProfile ?? profile} />
+      <MatchActivitySection items={activityItems} profile={localProfile} />
     </div>
   );
 }

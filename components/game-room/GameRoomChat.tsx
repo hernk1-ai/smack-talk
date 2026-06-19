@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   editRoomChatMessage,
   fetchRoomChatMessages,
@@ -32,9 +32,9 @@ export function GameRoomChat({ gameId, roomCode = null }: GameRoomChatProps) {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [chatDisplayName, setChatDisplayName] = useState(CHAT_DISPLAY_NAME_PLACEHOLDER);
-  const [senderKey, setSenderKey] = useState("");
-  const [nowMs, setNowMs] = useState<number | null>(null);
+  const [chatDisplayName, setChatDisplayName] = useState(() => (typeof window === "undefined" ? CHAT_DISPLAY_NAME_PLACEHOLDER : getChatDisplayName()));
+  const [senderKey] = useState(() => (typeof window === "undefined" ? "" : getOrCreateVoterKey()));
+  const [nowMs, setNowMs] = useState<number | null>(() => (typeof window === "undefined" ? null : Date.now()));
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
@@ -52,17 +52,15 @@ export function GameRoomChat({ gameId, roomCode = null }: GameRoomChatProps) {
         if (mounted && profileLabel) {
           setChatDisplayName(profileLabel);
           persistChatDisplayName(profileLabel);
-          setSenderKey(getOrCreateVoterKey());
-          setNowMs(Date.now());
           return;
         }
       }
 
-      if (mounted) {
-        setChatDisplayName(getChatDisplayName());
-        setSenderKey(getOrCreateVoterKey());
-        setNowMs(Date.now());
+      if (!mounted) {
+        return;
       }
+
+      setChatDisplayName(getChatDisplayName());
     }
 
     void loadChatIdentity();
@@ -84,27 +82,47 @@ export function GameRoomChat({ gameId, roomCode = null }: GameRoomChatProps) {
     return () => window.clearInterval(intervalId);
   }, [nowMs]);
 
-  const loadMessages = useCallback(async () => {
-    const { messages: nextMessages, error: loadError } = await fetchRoomChatMessages(gameId, roomCode);
-    setMessages(nextMessages);
-    setLoading(false);
+  useEffect(() => {
+    let mounted = true;
 
-    if (loadError) {
+    async function loadMessages() {
+      const { messages: nextMessages, error: loadError } = await fetchRoomChatMessages(gameId, roomCode);
+      if (!mounted) {
+        return;
+      }
+      setMessages(nextMessages);
+      setLoading(false);
       setError(loadError);
     }
+
+    void loadMessages();
+
+    return () => {
+      mounted = false;
+    };
   }, [gameId, roomCode]);
 
   useEffect(() => {
-    void loadMessages();
-  }, [loadMessages]);
+    let mounted = true;
 
-  useEffect(() => {
+    async function refreshMessages() {
+      const { messages: nextMessages, error: loadError } = await fetchRoomChatMessages(gameId, roomCode);
+      if (!mounted) {
+        return;
+      }
+      setMessages(nextMessages);
+      setError(loadError);
+    }
+
     const intervalId = window.setInterval(() => {
-      void loadMessages();
+      void refreshMessages();
     }, 15000);
 
-    return () => window.clearInterval(intervalId);
-  }, [loadMessages]);
+    return () => {
+      mounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, [gameId, roomCode]);
 
   const editableMessageIds = useMemo(() => {
     if (!senderKey || nowMs === null) {

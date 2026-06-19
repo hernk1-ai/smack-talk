@@ -246,8 +246,7 @@ const liveArenas: LiveArenaCard[] = worldCupLiveArenas as LiveArenaCard[];
 export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: string) => void; profile?: Profile | null }) {
   const router = useRouter();
   const { showToast } = useToast();
-  const [localProfile, setLocalProfile] = useState(profile ?? null);
-  const [profilePromptDismissed, setProfilePromptDismissed] = useState(false);
+  const [profileOverride, setProfileOverride] = useState<Profile | null>(null);
   const [takeChoices, setTakeChoices] = useState<Record<string, Side>>({});
   const [featuredChoice, setFeaturedChoice] = useState<Side | null>(null);
   const [lockedTake, setLockedTake] = useState("");
@@ -264,6 +263,8 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   const [reactionMessage, setReactionMessage] = useState("");
   const [recentActivity, setRecentActivity] = useState<string[]>([]);
   const [activeSport, setActiveSport] = useState<SportKey>(ACTIVE_SPORT);
+  const localProfile = profileOverride ?? profile ?? null;
+  const profilePromptDismissed = localProfile?.id ? isProfileCompletionDismissed(localProfile.id) : false;
   const matchHubMode = isMatchHubMode();
   const visibleSportTabs = getVisibleSportTabs(sportTabs);
   const sportTakes = gameTakes.filter((take) => getGameSport(take.game_id) === activeSport);
@@ -277,19 +278,6 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   const activeSportGame = liveSportGames[0] ?? scheduledSportGames[0] ?? (activeSport === ACTIVE_SPORT ? activeGame : null);
   const combinedReactions = { ...takeChoices, ...takeReactions } as Record<string, TakeReaction["reaction"]>;
   const dynamicChaosAlerts = buildChaosAlerts(visibleTakes);
-
-  useEffect(() => {
-    setLocalProfile(profile ?? null);
-  }, [profile]);
-
-  useEffect(() => {
-    if (!localProfile?.id) {
-      setProfilePromptDismissed(false);
-      return;
-    }
-
-    setProfilePromptDismissed(isProfileCompletionDismissed(localProfile.id));
-  }, [localProfile?.id]);
 
   const showProfileCompletionPrompt =
     Boolean(localProfile?.id) &&
@@ -482,13 +470,12 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   if (matchHubMode) {
     return (
       <div className="page-rhythm">
-        <FeedHeader profile={localProfile ?? profile} />
+        <FeedHeader profile={localProfile} />
         {showProfileCompletionPrompt && localProfile?.id ? (
           <ProfileCompletionPrompt
             profile={localProfile}
             userId={localProfile.id}
-            onUpdated={(updatedProfile) => setLocalProfile(updatedProfile)}
-            onDismiss={() => setProfilePromptDismissed(true)}
+            onUpdated={(updatedProfile) => setProfileOverride(updatedProfile)}
           />
         ) : null}
         <MatchHubIntro />
@@ -505,13 +492,12 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
 
   return (
     <div className="page-rhythm">
-      <FeedHeader profile={localProfile ?? profile} />
+      <FeedHeader profile={localProfile} />
       {showProfileCompletionPrompt && localProfile?.id ? (
         <ProfileCompletionPrompt
           profile={localProfile}
           userId={localProfile.id}
-          onUpdated={(updatedProfile) => setLocalProfile(updatedProfile)}
-          onDismiss={() => setProfilePromptDismissed(true)}
+          onUpdated={(updatedProfile) => setProfileOverride(updatedProfile)}
         />
       ) : null}
       <SportSelector activeSport={activeSport} onSelect={setActiveSport} visibleTabs={visibleSportTabs} />
@@ -585,7 +571,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
 function MatchHubPrimaryFocus() {
   const [now, setNow] = useState(() => new Date());
   const [games, setGames] = useState<WorldCupGameSnapshot[]>([]);
-  const [focus, setFocus] = useState<MatchHubFocus>(() => getMatchHubFocus());
+  const focus = useMemo<MatchHubFocus>(() => getMatchHubFocus(now, worldCupSchedule, games), [now, games]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
@@ -614,10 +600,6 @@ function MatchHubPrimaryFocus() {
       window.clearInterval(intervalId);
     };
   }, []);
-
-  useEffect(() => {
-    setFocus(getMatchHubFocus(now, worldCupSchedule, games));
-  }, [now, games]);
 
   if (focus.mode === "live") {
     return <LiveNowModule match={focus.match} game={focus.game} now={now} />;
@@ -708,7 +690,8 @@ function NextMatchCountdown({
 }) {
   const nextMatch = focusMatch ?? getNextWorldCupMatch(now, worldCupSchedule, games) ?? worldCupSchedule[0];
   const countdown = getCountdownLabelForMatch(nextMatch, now);
-  const nextCta = getWorldCupMatchPublicCta(nextMatch, now);
+  const nextGame = games.find((game) => game.id === getWorldCupMatchId(nextMatch));
+  const nextCta = getWorldCupMatchPublicCta(nextMatch, now, nextGame?.status);
 
   return (
     <FeedSection title="Next Match Countdown" icon="◷" action="">
@@ -904,7 +887,8 @@ function WorldCupTodayMatches() {
   useEffect(() => {
     const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (resolved) {
-      setTimeZone(resolved);
+      const timeout = window.setTimeout(() => setTimeZone(resolved), 0);
+      return () => window.clearTimeout(timeout);
     }
   }, []);
 
@@ -934,9 +918,10 @@ function WorldCupTodayMatches() {
     };
   }, []);
 
+  const gamesById = useMemo(() => new Map(games.map((game) => [game.id, game])), [games]);
+
   const todayMatches = useMemo(() => {
     const todayKey = getTodayLocalDateKey(timeZone, now);
-    const gamesById = new Map(games.map((game) => [game.id, game]));
 
     return worldCupSchedule
       .filter((match) => getLocalDateKey(match, timeZone) === todayKey)
@@ -949,14 +934,18 @@ function WorldCupTodayMatches() {
         return lifecycle === "upcoming" || lifecycle === "live";
       })
       .sort((a, b) => getKickoffMs(a) - getKickoffMs(b));
-  }, [games, now, timeZone]);
+  }, [gamesById, now, timeZone]);
 
   return (
     <FeedSection title="Today's Matches" icon="◷" action="">
       {todayMatches.length ? (
         <div className="space-y-2">
           {todayMatches.map((match) => {
-            const cta = getWorldCupMatchPublicCta(match, now);
+            const cta = getWorldCupMatchPublicCta(
+              match,
+              now,
+              gamesById.get(getWorldCupMatchId(match))?.status,
+            );
             return (
               <div
                 key={match.id}

@@ -62,7 +62,8 @@ export function WorldCupSchedule({
   useEffect(() => {
     const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (resolved) {
-      setTimeZone(resolved);
+      const timeout = window.setTimeout(() => setTimeZone(resolved), 0);
+      return () => window.clearTimeout(timeout);
     }
   }, []);
   const collator = useMemo(() => new Intl.Collator("en", { sensitivity: "base" }), []);

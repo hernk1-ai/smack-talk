@@ -42,10 +42,47 @@ export function useGuestParticipation(loginNext?: string) {
   }, [supabase]);
 
   useEffect(() => {
-    refreshSession().catch(() => undefined);
+    let mounted = true;
+
+    async function loadInitialSession() {
+      if (!supabase) {
+        if (!mounted) {
+          return;
+        }
+        setUser(null);
+        setProfile(null);
+        return;
+      }
+
+      const {
+        data: { user: nextUser },
+      } = await supabase.auth.getUser();
+
+      if (!mounted) {
+        return;
+      }
+
+      if (!nextUser) {
+        setUser(null);
+        setProfile(null);
+        return;
+      }
+
+      const { profile: nextProfile } = await getCurrentProfile(supabase);
+      if (!mounted) {
+        return;
+      }
+
+      setUser(nextUser);
+      setProfile(nextProfile);
+    }
+
+    void loadInitialSession().catch(() => undefined);
 
     if (!supabase) {
-      return;
+      return () => {
+        mounted = false;
+      };
     }
 
     const {
@@ -55,6 +92,7 @@ export function useGuestParticipation(loginNext?: string) {
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, [refreshSession, supabase]);

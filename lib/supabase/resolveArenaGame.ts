@@ -3,7 +3,6 @@ import { ACTIVE_GAME_ID } from "@/lib/supabase/games";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { AppSupabaseClient } from "@/lib/supabase/typedClient";
 import type { Database } from "@/lib/supabase/types";
-import { getWorldCupMatchStatus } from "@/lib/worldCupMatchStatus";
 
 type GameInsert = Database["public"]["Tables"]["games"]["Insert"];
 
@@ -30,9 +29,6 @@ export function isWorldCupRouteGameId(gameId: string) {
 }
 
 export function worldCupMatchToGameRow(gameId: string, match: WorldCupMatch): GameInsert {
-  const lifecycle = getWorldCupMatchStatus(match);
-  const status = lifecycle === "finished" ? "final" : lifecycle === "live" ? "live" : "scheduled";
-
   return {
     id: gameId,
     league: "World Cup",
@@ -43,7 +39,7 @@ export function worldCupMatchToGameRow(gameId: string, match: WorldCupMatch): Ga
     away_score: 0,
     period: match.stage === "Group Stage" ? `Group ${match.group}` : match.stage,
     clock: null,
-    status,
+    status: "scheduled",
     starts_at: getWorldCupKickoffIso(match),
     watching_count: 0,
     ride_count: 0,
@@ -71,6 +67,7 @@ export async function ensureWorldCupGameRow(gameId: string) {
 
   const { error } = await admin.from("games").upsert(worldCupMatchToGameRow(gameId, parsed.worldCupMatch), {
     onConflict: "id",
+    ignoreDuplicates: true,
   });
 
   return { gameId, error };

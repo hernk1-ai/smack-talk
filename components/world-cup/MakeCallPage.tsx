@@ -47,7 +47,6 @@ export function MakeCallPage({ match, initialPick, profile, isAuthenticated }: M
   const [winnerMessage, setWinnerMessage] = useState("");
   const [exactMessage, setExactMessage] = useState("");
   const [starterRepUnlocked, setStarterRepUnlocked] = useState(false);
-  const [showClaimPrompt, setShowClaimPrompt] = useState(false);
   const [callActivityCount, setCallActivityCount] = useState(0);
   const [isResumingSavedCall, setIsResumingSavedCall] = useState(false);
   const pendingDraftRef = useRef<PendingCallDraft | null>(null);
@@ -63,6 +62,10 @@ export function MakeCallPage({ match, initialPick, profile, isAuthenticated }: M
 
   const guest = useGuestParticipation(getCurrentPathWithQuery());
   const hasSession = guest.hasSession || isAuthenticated;
+  const showClaimPrompt = useMemo(
+    () => shouldShowClaimPrompt(guest.profile, Math.max(callActivityCount, guest.profile?.created_takes_count ?? 0)),
+    [callActivityCount, guest.profile],
+  );
 
   const kickoffIso = getWorldCupKickoffIso(match);
   const kickoffLabel = useMemo(() => {
@@ -115,10 +118,6 @@ export function MakeCallPage({ match, initialPick, profile, isAuthenticated }: M
       window.localStorage.removeItem(pendingCallKey);
     }
   }, [match.id]);
-
-  useEffect(() => {
-    setShowClaimPrompt(shouldShowClaimPrompt(guest.profile, Math.max(callActivityCount, guest.profile?.created_takes_count ?? 0)));
-  }, [callActivityCount, guest.profile]);
 
   async function shareLockedCall() {
     const url = typeof window !== "undefined" ? window.location.href : "/receipts";
@@ -187,7 +186,7 @@ export function MakeCallPage({ match, initialPick, profile, isAuthenticated }: M
     showToast("Call saved.", "success");
     await guest.refreshSession();
     setCallActivityCount((count) => count + 1);
-  }, [awayScore, guest, homeScore, lockClosed, match, selectedWinner, showToast, winnerLockedAt]);
+  }, [guest, lockClosed, match, selectedWinner, showToast, winnerLockedAt]);
 
   const lockWinner = useCallback(async () => {
     if (!selectedWinner) {
@@ -351,7 +350,7 @@ export function MakeCallPage({ match, initialPick, profile, isAuthenticated }: M
         </section>
 
         {showClaimPrompt && guest.user ? (
-          <ClaimProfilePrompt userId={guest.user.id} claimHref={guest.claimHref} onDismiss={() => setShowClaimPrompt(false)} />
+          <ClaimProfilePrompt userId={guest.user.id} claimHref={guest.claimHref} />
         ) : null}
 
         <section className="rounded-[1.75rem] border border-white/10 bg-black/35 p-4">

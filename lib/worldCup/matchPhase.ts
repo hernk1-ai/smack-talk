@@ -1,3 +1,5 @@
+import { isFeedGameFinal, isFeedGameLive, resolveFeedGameStatus } from "@/lib/worldCup/gameStatus";
+
 /** Current match phase for World Cup TV targeting and room copy. */
 export type WorldCupMatchPhase = "pre_match" | "live" | "post_match";
 
@@ -32,56 +34,40 @@ export const WORLD_CUP_TV_SUBTITLES: Record<WorldCupMatchPhase | "any", string> 
   any: "Preview, highlights, and fan videos for this match.",
 };
 
-const FINAL_STATUSES = new Set(["final", "complete", "full_time", "finished"]);
-const LIVE_STATUSES = new Set(["live", "in_progress", "first_half", "second_half", "halftime"]);
-
-/** Fallback live window when DB status lags behind kickoff (2.5 hours). */
-export const MATCH_PHASE_LIVE_WINDOW_MS = 2.5 * 60 * 60 * 1000;
-
 export function isFinalMatchStatus(status: string | null | undefined): boolean {
-  return Boolean(status && FINAL_STATUSES.has(status.toLowerCase()));
+  return isFeedGameFinal(status, null);
 }
 
 export function isLiveMatchStatus(status: string | null | undefined): boolean {
-  return Boolean(status && LIVE_STATUSES.has(status.toLowerCase()));
+  return isFeedGameLive(status, null);
 }
 
 /**
  * Resolve the current match phase for video selection and room copy.
- * Centralized so Match Hub and Game Room can share the same rules.
+ * Uses feed status only — does not infer live from kickoff time.
  */
 export function resolveWorldCupMatchPhase({
   status,
   startsAt,
   now = new Date(),
-  liveWindowMs = MATCH_PHASE_LIVE_WINDOW_MS,
 }: {
   status?: string | null;
   startsAt?: string | null;
   now?: Date;
-  liveWindowMs?: number;
 }): WorldCupMatchPhase {
-  if (isFinalMatchStatus(status)) {
+  const resolved = resolveFeedGameStatus(status, startsAt, now);
+
+  if (resolved === "final") {
     return "post_match";
   }
 
-  if (isLiveMatchStatus(status)) {
+  if (resolved === "live") {
     return "live";
   }
 
   const startsAtMs = startsAt ? new Date(startsAt).getTime() : Number.NaN;
-  const nowMs = now.getTime();
-
-  if (Number.isFinite(startsAtMs)) {
-    if (nowMs < startsAtMs) {
-      return "pre_match";
-    }
-
-    if (nowMs <= startsAtMs + liveWindowMs) {
-      return "live";
-    }
-
-    return "post_match";
+  if (Number.isFinite(startsAtMs) && now.getTime() < startsAtMs) {
+    return "pre_match";
   }
 
   return "pre_match";

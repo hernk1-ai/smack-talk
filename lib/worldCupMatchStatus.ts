@@ -4,6 +4,10 @@ export type WorldCupMatchLifecycle = "upcoming" | "live" | "finished";
 
 const DEFAULT_MATCH_WINDOW_MINUTES = 180; // 3h — covers extra time + stoppage
 
+/**
+ * Display-only lifecycle estimate from kickoff time. Do not use for live/final
+ * selection — use resolveFeedGameStatus / resolveWorldCupMatchLifecycle instead.
+ */
 export function getWorldCupMatchStatus(
   match: WorldCupMatch,
   now = new Date(),

@@ -33,7 +33,7 @@ function toGameStatus(value: string): GameStatus {
 }
 
 export default function GameControlPage() {
-  const [secret, setSecret] = useState("");
+  const [secret, setSecret] = useState(() => (typeof window === "undefined" ? "" : window.sessionStorage.getItem(SECRET_STORAGE_KEY) ?? ""));
   const [secretInput, setSecretInput] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [games, setGames] = useState<AdminGameRow[]>([]);
@@ -93,12 +93,13 @@ export default function GameControlPage() {
   );
 
   useEffect(() => {
-    const stored = window.sessionStorage.getItem(SECRET_STORAGE_KEY);
-    if (stored) {
-      setSecret(stored);
-      void loadGames(stored);
+    if (secret) {
+      const timeout = window.setTimeout(() => {
+        void loadGames(secret);
+      }, 0);
+      return () => window.clearTimeout(timeout);
     }
-  }, [loadGames]);
+  }, [loadGames, secret]);
 
   const handleUnlock = useCallback(
     async (event: React.FormEvent) => {

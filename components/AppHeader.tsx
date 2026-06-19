@@ -22,21 +22,16 @@ export function AppHeader({
   profile?: Profile | null;
   rightAriaLabel?: string;
 }) {
-  const [mounted, setMounted] = useState(false);
   const [resolvedProfile, setResolvedProfile] = useState<Profile | null>(null);
-  const displayProfile = profile ?? (mounted ? resolvedProfile : null);
+  const displayProfile = profile ?? resolvedProfile;
   const username = displayProfile?.username || "LOCKT";
   const accountHref = SHOW_PROFILES ? "/profile" : "/settings";
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadCurrentProfile() {
-      if (profile || !mounted) {
+      if (profile) {
         return;
       }
 
@@ -71,7 +66,7 @@ export function AppHeader({
     return () => {
       cancelled = true;
     };
-  }, [mounted, profile]);
+  }, [profile]);
 
   return (
     <header className="app-header-shell relative z-40 rounded-[1.75rem] border border-white/10 bg-black/35 px-3 py-2.5 shadow-[0_18px_50px_rgba(0,0,0,0.36)] backdrop-blur sm:px-3.5 sm:py-3">

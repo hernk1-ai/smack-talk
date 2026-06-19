@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AppHeader } from "@/components/AppHeader";
 import { useToast } from "@/components/providers/ToastProvider";
@@ -16,9 +16,12 @@ import {
   postArenaReaction,
 } from "@/lib/arena/arenaApi";
 import { getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/replies";
-import { createClient } from "@/lib/supabase/client";
 import { getWorldCupMatchById } from "@/data/worldCupSchedule";
-import { getEstimatedMatchDisplay, getWorldCupMatchStatus } from "@/lib/worldCupMatchStatus";
+import { getEstimatedMatchDisplay } from "@/lib/worldCupMatchStatus";
+import { resolveFeedGameStatus } from "@/lib/worldCup/gameStatus";
+import { getWorldCupKickoffIso } from "@/data/worldCupSchedule";
+import { resolveGameRoomNavTargetClient } from "@/lib/worldCupNavClient";
+import { useRouter } from "next/navigation";
 import {
   isMatchHubMode,
   SHOW_FAKE_LIVE_ACTIVITY,
@@ -87,9 +90,10 @@ export function LiveArena({
   profile?: Profile | null;
 }) {
   const { showToast } = useToast();
-  const supabase = createClient();
   const gameRoomPath = `/game/${gameId}`;
   const guest = useGuestParticipation(gameRoomPath);
+  const guestUserId = guest.user?.id ?? null;
+  const refreshGuestSession = guest.refreshSession;
   const [activeTab, setActiveTab] = useState<ArenaTab>("calls");
   const [game, setGame] = useState<Game | null>(null);
   const [quickPickSelections, setQuickPickSelections] = useState<Record<string, string>>({});
@@ -112,11 +116,14 @@ export function LiveArena({
   const [takesMessage, setTakesMessage] = useState("");
   const [postToFeedNotice, setPostToFeedNotice] = useState("");
   const [guestActivityCount, setGuestActivityCount] = useState(0);
-  const [showClaimPrompt, setShowClaimPrompt] = useState(false);
+  const router = useRouter();
   const [reportTarget, setReportTarget] = useState<{ targetType: ReportTargetType; targetId: string } | null>(null);
   const [deletingReplyId, setDeletingReplyId] = useState<string | null>(null);
-  const [privateRoomValid, setPrivateRoomValid] = useState<boolean | null>(roomCode ? null : true);
-  const [privateRoomError, setPrivateRoomError] = useState<string | null>(null);
+  const [privateRoomState, setPrivateRoomState] = useState<{ roomCode: string | null; valid: boolean | null; error: string | null }>({
+    roomCode,
+    valid: roomCode ? null : true,
+    error: null,
+  });
   // Ticking clock so the scoreboard recalculates match status (upcoming → live →
   // final) while the room stays open, without requiring a page refresh/refetch.
   // Defer clock to client mount so SSR and hydration agree (avoids estimated-match mismatch).
@@ -128,18 +135,20 @@ export function LiveArena({
   // still shows the correct matchup if Supabase/the game API is unavailable.
   const awayTeam = game?.away_team ?? worldCupMatch?.awayTeam ?? "AWAY";
   const homeTeam = game?.home_team ?? worldCupMatch?.homeTeam ?? "HOME";
+  const showClaimPrompt = useMemo(
+    () => shouldShowClaimPrompt(guest.profile, Math.max(guestActivityCount, guest.profile?.created_takes_count ?? 0)),
+    [guest.profile, guestActivityCount],
+  );
+  const privateRoomValid = !roomCode ? true : privateRoomState.roomCode === roomCode ? privateRoomState.valid : null;
+  const privateRoomError = !roomCode ? null : privateRoomState.roomCode === roomCode ? privateRoomState.error : null;
   const worldCupRoomStatus = useMemo((): "scheduled" | "live" | "final" => {
-    if (game?.status === "live" || game?.status === "final") {
-      return game.status;
+    const startsAt = game?.starts_at ?? (worldCupMatch ? getWorldCupKickoffIso(worldCupMatch) : null);
+    if (game?.status && now) {
+      return resolveFeedGameStatus(game.status, startsAt, now);
     }
 
-    if (!worldCupMatch || !now) {
-      return "scheduled";
-    }
-
-    const lifecycle = getWorldCupMatchStatus(worldCupMatch, now);
-    return lifecycle === "finished" ? "final" : lifecycle === "live" ? "live" : "scheduled";
-  }, [worldCupMatch, game?.status, now]);
+    return "scheduled";
+  }, [worldCupMatch, game?.status, game?.starts_at, now]);
 
   const totalFeedCount = feedTakes.length;
   const visibleTakes = useMemo(() => feedTakes.slice(0, 30), [feedTakes]);
@@ -193,20 +202,74 @@ export function LiveArena({
       setFeedTakes(takes ?? []);
       const { reactionMap } = await getCurrentUserReactionMap((takes ?? []).map((take) => take.id));
       setTakeReactions(reactionMap ?? {});
-      await guest.refreshSession();
+      await refreshGuestSession();
     }
 
     loadGameAndQuickPicks();
+    const refreshInterval = window.setInterval(() => {
+      void fetchArenaGame(gameId).then(({ data }) => {
+        if (!isMounted) {
+          return;
+        }
+
+        const nextGame = (data?.game as Game | null | undefined) ?? null;
+        if (nextGame) {
+          setGame(nextGame);
+        }
+      });
+    }, 30_000);
 
     return () => {
       isMounted = false;
+      window.clearInterval(refreshInterval);
     };
-  }, [gameId, guest.user?.id]);
+  }, [gameId, guestUserId, refreshGuestSession]);
+
+  const previousRoomStatusRef = useRef<"scheduled" | "live" | "final" | null>(null);
 
   useEffect(() => {
-    setNow(new Date());
-    const interval = window.setInterval(() => setNow(new Date()), 60_000);
-    return () => window.clearInterval(interval);
+    if (!worldCupMatch || roomCode || !now) {
+      previousRoomStatusRef.current = worldCupRoomStatus;
+      return;
+    }
+
+    const previousStatus = previousRoomStatusRef.current;
+    previousRoomStatusRef.current = worldCupRoomStatus;
+
+    if (previousStatus !== "live" || worldCupRoomStatus !== "final") {
+      return;
+    }
+
+    let cancelled = false;
+
+    void resolveGameRoomNavTargetClient(now).then((target) => {
+      if (cancelled || !target.match) {
+        return;
+      }
+
+      const nextGameId = `wc-2026-${target.match.id}`;
+      if (nextGameId === gameId) {
+        return;
+      }
+
+      if (target.lifecycle === "live" || target.lifecycle === "upcoming") {
+        router.replace(`/game/${nextGameId}`);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [gameId, now, roomCode, router, worldCupMatch, worldCupRoomStatus]);
+
+  useEffect(() => {
+    const tick = () => setNow(new Date());
+    const timeout = window.setTimeout(tick, 0);
+    const interval = window.setInterval(tick, 60_000);
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearInterval(interval);
+    };
   }, []);
 
   // Live viewers presence: heartbeat on mount and every 30s while the room is open.
@@ -232,12 +295,6 @@ export function LiveArena({
     };
   }, [gameId, roomCode, guest.user?.id]);
 
-  useEffect(() => {
-    setShowClaimPrompt(
-      shouldShowClaimPrompt(guest.profile, Math.max(guestActivityCount, guest.profile?.created_takes_count ?? 0)),
-    );
-  }, [guest.profile, guestActivityCount]);
-
   const isWorldCupRoom = Boolean(worldCupMatch) || game?.league === "World Cup" || gameId.startsWith("wc-");
   const simplifiedRoom = isMatchHubMode();
   const isPrivateRoom = Boolean(roomCode);
@@ -245,8 +302,6 @@ export function LiveArena({
 
   useEffect(() => {
     if (!roomCode) {
-      setPrivateRoomValid(true);
-      setPrivateRoomError(null);
       return;
     }
 
@@ -254,21 +309,25 @@ export function LiveArena({
     let isMounted = true;
 
     async function verifyPrivateRoom() {
-      setPrivateRoomValid(null);
-      setPrivateRoomError(null);
-
       const valid = await validatePrivateRoom(gameId, activeRoomCode);
       if (!isMounted) {
         return;
       }
 
       if (!valid) {
-        setPrivateRoomValid(false);
-        setPrivateRoomError("This private room link is invalid or expired.");
+        setPrivateRoomState({
+          roomCode: activeRoomCode,
+          valid: false,
+          error: "This private room link is invalid or expired.",
+        });
         return;
       }
 
-      setPrivateRoomValid(true);
+      setPrivateRoomState({
+        roomCode: activeRoomCode,
+        valid: true,
+        error: null,
+      });
     }
 
     void verifyPrivateRoom();
@@ -667,7 +726,6 @@ export function LiveArena({
           <section className="space-y-4">
             {!showWorldCupFanRoom && (simplifiedRoom || activeTab === "calls") ? (
               <CallsPanel
-                gameId={gameId}
                 currentUserId={guest.user?.id ?? null}
                 hasSession={guest.hasSession}
                 guestLabel={guest.guestLabel}
@@ -782,18 +840,8 @@ function ArenaScoreboard({
   const homeTeam = game?.home_team ?? worldCupMatch?.homeTeam ?? "HOME";
   const awayScore = String(game?.away_score ?? 0);
   const homeScore = String(game?.home_score ?? 0);
-  // Status from the static schedule, recomputed on every `now` tick so the room
-  // transitions upcoming → live → final on its own while open.
-  const scheduleStatus = worldCupMatch && now
-    ? (() => {
-        const lifecycle = getWorldCupMatchStatus(worldCupMatch, now);
-        return lifecycle === "finished" ? "final" : lifecycle === "live" ? "live" : "scheduled";
-      })()
-    : null;
-  // Trust a live/final row from a real feed; otherwise use the ticking
-  // schedule-derived status so World Cup rooms go live at kickoff without a refresh.
-  const status =
-    game?.status && game.status !== "scheduled" ? game.status : scheduleStatus ?? game?.status ?? "scheduled";
+  const kickoffIso = game?.starts_at ?? (worldCupMatch ? getWorldCupKickoffIso(worldCupMatch) : null);
+  const status = now && game?.status ? resolveFeedGameStatus(game.status, kickoffIso, now) : game?.status ?? "scheduled";
   const statusLabel = status === "live" ? "LIVE" : status === "final" ? "FINAL" : "SCHEDULED";
   const period = game?.period ?? (status === "live" ? "LIVE" : status === "final" ? "Final" : "Pregame");
   const clock = status === "live" ? game?.clock ?? "--:--" : null;
@@ -1242,7 +1290,6 @@ function ArenaTabs({
 }
 
 function CallsPanel({
-  gameId,
   currentUserId,
   hasSession,
   guestLabel,
@@ -1272,7 +1319,6 @@ function CallsPanel({
   onReportReply,
   onDeleteReply,
 }: {
-  gameId: string;
   currentUserId: string | null;
   hasSession: boolean;
   guestLabel: string | null;

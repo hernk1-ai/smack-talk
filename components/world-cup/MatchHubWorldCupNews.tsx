@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { CompanionVideoCard } from "@/components/world-cup/CompanionVideoCard";
 import type { WorldCupVideo } from "@/lib/worldCup/worldCupVideos";
@@ -14,28 +14,56 @@ export function MatchHubWorldCupNews() {
   const [video, setVideo] = useState<WorldCupVideo | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadVideo = useCallback(async () => {
-    const response = await fetch("/api/match-hub/news", {
-      method: "GET",
-      cache: "no-store",
-    });
+  useEffect(() => {
+    let mounted = true;
 
-    const payload = (await response.json().catch(() => null)) as { video?: WorldCupVideo | null } | null;
-    setVideo(payload?.video ?? null);
-    setLoading(false);
+    async function loadVideo() {
+      const response = await fetch("/api/match-hub/news", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      const payload = (await response.json().catch(() => null)) as { video?: WorldCupVideo | null } | null;
+      if (!mounted) {
+        return;
+      }
+      setVideo(payload?.video ?? null);
+      setLoading(false);
+    }
+
+    void loadVideo();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
-    void loadVideo();
-  }, [loadVideo]);
+    let mounted = true;
 
-  useEffect(() => {
+    async function refreshVideo() {
+      const response = await fetch("/api/match-hub/news", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      const payload = (await response.json().catch(() => null)) as { video?: WorldCupVideo | null } | null;
+      if (!mounted) {
+        return;
+      }
+      setVideo(payload?.video ?? null);
+      setLoading(false);
+    }
+
     const intervalId = window.setInterval(() => {
-      void loadVideo();
+      void refreshVideo();
     }, 5 * 60 * 1000);
 
-    return () => window.clearInterval(intervalId);
-  }, [loadVideo]);
+    return () => {
+      mounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   if (loading) {
     return <NewsDeskEmptyState />;

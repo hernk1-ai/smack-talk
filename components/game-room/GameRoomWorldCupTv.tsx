@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { WorldCupVideoCard } from "@/components/game-room/WorldCupVideoCard";
 import type { WorldCupMatchPhase } from "@/lib/worldCup/matchPhase";
@@ -17,34 +17,70 @@ export function GameRoomWorldCupTv({ gameId, homeTeam, awayTeam }: GameRoomWorld
   const [matchPhase, setMatchPhase] = useState<WorldCupMatchPhase | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadVideo = useCallback(async () => {
-    const params = new URLSearchParams({ gameId, homeTeam, awayTeam });
-    const response = await fetch(`/api/game-room/video?${params.toString()}`, {
-      method: "GET",
-      cache: "no-store",
-    });
+  useEffect(() => {
+    let mounted = true;
 
-    const payload = (await response.json().catch(() => null)) as {
-      video?: WorldCupVideo | null;
-      matchPhase?: WorldCupMatchPhase;
-    } | null;
+    async function loadVideo() {
+      const params = new URLSearchParams({ gameId, homeTeam, awayTeam });
+      const response = await fetch(`/api/game-room/video?${params.toString()}`, {
+        method: "GET",
+        cache: "no-store",
+      });
 
-    setVideo(payload?.video ?? null);
-    setMatchPhase(payload?.matchPhase ?? null);
-    setLoading(false);
+      const payload = (await response.json().catch(() => null)) as {
+        video?: WorldCupVideo | null;
+        matchPhase?: WorldCupMatchPhase;
+      } | null;
+
+      if (!mounted) {
+        return;
+      }
+
+      setVideo(payload?.video ?? null);
+      setMatchPhase(payload?.matchPhase ?? null);
+      setLoading(false);
+    }
+
+    void loadVideo();
+
+    return () => {
+      mounted = false;
+    };
   }, [gameId, homeTeam, awayTeam]);
 
   useEffect(() => {
-    void loadVideo();
-  }, [loadVideo]);
+    let mounted = true;
 
-  useEffect(() => {
+    async function refreshVideo() {
+      const params = new URLSearchParams({ gameId, homeTeam, awayTeam });
+      const response = await fetch(`/api/game-room/video?${params.toString()}`, {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      const payload = (await response.json().catch(() => null)) as {
+        video?: WorldCupVideo | null;
+        matchPhase?: WorldCupMatchPhase;
+      } | null;
+
+      if (!mounted) {
+        return;
+      }
+
+      setVideo(payload?.video ?? null);
+      setMatchPhase(payload?.matchPhase ?? null);
+      setLoading(false);
+    }
+
     const intervalId = window.setInterval(() => {
-      void loadVideo();
+      void refreshVideo();
     }, 5 * 60 * 1000);
 
-    return () => window.clearInterval(intervalId);
-  }, [loadVideo]);
+    return () => {
+      mounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, [gameId, homeTeam, awayTeam]);
 
   if (loading || !video) {
     return null;

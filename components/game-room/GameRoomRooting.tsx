@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { emptyRootingState, type RootingSide, type RootingState } from "@/lib/gameRoom/rooting";
 import { fetchRootingState, submitRootingVote } from "@/lib/gameRoom/rootingApi";
 
@@ -17,18 +17,25 @@ export function GameRoomRooting({ gameId, roomCode = null, homeTeam, awayTeam }:
   const [savingSide, setSavingSide] = useState<RootingSide | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const loadState = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    const nextState = await fetchRootingState(gameId, roomCode);
-    setState(nextState);
-    setLoading(false);
-  }, [gameId, roomCode]);
-
   useEffect(() => {
+    let mounted = true;
+
+    async function loadState() {
+      const nextState = await fetchRootingState(gameId, roomCode);
+      if (!mounted) {
+        return;
+      }
+      setState(nextState);
+      setLoading(false);
+      setError(null);
+    }
+
     void loadState();
-  }, [loadState]);
+
+    return () => {
+      mounted = false;
+    };
+  }, [gameId, roomCode]);
 
   async function handleRoot(side: RootingSide) {
     if (savingSide) {
@@ -57,7 +64,18 @@ export function GameRoomRooting({ gameId, roomCode = null, homeTeam, awayTeam }:
       {error ? (
         <p className="mt-3 text-center text-xs font-semibold text-red-300">
           {error}{" "}
-          <button type="button" onClick={() => void loadState()} className="underline">
+          <button
+            type="button"
+            onClick={() => {
+              setLoading(true);
+              setError(null);
+              void fetchRootingState(gameId, roomCode).then((nextState) => {
+                setState(nextState);
+                setLoading(false);
+              });
+            }}
+            className="underline"
+          >
             Retry
           </button>
         </p>

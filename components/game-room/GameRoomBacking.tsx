@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { getWorldCupKickoffIso, type WorldCupMatch } from "@/data/worldCupSchedule";
 import { formatBackingJoinMinute } from "@/lib/gameRoom/backingMinute";
@@ -8,7 +8,7 @@ import { type RootingSide } from "@/lib/gameRoom/rooting";
 import { fetchRootingState, submitRootingVote } from "@/lib/gameRoom/rootingApi";
 import { getCurrentUserMatchPick, lockCurrentUserWinnerPick } from "@/lib/supabase/matchPicks";
 import type { Game, MatchPick } from "@/lib/supabase/types";
-import { getWorldCupMatchStatus } from "@/lib/worldCupMatchStatus";
+import { resolveFeedGameStatus } from "@/lib/worldCup/gameStatus";
 
 type RoomStatus = "scheduled" | "live" | "final";
 
@@ -25,7 +25,9 @@ type GameRoomBackingProps = {
 };
 
 function resolveStatus(match: WorldCupMatch, game: Game | null, now: Date | null): RoomStatus {
-  if (!now) {
+  const startsAt = game?.starts_at ?? getWorldCupKickoffIso(match);
+
+  if (!now || !game?.status) {
     if (game?.status === "final") {
       return "final";
     }
@@ -35,15 +37,7 @@ function resolveStatus(match: WorldCupMatch, game: Game | null, now: Date | null
     return "scheduled";
   }
 
-  const lifecycle = getWorldCupMatchStatus(match, now);
-  const scheduleStatus: RoomStatus =
-    lifecycle === "finished" ? "final" : lifecycle === "live" ? "live" : "scheduled";
-
-  if (game?.status && game.status !== "scheduled") {
-    return game.status === "final" ? "final" : game.status === "live" ? "live" : scheduleStatus;
-  }
-
-  return scheduleStatus;
+  return resolveFeedGameStatus(game.status, startsAt, now);
 }
 
 function sideToTeam(side: RootingSide, homeTeam: string, awayTeam: string) {
@@ -99,22 +93,30 @@ export function GameRoomBacking({
   const participationLabel = hasTournamentPick ? "Pick" : rooting.choice ? "Backing" : null;
   const finalOutcome = resolveFinalOutcome(pick, game);
 
-  const loadState = useCallback(async () => {
-    const [nextRooting, pickResult] = await Promise.all([
-      fetchRootingState(gameId, roomCode),
-      hasSession ? getCurrentUserMatchPick(worldCupMatch) : Promise.resolve({ pick: null, error: null }),
-    ]);
-
-    setRooting(nextRooting);
-    if (pickResult.pick) {
-      setPick(pickResult.pick);
-    }
-    setLoading(false);
-  }, [gameId, roomCode, worldCupMatch, hasSession]);
-
   useEffect(() => {
+    let mounted = true;
+
+    async function loadState() {
+      const [nextRooting, pickResult] = await Promise.all([
+        fetchRootingState(gameId, roomCode),
+        hasSession ? getCurrentUserMatchPick(worldCupMatch) : Promise.resolve({ pick: null, error: null }),
+      ]);
+
+      if (!mounted) {
+        return;
+      }
+
+      setRooting(nextRooting);
+      setPick(pickResult.pick ?? null);
+      setLoading(false);
+    }
+
     void loadState();
-  }, [loadState]);
+
+    return () => {
+      mounted = false;
+    };
+  }, [gameId, roomCode, worldCupMatch, hasSession]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {

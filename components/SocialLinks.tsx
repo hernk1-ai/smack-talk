@@ -24,7 +24,6 @@ const linkDefs: SocialLinkDef[] = [
 
 export function SocialLinks({
   className,
-  compact = false,
   embedded = false,
   heading = "Follow Lockt",
   subtext = "World Cup calls, group breakdowns, receipt drops, and tournament storylines.",
