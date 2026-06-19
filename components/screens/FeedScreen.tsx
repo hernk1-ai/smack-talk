@@ -37,7 +37,6 @@ import { formatMatchupLabel, formatMatchupScoreCompact, formatMatchupScoreLine }
 import {
   getLiveMatchStatusLabel,
   getMatchHubFocus,
-  getNextWorldCupMatch,
   resolveWorldCupMatchLifecycle,
   type MatchHubFocus,
   type WorldCupGameSnapshot,
@@ -605,11 +604,11 @@ function MatchHubPrimaryFocus() {
     return <LiveNowModule match={focus.match} game={focus.game} now={now} />;
   }
 
-  if (focus.mode === "recent-final") {
-    return <RecentFinalModule match={focus.match} game={focus.game} />;
+  if (focus.mode === "upcoming") {
+    return <NextMatchCountdown now={now} games={games} focusMatch={focus.match} />;
   }
 
-  return <NextMatchCountdown now={now} games={games} focusMatch={focus.mode === "upcoming" ? focus.match : undefined} />;
+  return <TournamentCompleteModule />;
 }
 
 function LiveNowModule({
@@ -660,20 +659,22 @@ function LiveNowModule({
   );
 }
 
-function RecentFinalModule({ match, game }: { match: WorldCupMatch; game: WorldCupGameSnapshot | null }) {
-  const homeTeam = game?.home_team ?? match.homeTeam;
-  const awayTeam = game?.away_team ?? match.awayTeam ?? "TBD";
-  const homeScore = game?.home_score ?? 0;
-  const awayScore = game?.away_score ?? 0;
-
+function TournamentCompleteModule() {
   return (
-    <FeedSection title="Final" icon="◌" action="">
+    <FeedSection title="Tournament Status" icon="◌" action="">
       <div className="rounded-2xl border border-white/10 bg-black/45 p-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-400">Recent Result</p>
-        <p className="mt-1 text-base font-black text-white">
-          {formatMatchupScoreLine(homeTeam, homeScore, awayTeam, awayScore)}
+        <h3 className="sports-display text-3xl italic leading-none text-white sm:text-4xl">No Upcoming Matches</h3>
+        <p className="mt-3 text-sm font-semibold text-gray-300">
+          The World Cup schedule is complete for now. Check back for results or browse the full schedule.
         </p>
-        <p className="mt-1 text-xs font-semibold text-gray-400">Final · {match.city}</p>
+        <div className="mt-4">
+          <Link
+            href="/schedule"
+            className="grid min-h-11 place-items-center rounded-xl border border-white/15 bg-white/[0.04] px-3 text-xs font-black uppercase tracking-[0.1em] text-white"
+          >
+            View Schedule
+          </Link>
+        </div>
       </div>
     </FeedSection>
   );
@@ -686,11 +687,11 @@ function NextMatchCountdown({
 }: {
   now: Date;
   games: WorldCupGameSnapshot[];
-  focusMatch?: WorldCupMatch;
+  focusMatch: WorldCupMatch;
 }) {
-  const nextMatch = focusMatch ?? getNextWorldCupMatch(now, worldCupSchedule, games) ?? worldCupSchedule[0];
-  const countdown = getCountdownLabelForMatch(nextMatch, now);
+  const nextMatch = focusMatch;
   const nextGame = games.find((game) => game.id === getWorldCupMatchId(nextMatch));
+  const countdown = getCountdownLabelForMatch(nextMatch, now, nextGame?.status);
   const nextCta = getWorldCupMatchPublicCta(nextMatch, now, nextGame?.status);
 
   return (
@@ -729,10 +730,17 @@ function NextMatchCountdown({
   );
 }
 
-function getCountdownLabelForMatch(match: WorldCupMatch, now = new Date()) {
+function getCountdownLabelForMatch(match: WorldCupMatch, now = new Date(), feedStatus?: string | null) {
   const kickoffIso = getWorldCupKickoffIso(match);
-  const target = kickoffIso ? new Date(kickoffIso).getTime() : now.getTime();
-  const diff = Math.max(0, target - now.getTime());
+  if (!kickoffIso) {
+    return "—";
+  }
+
+  const diff = new Date(kickoffIso).getTime() - now.getTime();
+  if (diff <= 0) {
+    return feedStatus === "live" ? "0d 00h 00m 00s" : "Starting soon";
+  }
+
   const totalSeconds = Math.floor(diff / 1000);
   const days = Math.floor(totalSeconds / (60 * 60 * 24));
   const hours = Math.floor((totalSeconds % (60 * 60 * 24)) / (60 * 60));
