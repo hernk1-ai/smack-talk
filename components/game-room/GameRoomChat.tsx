@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   editRoomChatMessage,
   fetchRoomChatMessages,
@@ -82,25 +82,16 @@ export function GameRoomChat({ gameId, roomCode = null }: GameRoomChatProps) {
     return () => window.clearInterval(intervalId);
   }, [nowMs]);
 
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadMessages() {
-      const { messages: nextMessages, error: loadError } = await fetchRoomChatMessages(gameId, roomCode);
-      if (!mounted) {
-        return;
-      }
-      setMessages(nextMessages);
-      setLoading(false);
-      setError(loadError);
-    }
-
-    void loadMessages();
-
-    return () => {
-      mounted = false;
-    };
+  const loadMessages = useCallback(async () => {
+    const { messages: nextMessages, error: loadError } = await fetchRoomChatMessages(gameId, roomCode);
+    setMessages(nextMessages);
+    setLoading(false);
+    setError(loadError);
   }, [gameId, roomCode]);
+
+  useEffect(() => {
+    void loadMessages();
+  }, [loadMessages]);
 
   useEffect(() => {
     let mounted = true;

@@ -135,9 +135,12 @@ export function LiveArena({
   // still shows the correct matchup if Supabase/the game API is unavailable.
   const awayTeam = game?.away_team ?? worldCupMatch?.awayTeam ?? "AWAY";
   const homeTeam = game?.home_team ?? worldCupMatch?.homeTeam ?? "HOME";
+  const [claimPromptDismissed, setClaimPromptDismissed] = useState(false);
   const showClaimPrompt = useMemo(
-    () => shouldShowClaimPrompt(guest.profile, Math.max(guestActivityCount, guest.profile?.created_takes_count ?? 0)),
-    [guest.profile, guestActivityCount],
+    () =>
+      !claimPromptDismissed &&
+      shouldShowClaimPrompt(guest.profile, Math.max(guestActivityCount, guest.profile?.created_takes_count ?? 0)),
+    [claimPromptDismissed, guest.profile, guestActivityCount],
   );
   const privateRoomValid = !roomCode ? true : privateRoomState.roomCode === roomCode ? privateRoomState.valid : null;
   const privateRoomError = !roomCode ? null : privateRoomState.roomCode === roomCode ? privateRoomState.error : null;
@@ -790,7 +793,7 @@ export function LiveArena({
               <ClaimProfilePrompt
                 userId={guest.user.id}
                 claimHref={guest.claimHref}
-                onDismiss={() => setShowClaimPrompt(false)}
+                onDismiss={() => setClaimPromptDismissed(true)}
               />
             ) : null}
           </aside>

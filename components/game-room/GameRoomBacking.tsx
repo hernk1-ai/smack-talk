@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { getWorldCupKickoffIso, type WorldCupMatch } from "@/data/worldCupSchedule";
 import { formatBackingJoinMinute } from "@/lib/gameRoom/backingMinute";
@@ -93,30 +93,20 @@ export function GameRoomBacking({
   const participationLabel = hasTournamentPick ? "Pick" : rooting.choice ? "Backing" : null;
   const finalOutcome = resolveFinalOutcome(pick, game);
 
-  useEffect(() => {
-    let mounted = true;
+  const loadState = useCallback(async () => {
+    const [nextRooting, pickResult] = await Promise.all([
+      fetchRootingState(gameId, roomCode),
+      hasSession ? getCurrentUserMatchPick(worldCupMatch) : Promise.resolve({ pick: null, error: null }),
+    ]);
 
-    async function loadState() {
-      const [nextRooting, pickResult] = await Promise.all([
-        fetchRootingState(gameId, roomCode),
-        hasSession ? getCurrentUserMatchPick(worldCupMatch) : Promise.resolve({ pick: null, error: null }),
-      ]);
-
-      if (!mounted) {
-        return;
-      }
-
-      setRooting(nextRooting);
-      setPick(pickResult.pick ?? null);
-      setLoading(false);
-    }
-
-    void loadState();
-
-    return () => {
-      mounted = false;
-    };
+    setRooting(nextRooting);
+    setPick(pickResult.pick ?? null);
+    setLoading(false);
   }, [gameId, roomCode, worldCupMatch, hasSession]);
+
+  useEffect(() => {
+    void loadState();
+  }, [loadState]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
