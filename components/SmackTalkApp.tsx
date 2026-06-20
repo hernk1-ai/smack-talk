@@ -8,6 +8,7 @@ import { FeedScreen } from "@/components/screens/FeedScreen";
 import { ProfileScreen } from "@/components/screens/ProfileScreen";
 import { ReceiptsScreen, type ReceiptOwner } from "@/components/screens/ReceiptsScreen";
 import { TopTalkersScreen } from "@/components/screens/TopTalkersScreen";
+import { getWorldCupMatchId } from "@/data/worldCupSchedule";
 import { ACTIVE_GAME_ID } from "@/lib/supabase/games";
 import { resolveGameRoomNavTargetClient } from "@/lib/worldCupNavClient";
 import type { Profile } from "@/lib/supabase/types";
@@ -67,11 +68,10 @@ export function LocktApp({
     if (view === "game-room") {
       void resolveGameRoomNavTargetClient().then((target) => {
         if (target.match) {
-          const gameId = `wc-2026-${target.match.id}`;
-          setActiveGameRoomId(gameId);
+          setActiveGameRoomId(getWorldCupMatchId(target.match));
           setActiveRoomCode(null);
           setAppView("live-arena");
-          router.push(`/game/${gameId}`);
+          router.push(target.href);
           return;
         }
 

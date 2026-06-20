@@ -19,7 +19,7 @@ import { getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/repl
 import { getWorldCupMatchById } from "@/data/worldCupSchedule";
 import { getEstimatedMatchDisplay } from "@/lib/worldCupMatchStatus";
 import { resolveFeedGameStatus } from "@/lib/worldCup/gameStatus";
-import { getWorldCupKickoffIso } from "@/data/worldCupSchedule";
+import { getWorldCupKickoffIso, getWorldCupMatchId } from "@/data/worldCupSchedule";
 import { resolveGameRoomNavTargetClient } from "@/lib/worldCupNavClient";
 import { useRouter } from "next/navigation";
 import {
@@ -250,13 +250,13 @@ export function LiveArena({
         return;
       }
 
-      const nextGameId = `wc-2026-${target.match.id}`;
+      const nextGameId = getWorldCupMatchId(target.match);
       if (nextGameId === gameId) {
         return;
       }
 
       if (target.lifecycle === "live" || target.lifecycle === "upcoming") {
-        router.replace(`/game/${nextGameId}`);
+        router.replace(target.href);
       }
     });
 

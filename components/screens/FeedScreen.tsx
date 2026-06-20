@@ -9,6 +9,11 @@ import { useToast } from "@/components/providers/ToastProvider";
 import { SocialLinks } from "@/components/SocialLinks";
 import { UserAvatar } from "@/components/UserAvatar";
 import { playSound } from "@/lib/sound";
+import { getWorldCupKickoffIso, getWorldCupMatchId, worldCupSchedule, type WorldCupMatch } from "@/data/worldCupSchedule";
+import { MatchHubWorldCupNews } from "@/components/world-cup/MatchHubWorldCupNews";
+import { ACTIVE_SPORT, getVisibleSportTabs, isMatchHubMode, SHOW_MULTI_SPORT } from "@/lib/productConfig";
+import { getWorldCupMatchPublicCta } from "@/lib/worldCupPublicNav";
+import { formatMatchupLabel, formatMatchupScoreCompact, formatMatchupScoreLine } from "@/lib/worldCup/matchupDisplay";
 import { ACTIVE_GAME_ID, getArenaGames, getGameById } from "@/lib/supabase/games";
 import {
   attachAuthorToTake,
@@ -29,14 +34,10 @@ import { seededChaosAlerts } from "@/data/seededCrowd";
 import { getGameSport, sportTabs, type SportKey } from "@/data/sportsStructure";
 import { worldCupStorylines } from "@/data/worldCupStorylines";
 import { worldCupChaosAlerts, worldCupFeaturedMatch, worldCupLiveArenas, worldCupTrendingTakes } from "@/data/worldCupMvp";
-import { getWorldCupKickoffIso, getWorldCupMatchId, worldCupSchedule, type WorldCupMatch } from "@/data/worldCupSchedule";
-import { MatchHubWorldCupNews } from "@/components/world-cup/MatchHubWorldCupNews";
-import { ACTIVE_SPORT, getVisibleSportTabs, isMatchHubMode, SHOW_MULTI_SPORT } from "@/lib/productConfig";
-import { getWorldCupMatchPublicCta } from "@/lib/worldCupPublicNav";
-import { formatMatchupLabel, formatMatchupScoreCompact, formatMatchupScoreLine } from "@/lib/worldCup/matchupDisplay";
 import {
   getLiveMatchStatusLabel,
   getMatchHubFocus,
+  resolveGameRoomNavTarget,
   resolveWorldCupMatchLifecycle,
   type MatchHubFocus,
   type WorldCupGameSnapshot,
@@ -271,10 +272,38 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   const featuredTake = getFeaturedTakeFromList(visibleTakes);
   const trendingRealTakes = getTrendingTakesFromList(visibleTakes, 4);
   const activeSportGames = liveGames.filter((game) => getGameSportFromRow(game) === activeSport);
+  const activeSportSnapshots = useMemo<WorldCupGameSnapshot[]>(
+    () =>
+      activeSportGames.map((game) => ({
+        id: game.id,
+        status: game.status,
+        starts_at: game.starts_at,
+        home_score: game.home_score,
+        away_score: game.away_score,
+        home_team: game.home_team,
+        away_team: game.away_team,
+        clock: game.clock,
+        period: game.period,
+        event_name: game.event_name,
+      })),
+    [activeSportGames],
+  );
+  const resolvedActiveGameTarget = useMemo(
+    () => resolveGameRoomNavTarget(new Date(), worldCupSchedule, activeSportSnapshots),
+    [activeSportSnapshots],
+  );
+  const resolvedActiveGame = useMemo(
+    () =>
+      resolvedActiveGameTarget.match
+        ? (activeSportGames.find((game) => game.id === getWorldCupMatchId(resolvedActiveGameTarget.match!)) ?? null)
+        : null,
+    [activeSportGames, resolvedActiveGameTarget.match],
+  );
   const liveSportGames = activeSportGames.filter((game) => game.status === "live");
   const scheduledSportGames = activeSportGames.filter((game) => game.status === "scheduled");
   const finalSportGames = activeSportGames.filter((game) => game.status === "final");
-  const activeSportGame = liveSportGames[0] ?? scheduledSportGames[0] ?? (activeSport === ACTIVE_SPORT ? activeGame : null);
+  const activeSportGame =
+    resolvedActiveGame ?? liveSportGames[0] ?? (activeSport === ACTIVE_SPORT ? activeGame : null);
   const combinedReactions = { ...takeChoices, ...takeReactions } as Record<string, TakeReaction["reaction"]>;
   const dynamicChaosAlerts = buildChaosAlerts(visibleTakes);
 

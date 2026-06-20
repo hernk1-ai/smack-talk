@@ -10,6 +10,7 @@ import {
   resolveFeedGameStatus,
   STALE_LIVE_FALLBACK_MS,
 } from "@/lib/worldCup/gameStatus";
+import { parseWorldCupRouteGameId } from "@/lib/supabase/resolveArenaGame";
 import { getEstimatedMatchDisplay, type WorldCupMatchLifecycle } from "@/lib/worldCupMatchStatus";
 import type { Game } from "@/lib/supabase/types";
 
@@ -117,20 +118,37 @@ function gamesByMatchId(games: WorldCupGameSnapshot[] = []) {
   return new Map(games.map((game) => [game.id, game]));
 }
 
+function resolveScheduleMatchForGame(game: WorldCupGameSnapshot, schedule: WorldCupMatch[]): WorldCupMatch | null {
+  const parsed = parseWorldCupRouteGameId(game.id);
+  if (parsed) {
+    return parsed.worldCupMatch;
+  }
+
+  return schedule.find((match) => getWorldCupMatchId(match) === game.id) ?? null;
+}
+
+function isFeedLiveGameRow(game: WorldCupGameSnapshot, now: Date): boolean {
+  return resolveFeedGameStatus(game.status, game.starts_at, now) === "live";
+}
+
+/** Live matches from feed rows (games.status), sorted by kickoff ascending. */
 function findLiveMatches(
   now: Date,
   schedule: WorldCupMatch[],
   games: WorldCupGameSnapshot[] = [],
 ) {
-  const gameMap = gamesByMatchId(games);
-
-  return getWorldCupScheduleByKickoff(schedule)
-    .map((match) => ({
-      match,
-      game: gameMap.get(getWorldCupMatchId(match)) ?? null,
-      lifecycle: resolveWorldCupMatchLifecycle(match, now, gameMap.get(getWorldCupMatchId(match))),
+  return games
+    .filter((game) => isFeedLiveGameRow(game, now))
+    .map((game) => ({
+      match: resolveScheduleMatchForGame(game, schedule),
+      game,
     }))
-    .filter((entry) => entry.lifecycle === "live");
+    .filter((entry): entry is { match: WorldCupMatch; game: WorldCupGameSnapshot } => entry.match !== null)
+    .sort(
+      (left, right) =>
+        getMatchKickoffMs(left.match, left.game) - getMatchKickoffMs(right.match, right.game) ||
+        left.match.id - right.match.id,
+    );
 }
 
 /** The match that is currently live (earliest kickoff if several overlap), or null. */
@@ -163,6 +181,10 @@ export function getNextWorldCupMatch(
   schedule: WorldCupMatch[] = worldCupSchedule,
   games: WorldCupGameSnapshot[] = [],
 ): WorldCupMatch | null {
+  if (getCurrentLiveWorldCupMatch(now, schedule, games)) {
+    return null;
+  }
+
   const gameMap = gamesByMatchId(games);
 
   return (
@@ -335,6 +357,68 @@ export function validateMatchHubSelection(
   return { ok: checks.every((check) => check.pass), checks };
 }
 
+/** Validates Game Room nav picks live feed rows over stale scheduled/final matches. */
+export function validateGameRoomSelection(
+  schedule: WorldCupMatch[] = worldCupSchedule,
+): { ok: boolean; checks: NavCheck[] } {
+  const checks: NavCheck[] = [];
+  const tunJpn = schedule.find((match) => match.id === 36) ?? null;
+  const braHai = schedule.find((match) => match.id === 29) ?? null;
+  const scoMar = schedule.find((match) => match.id === 30) ?? null;
+  const turPar = schedule.find((match) => match.id === 4) ?? null;
+  const now = tunJpn
+    ? new Date(new Date(getWorldCupKickoffIso(tunJpn) ?? Date.now()).getTime() - 30 * 60 * 1000)
+    : new Date("2026-06-20T11:30:00-04:00");
+  const liveKickoff = new Date(now.getTime() - 45 * 60 * 1000).toISOString();
+
+  const games: WorldCupGameSnapshot[] = [
+    ...(turPar
+      ? [
+          buildGameSnapshot(turPar, "live", {
+            starts_at: liveKickoff,
+            home_team: "Türkiye",
+            away_team: "Paraguay",
+            home_score: 1,
+            away_score: 0,
+            clock: "37'",
+          }),
+        ]
+      : []),
+    ...(braHai ? [buildGameSnapshot(braHai, "final", { home_score: 2, away_score: 1 })] : []),
+    ...(scoMar ? [buildGameSnapshot(scoMar, "final", { home_score: 0, away_score: 1 })] : []),
+    ...(tunJpn ? [buildGameSnapshot(tunJpn, "scheduled")] : []),
+  ];
+
+  const navTarget = resolveGameRoomNavTarget(now, schedule, games);
+
+  checks.push({
+    name: "live Türkiye vs Paraguay routes to its game room",
+    pass: navTarget.lifecycle === "live" && navTarget.match?.id === turPar?.id,
+    detail: `${navTarget.href} (${navTarget.lifecycle ?? "none"})`,
+  });
+
+  checks.push({
+    name: "Brazil vs Haiti final is not selected",
+    pass: navTarget.match?.id !== braHai?.id,
+    detail: `selected id=${navTarget.match?.id ?? "none"}`,
+  });
+
+  checks.push({
+    name: "Scotland vs Morocco final is not selected",
+    pass: navTarget.match?.id !== scoMar?.id,
+    detail: `selected id=${navTarget.match?.id ?? "none"}`,
+  });
+
+  const withoutLive = resolveGameRoomNavTarget(now, schedule, games.filter((game) => game.status !== "live"));
+  checks.push({
+    name: "Tunisia vs Japan scheduled only when no live match exists",
+    pass: withoutLive.lifecycle === "upcoming" && withoutLive.match?.id === tunJpn?.id,
+    detail: `${withoutLive.href} (${withoutLive.lifecycle ?? "none"})`,
+  });
+
+  return { ok: checks.every((check) => check.pass), checks };
+}
+
 /**
  * Console-safe validation of the resolvers. Returns structured checks instead of
  * throwing so it can run in a dev route, a script, or a quick test. Verifies:
@@ -401,6 +485,9 @@ export function validateWorldCupNav(): { ok: boolean; checks: NavCheck[] } {
 
   const matchHubChecks = validateMatchHubSelection(worldCupSchedule);
   checks.push(...matchHubChecks.checks);
+
+  const gameRoomChecks = validateGameRoomSelection(worldCupSchedule);
+  checks.push(...gameRoomChecks.checks);
 
   return { ok: checks.every((check) => check.pass), checks };
 }
