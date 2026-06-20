@@ -67,8 +67,9 @@ export function LocktApp({
 
     if (view === "game-room") {
       void resolveGameRoomNavTargetClient().then((target) => {
-        if (target.match) {
-          setActiveGameRoomId(getWorldCupMatchId(target.match));
+        const gameId = target.game?.id ?? (target.match ? getWorldCupMatchId(target.match) : null);
+        if (gameId) {
+          setActiveGameRoomId(gameId);
           setActiveRoomCode(null);
           setAppView("live-arena");
           router.push(target.href);

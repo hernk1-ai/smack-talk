@@ -294,10 +294,12 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   );
   const resolvedActiveGame = useMemo(
     () =>
-      resolvedActiveGameTarget.match
-        ? (activeSportGames.find((game) => game.id === getWorldCupMatchId(resolvedActiveGameTarget.match!)) ?? null)
-        : null,
-    [activeSportGames, resolvedActiveGameTarget.match],
+      resolvedActiveGameTarget.game
+        ? (activeSportGames.find((game) => game.id === resolvedActiveGameTarget.game!.id) ?? null)
+        : resolvedActiveGameTarget.match
+          ? (activeSportGames.find((game) => game.id === getWorldCupMatchId(resolvedActiveGameTarget.match!)) ?? null)
+          : null,
+    [activeSportGames, resolvedActiveGameTarget.game, resolvedActiveGameTarget.match],
   );
   const liveSportGames = activeSportGames.filter((game) => game.status === "live");
   const scheduledSportGames = activeSportGames.filter((game) => game.status === "scheduled");

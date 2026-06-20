@@ -30,6 +30,8 @@ export async function GET() {
       nextMatch: next ? { id: next.id, matchup: `${next.homeTeam} vs ${next.awayTeam ?? "TBD"}` } : null,
       navResolvesTo: navTarget.href,
       navLifecycle: navTarget.lifecycle,
+      navSelectionReason: navTarget.selectionReason,
+      navSelectedGameId: navTarget.game?.id ?? null,
       validation,
     },
     { status: validation.ok ? 200 : 500 },

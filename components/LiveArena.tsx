@@ -246,11 +246,11 @@ export function LiveArena({
     let cancelled = false;
 
     void resolveGameRoomNavTargetClient(now).then((target) => {
-      if (cancelled || !target.match) {
+      const nextGameId = target.game?.id ?? (target.match ? getWorldCupMatchId(target.match) : null);
+      if (cancelled || !nextGameId) {
         return;
       }
 
-      const nextGameId = getWorldCupMatchId(target.match);
       if (nextGameId === gameId) {
         return;
       }

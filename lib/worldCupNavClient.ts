@@ -29,6 +29,9 @@ export async function fetchWorldCupGameSnapshots(): Promise<WorldCupGameSnapshot
 /** Resolve Game Room nav using live DB rows when available. */
 export async function resolveGameRoomNavTargetClient(now = new Date()): Promise<GameRoomNavTarget> {
   const games = await fetchWorldCupGameSnapshots();
+  if (games.length === 0) {
+    console.warn("[lockt:game-room-select] No World Cup feed rows loaded; falling back to static schedule.");
+  }
   return resolveGameRoomNavTarget(now, worldCupSchedule, games);
 }
 
