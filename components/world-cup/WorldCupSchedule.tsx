@@ -8,7 +8,9 @@ import {
   formatLocalKickoff,
   getKickoffMs,
   getLocalDateKey,
+  getLocalDateKeyForInstant,
   getLocalDateLabel,
+  getTodayLocalDateKey,
   WORLD_CUP_SCHEDULE_FALLBACK_TIME_ZONE,
 } from "@/lib/worldCup/localSchedule";
 import type { ScheduleMatchState, ScheduleMatchStatus } from "@/lib/worldCup/scheduleStatus";
@@ -42,20 +44,41 @@ type WorldCupScheduleProps = {
   showViewFullLink?: boolean;
   /** match.id -> live/derived state. Missing entries fall back to "upcoming". */
   matchStates?: Record<number, ScheduleMatchState>;
+  /** Single server timestamp to keep first render + hydration grouping aligned. */
+  initialNowIso?: string;
 };
 
 const FALLBACK_MATCH_STATE: ScheduleMatchState = { status: "upcoming", homeScore: null, awayScore: null };
+
+type DisplayMatch = {
+  match: WorldCupMatch;
+  state: ScheduleMatchState;
+  kickoffLabel: string;
+  kickoffMs: number;
+  localDateKey: string;
+  localDateLabel: string;
+};
+
+type MatchSection = {
+  key: string;
+  title: string;
+  subtitle?: string;
+  matches: DisplayMatch[];
+  tone?: "default" | "live" | "results";
+};
 
 export function WorldCupSchedule({
   limit,
   showHeader = true,
   showViewFullLink = false,
   matchStates = {},
+  initialNowIso,
 }: WorldCupScheduleProps) {
   const sourceUrls = getWorldCupFixtureSourceUrls();
   const [selectedGroup, setSelectedGroup] = useState<"ALL" | WorldCupGroup>("ALL");
   const [selectedCity, setSelectedCity] = useState("All Cities");
   const [selectedTeam, setSelectedTeam] = useState("All Teams");
+  const [showEarlierResults, setShowEarlierResults] = useState(false);
   // Source of truth for grouping/sorting. ET on the server + first paint, then
   // the viewer's real browser timezone after mount (keeps hydration stable).
   const [timeZone, setTimeZone] = useState(WORLD_CUP_SCHEDULE_FALLBACK_TIME_ZONE);
@@ -84,6 +107,7 @@ export function WorldCupSchedule({
     },
     [collator],
   );
+  const referenceNow = useMemo(() => new Date(initialNowIso ?? new Date().toISOString()), [initialNowIso]);
 
   const filteredMatches = useMemo(() => {
     const matches = worldCupSchedule.filter((match) => {
@@ -96,30 +120,113 @@ export function WorldCupSchedule({
     return typeof limit === "number" ? matches.slice(0, limit) : matches;
   }, [limit, selectedCity, selectedGroup, selectedTeam]);
 
-  // Group by the viewer's LOCAL calendar day and sort chronologically within
-  // each day by local kickoff — never by FIFA matchday. Answers "what's on next
-  // for me, in my timezone?".
-  const groupedByDate = useMemo(() => {
-    const byDate = new Map<string, { label: string; matches: WorldCupMatch[] }>();
-    for (const match of filteredMatches) {
-      const key = getLocalDateKey(match, timeZone);
-      const bucket = byDate.get(key) ?? { label: getLocalDateLabel(match, timeZone), matches: [] };
-      bucket.matches.push(match);
-      byDate.set(key, bucket);
-    }
+  const displayMatches = useMemo(
+    () =>
+      [...filteredMatches]
+        .sort((a, b) => getKickoffMs(a) - getKickoffMs(b))
+        .map((match) => ({
+          match,
+          state: matchStates[match.id] ?? FALLBACK_MATCH_STATE,
+          kickoffLabel: formatLocalKickoff(match, timeZone),
+          kickoffMs: getKickoffMs(match),
+          localDateKey: getLocalDateKey(match, timeZone),
+          localDateLabel: getLocalDateLabel(match, timeZone),
+        })),
+    [filteredMatches, matchStates, timeZone],
+  );
 
-    return [...byDate.entries()]
-      .sort(([keyA], [keyB]) => (keyA < keyB ? -1 : keyA > keyB ? 1 : 0))
-      .map(([key, bucket]) => ({
-        key,
-        label: bucket.label,
-        matches: [...bucket.matches].sort((a, b) => getKickoffMs(a) - getKickoffMs(b)),
-      }));
-  }, [filteredMatches, timeZone]);
+  const todayKey = useMemo(() => getTodayLocalDateKey(timeZone, referenceNow), [referenceNow, timeZone]);
+  const tomorrowKey = useMemo(
+    () => getLocalDateKeyForInstant(new Date(referenceNow.getTime() + 24 * 60 * 60 * 1000).toISOString(), timeZone),
+    [referenceNow, timeZone],
+  );
+
+  const liveMatches = useMemo(() => displayMatches.filter((entry) => entry.state.status === "live"), [displayMatches]);
+  const upcomingMatches = useMemo(() => displayMatches.filter((entry) => entry.state.status === "upcoming"), [displayMatches]);
+  const completedMatches = useMemo(() => displayMatches.filter((entry) => entry.state.status === "final"), [displayMatches]);
+
+  const todayUpcoming = useMemo(() => upcomingMatches.filter((entry) => entry.localDateKey === todayKey), [todayKey, upcomingMatches]);
+  const tomorrowUpcoming = useMemo(() => upcomingMatches.filter((entry) => entry.localDateKey === tomorrowKey), [tomorrowKey, upcomingMatches]);
+  const laterUpcoming = useMemo(
+    () => upcomingMatches.filter((entry) => entry.localDateKey !== todayKey && entry.localDateKey !== tomorrowKey),
+    [todayKey, tomorrowKey, upcomingMatches],
+  );
+  const completedToday = useMemo(() => completedMatches.filter((entry) => entry.localDateKey === todayKey), [completedMatches, todayKey]);
+  const olderCompleted = useMemo(() => completedMatches.filter((entry) => entry.localDateKey < todayKey), [completedMatches, todayKey]);
+  const allCompleted = displayMatches.length > 0 && liveMatches.length === 0 && upcomingMatches.length === 0;
 
   const remainingCount = useMemo(
-    () => filteredMatches.filter((match) => (matchStates[match.id] ?? FALLBACK_MATCH_STATE).status !== "final").length,
-    [filteredMatches, matchStates],
+    () => displayMatches.filter((entry) => entry.state.status !== "final").length,
+    [displayMatches],
+  );
+  const nextMatch = upcomingMatches[0] ?? null;
+
+  const sectionList = useMemo(() => {
+    if (allCompleted) {
+      return groupMatchesIntoSections(completedMatches, {
+        keyPrefix: "final",
+        tone: "results",
+        sortDirection: "desc",
+      });
+    }
+
+    const sections: MatchSection[] = [];
+
+    if (liveMatches.length > 0) {
+      sections.push({
+        key: "live-now",
+        title: "Live Now",
+        subtitle: liveMatches.length === 1 ? "Match in progress" : `${liveMatches.length} matches in progress`,
+        matches: liveMatches,
+        tone: "live",
+      });
+    }
+
+    if (todayUpcoming.length > 0) {
+      sections.push({
+        key: "today",
+        title: "Today",
+        subtitle: todayUpcoming[0]?.localDateLabel,
+        matches: todayUpcoming,
+      });
+    }
+
+    if (tomorrowUpcoming.length > 0) {
+      sections.push({
+        key: "tomorrow",
+        title: "Tomorrow",
+        subtitle: tomorrowUpcoming[0]?.localDateLabel,
+        matches: tomorrowUpcoming,
+      });
+    }
+
+    sections.push(
+      ...groupMatchesIntoSections(laterUpcoming, {
+        keyPrefix: "upcoming",
+      }),
+    );
+
+    if (completedToday.length > 0) {
+      sections.push({
+        key: "today-results",
+        title: todayUpcoming.length > 0 ? "Earlier Today" : "Today Results",
+        subtitle: completedToday[0]?.localDateLabel,
+        matches: completedToday,
+        tone: "results",
+      });
+    }
+
+    return sections;
+  }, [allCompleted, completedMatches, completedToday, laterUpcoming, liveMatches, todayUpcoming, tomorrowUpcoming]);
+
+  const earlierResultSections = useMemo(
+    () =>
+      groupMatchesIntoSections(olderCompleted, {
+        keyPrefix: "earlier-results",
+        tone: "results",
+        sortDirection: "desc",
+      }),
+    [olderCompleted],
   );
 
   return (
@@ -139,8 +246,13 @@ export function WorldCupSchedule({
         <FilterSelect label="Team" value={selectedTeam} onChange={setSelectedTeam} options={teams.map((team) => ({ value: team, label: team }))} />
       </div>
 
-      <div className="mb-2.5 flex items-center justify-between sm:mb-3">
-        <p className="text-xs font-black uppercase tracking-[0.12em] text-lime-300">{remainingCount} Matches Remaining</p>
+      <div className="mb-2.5 flex items-center justify-between gap-3 sm:mb-3">
+        <StatusSummary
+          allCompleted={allCompleted}
+          liveMatch={liveMatches[0] ?? null}
+          nextMatch={nextMatch}
+          remainingCount={remainingCount}
+        />
         {showViewFullLink ? (
           <Link href="/schedule" className="text-xs font-black uppercase tracking-[0.1em] text-purple-300 hover:text-purple-100">
             View Full Schedule
@@ -149,21 +261,43 @@ export function WorldCupSchedule({
       </div>
 
       <div className="space-y-2.5 sm:space-y-3">
-        {groupedByDate.map(({ key, label, matches }) => (
-          <article key={key} className="rounded-2xl border border-white/10 bg-[var(--surface-card)] p-2.5 sm:p-3">
-            <p className="text-xs font-black uppercase tracking-[0.12em] text-gray-300">{label}</p>
-            <div className="mt-1.5 space-y-1.5 sm:mt-2 sm:space-y-2">
-              {matches.map((match) => (
-                <MatchRow
-                  key={match.id}
-                  match={match}
-                  state={matchStates[match.id] ?? FALLBACK_MATCH_STATE}
-                  kickoffLabel={formatLocalKickoff(match, timeZone)}
-                />
-              ))}
-            </div>
+        {displayMatches.length === 0 ? (
+          <article className="rounded-2xl border border-dashed border-white/15 bg-[var(--surface-card)] p-4 text-center">
+            <p className="text-sm font-black uppercase tracking-[0.12em] text-lime-300">No matches found</p>
+            <p className="mt-1 text-sm font-semibold text-gray-300">Try a different group, city, or team filter.</p>
           </article>
-        ))}
+        ) : (
+          <>
+            {sectionList.map((section) => (
+              <MatchSectionCard key={section.key} section={section} />
+            ))}
+            {!allCompleted && olderCompleted.length > 0 ? (
+              <div className="rounded-2xl border border-white/10 bg-[var(--surface-card)] p-2.5 sm:p-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEarlierResults((current) => !current)}
+                  aria-expanded={showEarlierResults}
+                  className="flex w-full items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-left transition hover:border-lime-300/30"
+                >
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.12em] text-gray-200">Earlier Results ({olderCompleted.length})</p>
+                    <p className="mt-0.5 text-xs font-semibold text-gray-500">Completed matches from previous days</p>
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-[0.1em] text-lime-300">
+                    {showEarlierResults ? "Hide" : "Show"}
+                  </span>
+                </button>
+                {showEarlierResults ? (
+                  <div className="mt-2 space-y-2.5 sm:space-y-3">
+                    {earlierResultSections.map((section) => (
+                      <MatchSectionCard key={section.key} section={section} />
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </>
+        )}
       </div>
 
       <p className="mt-3 text-[11px] font-semibold text-gray-500">
@@ -223,10 +357,96 @@ function getScheduleCta(match: WorldCupMatch, status: ScheduleMatchStatus) {
   }
 
   if (status === "live") {
-    return { label: "Join Game Room", href: SHOW_GAME_ROOM ? matchRoomHref : gameRoomHref };
+    return { label: "Join Live", href: SHOW_GAME_ROOM ? matchRoomHref : gameRoomHref };
   }
 
   return { label: "Join Game Room", href: gameRoomHref };
+}
+
+function StatusSummary({
+  allCompleted,
+  liveMatch,
+  nextMatch,
+  remainingCount,
+}: {
+  allCompleted: boolean;
+  liveMatch: DisplayMatch | null;
+  nextMatch: DisplayMatch | null;
+  remainingCount: number;
+}) {
+  if (allCompleted) {
+    return (
+      <div className="flex-1 rounded-2xl border border-white/10 bg-[linear-gradient(135deg,rgba(163,230,53,0.16),rgba(255,255,255,0.03))] p-3">
+        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-lime-300">Tournament Complete</p>
+        <p className="mt-1 text-lg font-black text-white">All final results are in.</p>
+        <p className="mt-1 text-xs font-semibold text-gray-300">Browse the finished matches below.</p>
+      </div>
+    );
+  }
+
+  if (liveMatch) {
+    const cta = getScheduleCta(liveMatch.match, liveMatch.state.status);
+
+    return (
+      <div className="flex-1 rounded-2xl border border-lime-300/30 bg-[linear-gradient(135deg,rgba(163,230,53,0.16),rgba(255,255,255,0.03))] p-3 shadow-[0_0_30px_rgba(163,230,53,0.12)]">
+        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-lime-300">Live Now</p>
+        <p className="mt-1 text-lg font-black text-white">
+          {liveMatch.match.homeTeam} vs {liveMatch.match.awayTeam ?? "TBD"}
+        </p>
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <Link
+            href={cta.href}
+            className="rounded-md border border-lime-300/35 bg-lime-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-lime-200 hover:border-lime-200/50"
+          >
+            Join the room
+          </Link>
+          <p className="text-[11px] font-black uppercase tracking-[0.1em] text-gray-200">{remainingCount} matches remaining</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (nextMatch) {
+    return (
+      <div className="flex-1 rounded-2xl border border-white/10 bg-[linear-gradient(135deg,rgba(163,230,53,0.12),rgba(255,255,255,0.03))] p-3">
+        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-lime-300">Next Match</p>
+        <p className="mt-1 text-lg font-black text-white">
+          {nextMatch.match.homeTeam} vs {nextMatch.match.awayTeam ?? "TBD"}
+        </p>
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-semibold text-gray-300">{nextMatch.kickoffLabel}</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.1em] text-gray-200">{remainingCount} matches remaining</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 rounded-2xl border border-white/10 bg-[linear-gradient(135deg,rgba(163,230,53,0.12),rgba(255,255,255,0.03))] p-3">
+      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-lime-300">Schedule Status</p>
+      <p className="mt-1 text-lg font-black text-white">No live or upcoming matches in this view.</p>
+      <p className="mt-1 text-xs font-semibold text-gray-300">Adjust the filters to explore more fixtures.</p>
+    </div>
+  );
+}
+
+function MatchSectionCard({ section }: { section: MatchSection }) {
+  const headerToneClass =
+    section.tone === "live" ? "text-lime-300" : section.tone === "results" ? "text-gray-300" : "text-gray-200";
+
+  return (
+    <article className="rounded-2xl border border-white/10 bg-[var(--surface-card)] p-2.5 sm:p-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className={`text-xs font-black uppercase tracking-[0.12em] ${headerToneClass}`}>{section.title}</p>
+        {section.subtitle ? <p className="text-[11px] font-semibold text-gray-500">{section.subtitle}</p> : null}
+      </div>
+      <div className="mt-1.5 space-y-1.5 sm:mt-2 sm:space-y-2">
+        {section.matches.map((entry) => (
+          <MatchRow key={entry.match.id} match={entry.match} state={entry.state} kickoffLabel={entry.kickoffLabel} />
+        ))}
+      </div>
+    </article>
+  );
 }
 
 function MatchRow({ match, state, kickoffLabel }: { match: WorldCupMatch; state: ScheduleMatchState; kickoffLabel: string }) {
@@ -278,4 +498,30 @@ function MatchRow({ match, state, kickoffLabel }: { match: WorldCupMatch; state:
       </div>
     </div>
   );
+}
+
+function groupMatchesIntoSections(
+  matches: DisplayMatch[],
+  options: { keyPrefix: string; tone?: MatchSection["tone"]; sortDirection?: "asc" | "desc" },
+): MatchSection[] {
+  const grouped = new Map<string, { label: string; matches: DisplayMatch[] }>();
+
+  for (const entry of matches) {
+    const bucket = grouped.get(entry.localDateKey) ?? { label: entry.localDateLabel, matches: [] };
+    bucket.matches.push(entry);
+    grouped.set(entry.localDateKey, bucket);
+  }
+
+  return [...grouped.entries()]
+    .sort(([keyA], [keyB]) => {
+      if (keyA === keyB) return 0;
+      const direction = options.sortDirection === "desc" ? -1 : 1;
+      return keyA < keyB ? -1 * direction : 1 * direction;
+    })
+    .map(([key, bucket]) => ({
+      key: `${options.keyPrefix}-${key}`,
+      title: bucket.label,
+      matches: bucket.matches.sort((a, b) => a.kickoffMs - b.kickoffMs),
+      tone: options.tone,
+    }));
 }

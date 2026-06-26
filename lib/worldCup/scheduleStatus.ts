@@ -59,8 +59,13 @@ export function resolveScheduleMatchState(
   now: Date = new Date(),
 ): ScheduleMatchState {
   if (gameRow) {
+    const status = normalizeDbStatus(gameRow.status, getWorldCupKickoffIso(match), now);
+    const fallbackStatus = scheduleFallbackStatus(match, now);
+
     return {
-      status: normalizeDbStatus(gameRow.status, getWorldCupKickoffIso(match), now),
+      // Display-only safety net: if a persisted row never advanced out of
+      // "scheduled", still move stale past kickoffs into completed results.
+      status: status === "upcoming" && fallbackStatus === "final" ? "final" : status,
       homeScore: gameRow.home_score,
       awayScore: gameRow.away_score,
     };

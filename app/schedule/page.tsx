@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { buildScheduleMatchStates, type ScheduleGameRow } from "@/lib/worldCup/scheduleStatus";
 
 export default async function SchedulePage() {
+  const now = new Date();
   const supabase = await createClient();
   let profile = null;
 
@@ -34,7 +35,7 @@ export default async function SchedulePage() {
       gameRows = data as ScheduleGameRow[];
     }
   }
-  const matchStates = buildScheduleMatchStates(gameRows);
+  const matchStates = buildScheduleMatchStates(gameRows, now);
 
   return (
     <main className="min-h-screen bg-transparent px-4 py-5 pb-28 text-white sm:py-6">
@@ -44,7 +45,7 @@ export default async function SchedulePage() {
           profile={profile}
           rightAriaLabel="Account"
         />
-        <WorldCupSchedule matchStates={matchStates} />
+        <WorldCupSchedule matchStates={matchStates} initialNowIso={now.toISOString()} />
       </div>
       <RouteBottomNav activeView="schedule" />
     </main>
