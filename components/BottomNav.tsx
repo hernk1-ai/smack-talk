@@ -7,17 +7,19 @@ import {
   SHOW_MATCH_HUB,
   SHOW_PROFILES,
   SHOW_SCHEDULE,
+  SHOW_STANDINGS,
 } from "@/lib/productConfig";
 import { SCHEDULE_FALLBACK_ROUTE } from "@/lib/worldCupMatchResolver";
 import { resolveGameRoomNavHrefClient } from "@/lib/worldCupNavClient";
 
-export type AppView = "arena" | "live-arena" | "receipts" | "top-talkers" | "profile" | "schedule";
-type PrimaryNavView = "match-hub" | "schedule" | "game-room" | "profile";
+export type AppView = "arena" | "live-arena" | "receipts" | "top-talkers" | "profile" | "schedule" | "standings";
+type PrimaryNavView = "match-hub" | "schedule" | "standings" | "game-room" | "profile";
 type NavView = PrimaryNavView | "arena" | "receipts" | "settings";
 
 const navItems: { id: PrimaryNavView; label: string; icon: string }[] = [
   { id: "match-hub", label: "Match Hub", icon: "◉" },
   { id: "schedule", label: "Schedule", icon: "◷" },
+  { id: "standings", label: "Standings", icon: "▥" },
   { id: "game-room", label: "Game Room", icon: "▦" },
   { id: "profile", label: "Profile", icon: "▤" },
 ];
@@ -26,23 +28,33 @@ function getPublicNavItems() {
   return navItems.filter((item) => {
     if (item.id === "match-hub") return SHOW_MATCH_HUB;
     if (item.id === "schedule") return SHOW_SCHEDULE;
+    if (item.id === "standings") return SHOW_STANDINGS;
     if (item.id === "game-room") return SHOW_GAME_ROOM_IN_NAV;
     if (item.id === "profile") return SHOW_PROFILES;
     return true;
   });
 }
 
+function navColumnClass(count: number) {
+  if (count <= 2) return "grid-cols-2";
+  if (count === 3) return "grid-cols-3";
+  if (count === 4) return "grid-cols-4";
+  return "grid-cols-5";
+}
+
 function toPrimaryNav(view: NavView | AppView): PrimaryNavView {
   if (view === "live-arena" || view === "game-room") return "game-room";
+  if (view === "standings") return "standings";
   if (view === "receipts" || view === "profile" || view === "settings") return SHOW_PROFILES ? "profile" : "match-hub";
   if (view === "arena") return "match-hub";
-  return "schedule";
+  if (view === "schedule") return "schedule";
+  return "match-hub";
 }
 
 export function BottomNav({ activeView, onSelect }: { activeView: AppView; onSelect: (view: PrimaryNavView) => void }) {
   const activeNavView = toPrimaryNav(activeView);
   const items = getPublicNavItems();
-  const columnClass = items.length === 2 ? "grid-cols-2" : items.length === 3 ? "grid-cols-3" : "grid-cols-4";
+  const columnClass = navColumnClass(items.length);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-[#0b0f0c]/95 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-18px_50px_rgba(0,0,0,0.45)] backdrop-blur">
@@ -68,6 +80,7 @@ export function BottomNav({ activeView, onSelect }: { activeView: AppView; onSel
 const routeByView: Record<NavView, string> = {
   "match-hub": "/app",
   schedule: "/schedule",
+  standings: "/standings",
   // Resolved dynamically (live → next → schedule) in RouteBottomNav; this is the safe default.
   "game-room": SCHEDULE_FALLBACK_ROUTE,
   profile: "/receipts",
@@ -80,7 +93,7 @@ export function RouteBottomNav({ activeView }: { activeView: NavView }) {
   const router = useRouter();
   const activePrimary = toPrimaryNav(activeView);
   const items = getPublicNavItems();
-  const columnClass = items.length === 2 ? "grid-cols-2" : items.length === 3 ? "grid-cols-3" : "grid-cols-4";
+  const columnClass = navColumnClass(items.length);
 
   const itemClass = (id: PrimaryNavView) =>
     `grid min-h-14 min-w-0 place-items-center gap-1 rounded-2xl px-1 py-2 text-center text-[9px] font-black uppercase leading-tight transition active:scale-95 sm:text-[10px] ${

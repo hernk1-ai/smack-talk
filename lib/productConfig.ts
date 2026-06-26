@@ -19,6 +19,7 @@ export const SHOW_GAME_ROOM = true;
 export const SHOW_GAME_ROOM_IN_NAV = true;
 export const SHOW_MATCH_HUB = true;
 export const SHOW_SCHEDULE = true;
+export const SHOW_STANDINGS = true;
 
 export const SHOW_MULTI_SPORT = false;
 export const SHOW_SEEDED_TAKES = false;

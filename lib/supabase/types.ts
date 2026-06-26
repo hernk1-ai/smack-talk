@@ -274,6 +274,93 @@ export type Database = {
         };
         Relationships: [];
       };
+      world_cup_standings: {
+        Row: {
+          id: string;
+          group_name: string;
+          rank: number;
+          team_name: string;
+          team_code: string;
+          flag_url: string | null;
+          played: number;
+          wins: number;
+          draws: number;
+          losses: number;
+          goals_for: number;
+          goals_against: number;
+          goal_difference: number;
+          points: number;
+          form: Json | null;
+          status: string | null;
+          source: string;
+          source_updated_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          group_name: string;
+          rank: number;
+          team_name: string;
+          team_code: string;
+          flag_url?: string | null;
+          played?: number;
+          wins?: number;
+          draws?: number;
+          losses?: number;
+          goals_for?: number;
+          goals_against?: number;
+          goal_difference?: number;
+          points?: number;
+          form?: Json | null;
+          status?: string | null;
+          source?: string;
+          source_updated_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          group_name?: string;
+          rank?: number;
+          team_name?: string;
+          team_code?: string;
+          flag_url?: string | null;
+          played?: number;
+          wins?: number;
+          draws?: number;
+          losses?: number;
+          goals_for?: number;
+          goals_against?: number;
+          goal_difference?: number;
+          points?: number;
+          form?: Json | null;
+          status?: string | null;
+          source?: string;
+          source_updated_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      world_cup_standings_meta: {
+        Row: {
+          key: string;
+          payload: Json;
+          source_updated_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          key: string;
+          payload?: Json;
+          source_updated_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          key?: string;
+          payload?: Json;
+          source_updated_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       game_picks: {
         Row: {
           id: string;
