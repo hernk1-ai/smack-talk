@@ -10,7 +10,14 @@ import {
 } from "@/lib/gameRoom/pulse";
 import { getActiveViewerCount } from "@/lib/gameRoom/presenceServer";
 import { getRootingCounts } from "@/lib/gameRoom/rootingServer";
+import { parseWorldCupRouteGameId } from "@/lib/supabase/resolveArenaGame";
 import type { Database } from "@/lib/supabase/types";
+import { fetchKnockoutResolutionData } from "@/lib/worldCup/fetchKnockoutResolution";
+import {
+  buildResolvedMatchContext,
+  resolveMatchByGameId,
+  type MatchFeedRow,
+} from "@/lib/worldCup/resolvedMatch";
 
 type AdminClient = SupabaseClient<Database>;
 
@@ -111,7 +118,27 @@ async function countRecentRootingBySide(
 }
 
 async function resolveTeamNames(admin: AdminClient, gameId: string): Promise<TeamNames> {
-  const { data } = await admin.from("games").select("home_team, away_team").eq("id", gameId).maybeSingle();
+  const { data } = await admin
+    .from("games")
+    .select("id, home_team, away_team, status, home_score, away_score, starts_at, clock, period, event_name")
+    .eq("id", gameId)
+    .maybeSingle();
+
+  if (parseWorldCupRouteGameId(gameId)) {
+    const knockoutResolution = await fetchKnockoutResolutionData();
+    const context = buildResolvedMatchContext({
+      knockoutResolution,
+      games: data ? [data as MatchFeedRow] : [],
+    });
+    const resolved = resolveMatchByGameId(gameId, context);
+
+    if (resolved) {
+      return {
+        homeTeam: resolved.home.name,
+        awayTeam: resolved.away.name,
+      };
+    }
+  }
 
   return {
     homeTeam: data?.home_team?.trim() || "Home",
