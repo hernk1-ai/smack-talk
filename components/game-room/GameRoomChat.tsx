@@ -32,13 +32,18 @@ export function GameRoomChat({ gameId, roomCode = null }: GameRoomChatProps) {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [chatDisplayName, setChatDisplayName] = useState(() => (typeof window === "undefined" ? CHAT_DISPLAY_NAME_PLACEHOLDER : getChatDisplayName()));
-  const [senderKey] = useState(() => (typeof window === "undefined" ? "" : getOrCreateVoterKey()));
-  const [nowMs, setNowMs] = useState<number | null>(() => (typeof window === "undefined" ? null : Date.now()));
+  const [chatDisplayName, setChatDisplayName] = useState(CHAT_DISPLAY_NAME_PLACEHOLDER);
+  const [senderKey, setSenderKey] = useState("");
+  const [nowMs, setNowMs] = useState<number | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSenderKey(getOrCreateVoterKey());
+    setNowMs(Date.now());
+  }, []);
 
   useEffect(() => {
     let mounted = true;

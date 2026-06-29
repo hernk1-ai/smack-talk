@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { LocktApp } from "@/components/LocktApp";
 import { buildGameRoomPageMetadata, resolveGameRoomPageData } from "@/lib/seo/gameRoomPage";
+import { fetchKnockoutResolutionData } from "@/lib/worldCup/fetchKnockoutResolution";
 import { ensureProfile } from "@/lib/supabase/profiles";
 import { createClient } from "@/lib/supabase/server";
 
@@ -22,7 +23,10 @@ export async function generateMetadata({ params }: { params: Promise<{ gameId: s
 
 export default async function GameRoomPage({ params }: { params: Promise<{ gameId: string }> }) {
   const { gameId } = await params;
-  const pageData = await resolveGameRoomPageData(gameId);
+  const [pageData, knockoutResolution] = await Promise.all([
+    resolveGameRoomPageData(gameId),
+    fetchKnockoutResolutionData(),
+  ]);
 
   if (!pageData) {
     notFound();
@@ -31,7 +35,7 @@ export default async function GameRoomPage({ params }: { params: Promise<{ gameI
   const supabase = await createClient();
 
   if (!supabase) {
-    return <LocktApp initialView="live-arena" initialGameId={gameId} />;
+    return <LocktApp initialView="live-arena" initialGameId={gameId} knockoutResolution={knockoutResolution} />;
   }
 
   const {
@@ -39,10 +43,17 @@ export default async function GameRoomPage({ params }: { params: Promise<{ gameI
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return <LocktApp initialView="live-arena" initialGameId={gameId} />;
+    return <LocktApp initialView="live-arena" initialGameId={gameId} knockoutResolution={knockoutResolution} />;
   }
 
   const { profile } = await ensureProfile(supabase, user);
 
-  return <LocktApp profile={profile} initialView="live-arena" initialGameId={gameId} />;
+  return (
+    <LocktApp
+      profile={profile}
+      initialView="live-arena"
+      initialGameId={gameId}
+      knockoutResolution={knockoutResolution}
+    />
+  );
 }

@@ -10,6 +10,8 @@ import {
   getLocalDateLabel,
   WORLD_CUP_SCHEDULE_FALLBACK_TIME_ZONE,
 } from "@/lib/worldCup/localSchedule";
+import { fetchKnockoutResolutionData } from "@/lib/worldCup/fetchKnockoutResolution";
+import { resolveMatchDisplayFromData } from "@/lib/worldCup/matchDisplay";
 import { formatMatchupLabel } from "@/lib/worldCup/matchupDisplay";
 
 export type GameRoomPageData = {
@@ -36,8 +38,10 @@ export const resolveGameRoomPageData = cache(async (gameId: string): Promise<Gam
     game = data;
   }
 
-  const homeTeam = game?.home_team ?? worldCupMatch.homeTeam;
-  const awayTeam = game?.away_team ?? worldCupMatch.awayTeam ?? "TBD";
+  const knockoutResolution = await fetchKnockoutResolutionData();
+  const display = resolveMatchDisplayFromData(worldCupMatch, knockoutResolution, game);
+  const homeTeam = display.displayHomeTeam;
+  const awayTeam = display.displayAwayTeam;
   const timeZone = WORLD_CUP_SCHEDULE_FALLBACK_TIME_ZONE;
   const kickoffLabel = `${getLocalDateLabel(worldCupMatch, timeZone)} · ${formatLocalKickoff(worldCupMatch, timeZone)} ET`;
   const venueParts = [worldCupMatch.city, worldCupMatch.venue].filter(Boolean);

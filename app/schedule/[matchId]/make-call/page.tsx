@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { MakeCallPage } from "@/components/world-cup/MakeCallPage";
 import { getWorldCupMatchById, getWorldCupMatchId } from "@/data/worldCupSchedule";
 import { fetchKnockoutResolutionData } from "@/lib/worldCup/fetchKnockoutResolution";
-import { buildKnockoutResolutionContext, resolveKnockoutMatchup } from "@/lib/worldCup/knockoutMatchResolver";
+import { resolveMatchDisplayFromData } from "@/lib/worldCup/matchDisplay";
 import { getSiteUrl } from "@/lib/site-url";
 import { ensureProfile } from "@/lib/supabase/profiles";
 import { createClient } from "@/lib/supabase/server";
@@ -23,11 +23,11 @@ export async function generateMetadata({ params }: { params: Promise<{ matchId: 
   }
 
   const knockoutResolution = await fetchKnockoutResolutionData();
-  const matchup = resolveKnockoutMatchup(match, buildKnockoutResolutionContext(knockoutResolution));
+  const matchup = resolveMatchDisplayFromData(match, knockoutResolution);
 
   const url = `${BASE_URL}/schedule/${encodeURIComponent(matchId)}/make-call`;
   return {
-    title: `MAKE YOUR CALL | ${matchup.homeTeam} vs ${matchup.awayTeam} | LOCKT`,
+    title: `MAKE YOUR CALL | ${matchup.displayTitle} | LOCKT`,
     description: "Lock your match pick before kickoff.",
     alternates: {
       canonical: url,
@@ -43,7 +43,7 @@ export default async function MatchMakeCallPage({ params }: { params: Promise<{ 
   }
 
   const knockoutResolution = await fetchKnockoutResolutionData();
-  const matchup = resolveKnockoutMatchup(match, buildKnockoutResolutionContext(knockoutResolution));
+  const matchup = resolveMatchDisplayFromData(match, knockoutResolution);
 
   const supabase = await createClient();
   if (!supabase) {

@@ -12,6 +12,7 @@ import { playSound } from "@/lib/sound";
 import { getWorldCupKickoffIso, getWorldCupMatchId, worldCupSchedule, type WorldCupMatch } from "@/data/worldCupSchedule";
 import { MatchHubWorldCupNews } from "@/components/world-cup/MatchHubWorldCupNews";
 import { ACTIVE_SPORT, getVisibleSportTabs, isMatchHubMode, SHOW_MULTI_SPORT } from "@/lib/productConfig";
+import { getCountdownLabel, gameSnapshotToFeedFields } from "@/lib/worldCup/matchSelection";
 import { getWorldCupMatchPublicCta } from "@/lib/worldCupPublicNav";
 import { formatMatchupLabel, formatMatchupScoreCompact, formatMatchupScoreLine } from "@/lib/worldCup/matchupDisplay";
 import { ACTIVE_GAME_ID, getArenaGames, getGameById } from "@/lib/supabase/games";
@@ -44,7 +45,7 @@ import {
 } from "@/lib/worldCupMatchResolver";
 import { fetchWorldCupGameSnapshots } from "@/lib/worldCupNavClient";
 import type { KnockoutResolutionContext, KnockoutResolutionData } from "@/lib/worldCup/knockoutMatchResolver";
-import { buildKnockoutResolutionContext, isKnockoutSeedToken, resolveKnockoutMatchup } from "@/lib/worldCup/knockoutMatchResolver";
+import { buildKnockoutResolutionContext, resolveMatchDisplay } from "@/lib/worldCup/matchDisplay";
 import {
   formatLocalKickoff,
   getKickoffMs,
@@ -615,7 +616,10 @@ export function FeedScreen({
 function MatchHubPrimaryFocus({ knockoutContext }: { knockoutContext: KnockoutResolutionContext | null }) {
   const [now, setNow] = useState(() => new Date());
   const [games, setGames] = useState<WorldCupGameSnapshot[]>([]);
-  const focus = useMemo<MatchHubFocus>(() => getMatchHubFocus(now, worldCupSchedule, games), [now, games]);
+  const focus = useMemo<MatchHubFocus>(
+    () => getMatchHubFocus(now, worldCupSchedule, games, knockoutContext),
+    [now, games, knockoutContext],
+  );
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
@@ -667,9 +671,9 @@ function LiveNowModule({
   now: Date;
   knockoutContext: KnockoutResolutionContext | null;
 }) {
-  const resolved = resolveKnockoutMatchup(match, knockoutContext);
-  const homeTeam = game?.home_team && !isKnockoutSeedToken(game.home_team) ? game.home_team : resolved.homeTeam;
-  const awayTeam = game?.away_team && !isKnockoutSeedToken(game.away_team) ? game.away_team : resolved.awayTeam;
+  const resolved = resolveMatchDisplay(match, knockoutContext, game);
+  const homeTeam = resolved.displayHomeTeam;
+  const awayTeam = resolved.displayAwayTeam;
   const homeScore = game?.home_score ?? 0;
   const awayScore = game?.away_score ?? 0;
   const statusLabel = getLiveMatchStatusLabel(match, game, now);
@@ -740,10 +744,10 @@ function NextMatchCountdown({
   knockoutContext: KnockoutResolutionContext | null;
 }) {
   const nextMatch = focusMatch;
-  const matchup = resolveKnockoutMatchup(nextMatch, knockoutContext);
+  const matchup = resolveMatchDisplay(nextMatch, knockoutContext);
   const nextGame = games.find((game) => game.id === getWorldCupMatchId(nextMatch));
-  const countdown = getCountdownLabelForMatch(nextMatch, now, nextGame?.status);
-  const nextCta = getWorldCupMatchPublicCta(nextMatch, now, nextGame?.status);
+  const countdown = getCountdownLabel(nextMatch, now, gameSnapshotToFeedFields(nextGame));
+  const gameRoomHref = `/game/${getWorldCupMatchId(nextMatch)}`;
 
   return (
     <FeedSection title="Next Match Countdown" icon="◷" action="">
@@ -756,7 +760,7 @@ function NextMatchCountdown({
         <div className="mt-4 rounded-xl border border-white/10 bg-black/40 p-3">
           <p className="text-[10px] font-black uppercase tracking-[0.12em] text-purple-300">Next Up</p>
           <p className="mt-1 text-base font-black text-white">
-            {matchup.homeTeam} vs {matchup.awayTeam}
+            {matchup.displayHomeTeam} vs {matchup.displayAwayTeam}
           </p>
           <p className="mt-1 text-xs font-semibold text-gray-400">
             {formatDateLabel(nextMatch.date)} · {nextMatch.kickoffET} · {nextMatch.city}
@@ -764,10 +768,10 @@ function NextMatchCountdown({
         </div>
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <Link
-            href={nextCta.href}
+            href={gameRoomHref}
             className="grid min-h-11 place-items-center rounded-xl border border-purple-300/45 bg-purple-500/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-purple-200"
           >
-            {nextCta.label}
+            Join Game Room
           </Link>
           <Link
             href="/schedule"
@@ -779,25 +783,6 @@ function NextMatchCountdown({
       </div>
     </FeedSection>
   );
-}
-
-function getCountdownLabelForMatch(match: WorldCupMatch, now = new Date(), feedStatus?: string | null) {
-  const kickoffIso = getWorldCupKickoffIso(match);
-  if (!kickoffIso) {
-    return "—";
-  }
-
-  const diff = new Date(kickoffIso).getTime() - now.getTime();
-  if (diff <= 0) {
-    return feedStatus === "live" ? "0d 00h 00m 00s" : "Starting soon";
-  }
-
-  const totalSeconds = Math.floor(diff / 1000);
-  const days = Math.floor(totalSeconds / (60 * 60 * 24));
-  const hours = Math.floor((totalSeconds % (60 * 60 * 24)) / (60 * 60));
-  const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
-  const seconds = totalSeconds % 60;
-  return `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s`;
 }
 
 function FeaturedPlayers() {
@@ -1005,7 +990,7 @@ function WorldCupTodayMatches({ knockoutContext }: { knockoutContext: KnockoutRe
               now,
               gamesById.get(getWorldCupMatchId(match))?.status,
             );
-            const matchup = resolveKnockoutMatchup(match, knockoutContext);
+            const matchup = resolveMatchDisplay(match, knockoutContext);
             return (
               <div
                 key={match.id}
@@ -1013,7 +998,7 @@ function WorldCupTodayMatches({ knockoutContext }: { knockoutContext: KnockoutRe
               >
                 <div className="min-w-0">
                   <p className="text-sm font-black text-white">
-                    {matchup.homeTeam} vs {matchup.awayTeam}
+                    {matchup.displayHomeTeam} vs {matchup.displayAwayTeam}
                   </p>
                   <p className="mt-0.5 text-xs font-semibold text-gray-400">
                     {formatLocalKickoff(match, timeZone)} · {match.city}

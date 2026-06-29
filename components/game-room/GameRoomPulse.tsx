@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { fetchGameRoomPulse } from "@/lib/gameRoom/pulseApi";
 import type { PulseItem } from "@/lib/gameRoom/pulse";
 
-type RoomStatus = "scheduled" | "live" | "final";
+type RoomStatus = "scheduled" | "live" | "final" | "awaiting";
 
 type GameRoomPulseProps = {
   gameId: string;

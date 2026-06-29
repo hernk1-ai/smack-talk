@@ -1,4 +1,5 @@
 import { isFeedGameFinal, isFeedGameLive, resolveFeedGameStatus } from "@/lib/worldCup/gameStatus";
+import { isFinalMatch, isLiveMatch } from "@/lib/worldCup/matchSelection";
 
 /** Current match phase for World Cup TV targeting and room copy. */
 export type WorldCupMatchPhase = "pre_match" | "live" | "post_match";
@@ -35,11 +36,11 @@ export const WORLD_CUP_TV_SUBTITLES: Record<WorldCupMatchPhase | "any", string> 
 };
 
 export function isFinalMatchStatus(status: string | null | undefined): boolean {
-  return isFeedGameFinal(status, null);
+  return isFinalMatch(status, null);
 }
 
 export function isLiveMatchStatus(status: string | null | undefined): boolean {
-  return isFeedGameLive(status, null);
+  return isLiveMatch(status, null);
 }
 
 /**

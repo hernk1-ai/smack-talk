@@ -7,6 +7,11 @@ import {
   type WorldCupMatch,
 } from "@/data/worldCupSchedule";
 import { applyStaleLiveFinalFallback, normalizeFeedGameStatus } from "@/lib/worldCup/gameStatus";
+import { fetchKnockoutResolutionData } from "@/lib/worldCup/fetchKnockoutResolution";
+import { resolveMatchDisplayFromData } from "@/lib/worldCup/matchDisplay";
+import type { KnockoutResolutionData } from "@/lib/worldCup/knockoutMatchResolver";
+import { shouldApplyEspnScorePatch, shouldApplyEspnStatusPatch } from "@/lib/worldCup/matchSelection";
+import { parseWorldCupRouteGameId } from "@/lib/supabase/resolveArenaGame";
 import { teamsMatch } from "@/lib/sports/espnTeamNames";
 import {
   buildAlignedScorePatch,
@@ -292,7 +297,7 @@ export const ESPN_KICKOFF_TOLERANCE_MS = 6 * 60 * 60 * 1000;
 
 const WORLD_CUP_SCHEDULE_TIME_ZONE = "America/New_York";
 
-/** A game is live or within the auto-map kickoff window. */
+/** A game is live, recently finished, or within the auto-map kickoff window. */
 export function isNearLiveWorldCupGame(game: WorldCupGameRow, now = new Date()): boolean {
   if (game.status === "live") {
     return true;
@@ -305,6 +310,12 @@ export function isNearLiveWorldCupGame(game: WorldCupGameRow, now = new Date()):
   const kickoffMs = new Date(game.starts_at).getTime();
   if (!Number.isFinite(kickoffMs)) {
     return false;
+  }
+
+  const elapsedMs = now.getTime() - kickoffMs;
+
+  if (game.status === "final" && elapsedMs >= 0 && elapsedMs <= 24 * 60 * 60 * 1000) {
+    return true;
   }
 
   return Math.abs(kickoffMs - now.getTime()) <= ESPN_KICKOFF_TOLERANCE_MS;
@@ -370,11 +381,58 @@ export function gameMatchesEspnEvent(
   return direct || swapped;
 }
 
+function buildGameMatchingProfiles(
+  game: WorldCupGameRow,
+  knockoutResolution?: KnockoutResolutionData | null,
+): Array<Pick<WorldCupGameRow, "home_team" | "away_team" | "starts_at">> {
+  const profiles: Array<Pick<WorldCupGameRow, "home_team" | "away_team" | "starts_at">> = [
+    { home_team: game.home_team, away_team: game.away_team, starts_at: game.starts_at },
+  ];
+
+  const parsed = parseWorldCupRouteGameId(game.id);
+  if (!parsed) {
+    return profiles;
+  }
+
+  const resolved = resolveMatchDisplayFromData(parsed.worldCupMatch, knockoutResolution ?? null);
+  const resolvedProfile = {
+    home_team: resolved.displayHomeTeam,
+    away_team: resolved.displayAwayTeam,
+    starts_at: game.starts_at ?? getWorldCupKickoffIso(parsed.worldCupMatch),
+  };
+
+  const alreadyPresent = profiles.some(
+    (profile) =>
+      profile.home_team === resolvedProfile.home_team && profile.away_team === resolvedProfile.away_team,
+  );
+
+  if (!alreadyPresent) {
+    profiles.push(resolvedProfile);
+  }
+
+  return profiles;
+}
+
 export function findEspnEventsForGame(
   game: WorldCupGameRow,
   events: EspnParsedEvent[],
+  knockoutResolution?: KnockoutResolutionData | null,
 ): EspnParsedEvent[] {
-  return events.filter((event) => gameMatchesEspnEvent(game, event));
+  const matched: EspnParsedEvent[] = [];
+
+  for (const profile of buildGameMatchingProfiles(game, knockoutResolution)) {
+    for (const event of events) {
+      if (gameMatchesEspnEvent(profile, event)) {
+        matched.push(event);
+      }
+    }
+
+    if (matched.length) {
+      break;
+    }
+  }
+
+  return [...new Map(matched.map((event) => [event.espnEventId, event])).values()];
 }
 
 function formatGameMatchLabel(game: WorldCupGameRow): string {
@@ -443,6 +501,7 @@ async function autoDiscoverEspnMappingsForGames(
   games: WorldCupGameRow[],
   mappings: EspnMatchMapRow[],
   events: EspnParsedEvent[],
+  knockoutResolution?: KnockoutResolutionData | null,
 ): Promise<{ results: EspnAutoMapResult[]; mappings: EspnMatchMapRow[]; errors: string[] }> {
   const results: EspnAutoMapResult[] = [];
   const errors: string[] = [];
@@ -460,7 +519,7 @@ async function autoDiscoverEspnMappingsForGames(
       continue;
     }
 
-    const matches = findEspnEventsForGame(game, events);
+    const matches = findEspnEventsForGame(game, events, knockoutResolution);
     if (matches.length === 0) {
       results.push({
         locktGameId: game.id,
@@ -582,11 +641,14 @@ export async function autoMapTodaysWorldCupGames(
     return report;
   }
 
+  const knockoutResolution = await fetchKnockoutResolutionData();
+
   const { results, errors } = await autoDiscoverEspnMappingsForGames(
     admin,
     todaysGames,
     mappings,
     events,
+    knockoutResolution,
   );
 
   report.results = results;
@@ -674,10 +736,22 @@ async function applyEspnTeamAlignmentToGame(
   admin: AdminClient,
   game: WorldCupGameWithScores,
   event: EspnParsedEvent,
-  options: { applyScores?: boolean } = {},
+  options: { applyScores?: boolean; knockoutResolution?: KnockoutResolutionData | null } = {},
 ): Promise<EspnTeamAlignResult> {
-  const applyScores = options.applyScores ?? true;
-  const alignment = getEspnTeamAlignment(game, event);
+  const shouldApplyScoresOption = options.applyScores ?? true;
+  let alignment = getEspnTeamAlignment(game, event);
+
+  if (!alignment.confident) {
+    const parsed = parseWorldCupRouteGameId(game.id);
+    if (parsed) {
+      const resolved = resolveMatchDisplayFromData(parsed.worldCupMatch, options.knockoutResolution ?? null);
+      alignment = getEspnTeamAlignment(
+        { home_team: resolved.displayHomeTeam, away_team: resolved.displayAwayTeam },
+        event,
+      );
+    }
+  }
+
   const label = `${game.home_team} vs ${game.away_team}`;
 
   if (!alignment.confident) {
@@ -693,14 +767,15 @@ async function applyEspnTeamAlignmentToGame(
   const namesChanged =
     game.home_team !== alignment.espnHomeTeam || game.away_team !== alignment.espnAwayTeam;
   const scores = buildAlignedScorePatch(game, alignment, event);
-  const statusPatch = event.status ?? undefined;
-
+  const statusPatch = shouldApplyEspnStatusPatch(game.status, event.status) ? event.status : undefined;
+  const hasEspnScores = event.homeScore !== null || event.awayScore !== null;
+  const applyScores =
+    shouldApplyScoresOption && shouldApplyEspnScorePatch(game.status, event.status, hasEspnScores);
   const scoreChanged =
     scores.homeScore !== game.home_score || scores.awayScore !== game.away_score;
-  const hasEspnScores = event.homeScore !== null || event.awayScore !== null;
 
   if (!alignment.needsSwap && !namesChanged) {
-    if (!applyScores || (!scoreChanged && !hasEspnScores && statusPatch === undefined)) {
+    if (!applyScores && !scoreChanged && statusPatch === undefined) {
       return {
         locktGameId: game.id,
         match: label,
@@ -834,6 +909,8 @@ export async function alignMappedWorldCupGamesToEspn(admin: AdminClient): Promis
     errors: [],
   };
 
+  const knockoutResolution = await fetchKnockoutResolutionData();
+
   const { mappings, error: mapError } = await loadEspnMatchMappings(admin);
   if (mapError || !mappings) {
     report.errors.push(mapError ?? "Unable to read espn_match_map.");
@@ -898,7 +975,7 @@ export async function alignMappedWorldCupGamesToEspn(admin: AdminClient): Promis
       continue;
     }
 
-    const result = await applyEspnTeamAlignmentToGame(admin, game, event);
+    const result = await applyEspnTeamAlignmentToGame(admin, game, event, { knockoutResolution });
     report.results.push(result);
     if (result.status === "failed") {
       report.errors.push(`${game.id}: ${result.reason}`);
@@ -925,6 +1002,7 @@ export async function syncEspnWorldCupScores(admin: AdminClient): Promise<EspnSy
   };
 
   const now = new Date();
+  const knockoutResolution = await fetchKnockoutResolutionData();
 
   const { games, error: gamesError } = await getWorldCupGames(admin);
   if (gamesError || !games) {
@@ -965,6 +1043,7 @@ export async function syncEspnWorldCupScores(admin: AdminClient): Promise<EspnSy
       unmappedNearLiveGames,
       mappings,
       events,
+      knockoutResolution,
     );
     summary.autoMapped = discovery.results;
     summary.errors.push(...discovery.errors);
@@ -1005,7 +1084,7 @@ export async function syncEspnWorldCupScores(admin: AdminClient): Promise<EspnSy
       continue;
     }
 
-    const alignmentResult = await applyEspnTeamAlignmentToGame(admin, game, event);
+    const alignmentResult = await applyEspnTeamAlignmentToGame(admin, game, event, { knockoutResolution });
     if (alignmentResult.status === "failed") {
       summary.errors.push(`${locktGameId}: ${alignmentResult.reason}`);
       continue;

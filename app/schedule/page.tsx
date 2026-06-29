@@ -30,7 +30,7 @@ export default async function SchedulePage() {
   if (admin) {
     const { data } = await admin
       .from("games")
-      .select("id, status, home_score, away_score")
+      .select("id, status, home_score, away_score, starts_at, clock, period, event_name")
       .eq("league", "World Cup");
     if (data) {
       gameRows = data as ScheduleGameRow[];

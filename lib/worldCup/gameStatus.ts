@@ -4,7 +4,7 @@ export type FeedGameStatus = "scheduled" | "live" | "final";
 /** Stale-live safety net: never keep a match live more than 4h after kickoff. */
 export const STALE_LIVE_FALLBACK_MS = 4 * 60 * 60 * 1000;
 
-const FINAL_STATUSES = new Set(["final", "finished", "complete", "full_time"]);
+const FINAL_STATUSES = new Set(["final", "finished", "complete", "full_time", "post"]);
 const LIVE_STATUSES = new Set([
   "live",
   "in_progress",

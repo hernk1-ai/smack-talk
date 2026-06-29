@@ -17,7 +17,11 @@ import type { MatchPick, Profile } from "@/lib/supabase/types";
 
 type MakeCallPageProps = {
   match: WorldCupMatch;
-  matchupLabels?: { homeTeam: string; awayTeam: string };
+  matchupLabels?: {
+    displayHomeTeam: string;
+    displayAwayTeam: string;
+    displayTitle?: string;
+  };
   initialPick: MatchPick | null;
   profile?: Profile | null;
   isAuthenticated: boolean;
@@ -37,8 +41,8 @@ const pendingCallKey = "lockt_pending_match_call";
 export function MakeCallPage({ match, matchupLabels, initialPick, profile, isAuthenticated }: MakeCallPageProps) {
   const { showToast } = useToast();
   const isGroupStage = match.stage === "Group Stage";
-  const homeLabel = matchupLabels?.homeTeam ?? match.homeTeam;
-  const awayLabel = matchupLabels?.awayTeam ?? match.awayTeam ?? "TBD";
+  const homeLabel = matchupLabels?.displayHomeTeam ?? match.homeTeam;
+  const awayLabel = matchupLabels?.displayAwayTeam ?? match.awayTeam ?? "TBD";
   const lockClosed = isWorldCupMatchLocked(match);
   const [selectedWinner, setSelectedWinner] = useState<string>(initialPick?.selected_winner ?? "");
   const [homeScore, setHomeScore] = useState<string>(String(initialPick?.home_score ?? 0));

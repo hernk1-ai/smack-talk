@@ -8,9 +8,9 @@ import { type RootingSide } from "@/lib/gameRoom/rooting";
 import { fetchRootingState, submitRootingVote } from "@/lib/gameRoom/rootingApi";
 import { getCurrentUserMatchPick, lockCurrentUserWinnerPick } from "@/lib/supabase/matchPicks";
 import type { Game, MatchPick } from "@/lib/supabase/types";
-import { resolveFeedGameStatus } from "@/lib/worldCup/gameStatus";
+import { scheduleStatusFromFeed } from "@/lib/worldCup/matchSelection";
 
-type RoomStatus = "scheduled" | "live" | "final";
+type RoomStatus = "scheduled" | "live" | "final" | "awaiting";
 
 type GameRoomBackingProps = {
   gameId: string;
@@ -27,7 +27,7 @@ type GameRoomBackingProps = {
 function resolveStatus(match: WorldCupMatch, game: Game | null, now: Date | null): RoomStatus {
   const startsAt = game?.starts_at ?? getWorldCupKickoffIso(match);
 
-  if (!now || !game?.status) {
+  if (!now || !startsAt) {
     if (game?.status === "final") {
       return "final";
     }
@@ -37,7 +37,12 @@ function resolveStatus(match: WorldCupMatch, game: Game | null, now: Date | null
     return "scheduled";
   }
 
-  return resolveFeedGameStatus(game.status, startsAt, now);
+  const resolved = scheduleStatusFromFeed(game?.status, startsAt, now, game);
+  if (resolved === "awaiting_result") {
+    return "awaiting";
+  }
+
+  return resolved === "upcoming" ? "scheduled" : resolved;
 }
 
 function sideToTeam(side: RootingSide, homeTeam: string, awayTeam: string) {

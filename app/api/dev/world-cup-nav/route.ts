@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { buildKnockoutResolutionContext } from "@/lib/worldCup/knockoutMatchResolver";
+import { fetchKnockoutResolutionData } from "@/lib/worldCup/fetchKnockoutResolution";
 import {
   getCurrentLiveWorldCupMatch,
   getNextWorldCupMatch,
@@ -18,9 +20,14 @@ export async function GET() {
   }
 
   const now = new Date();
-  const live = getCurrentLiveWorldCupMatch(now);
-  const next = getNextWorldCupMatch(now);
-  const navTarget = resolveGameRoomNavTarget(now);
+  const knockoutResolution = await fetchKnockoutResolutionData();
+  const knockoutContext =
+    knockoutResolution.standings.length || knockoutResolution.bracket.length
+      ? buildKnockoutResolutionContext(knockoutResolution)
+      : null;
+  const live = getCurrentLiveWorldCupMatch(now, undefined, [], knockoutContext);
+  const next = getNextWorldCupMatch(now, undefined, [], knockoutContext);
+  const navTarget = resolveGameRoomNavTarget(now, undefined, [], knockoutContext);
   const validation = validateWorldCupNav();
 
   return NextResponse.json(

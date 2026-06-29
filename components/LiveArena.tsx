@@ -18,8 +18,10 @@ import {
 import { getRepliesForTake, type TakeReplyWithAuthor } from "@/lib/supabase/replies";
 import { getWorldCupMatchById } from "@/data/worldCupSchedule";
 import { getEstimatedMatchDisplay } from "@/lib/worldCupMatchStatus";
-import { resolveFeedGameStatus } from "@/lib/worldCup/gameStatus";
+import { scheduleStatusFromFeed } from "@/lib/worldCup/matchSelection";
 import { getWorldCupKickoffIso, getWorldCupMatchId } from "@/data/worldCupSchedule";
+import type { KnockoutResolutionData } from "@/lib/worldCup/knockoutMatchResolver";
+import { buildKnockoutResolutionContext, resolveMatchDisplay } from "@/lib/worldCup/matchDisplay";
 import { resolveGameRoomNavTargetClient } from "@/lib/worldCupNavClient";
 import { useRouter } from "next/navigation";
 import {
@@ -83,11 +85,13 @@ export function LiveArena({
   roomCode = null,
   onBack,
   profile = null,
+  knockoutResolution,
 }: {
   gameId?: string;
   roomCode?: string | null;
   onBack: () => void;
   profile?: Profile | null;
+  knockoutResolution?: KnockoutResolutionData;
 }) {
   const { showToast } = useToast();
   const gameRoomPath = `/game/${gameId}`;
@@ -127,14 +131,23 @@ export function LiveArena({
   // Ticking clock so the scoreboard recalculates match status (upcoming → live →
   // final) while the room stays open, without requiring a page refresh/refetch.
   // Defer clock to client mount so SSR and hydration agree (avoids estimated-match mismatch).
-  const [now, setNow] = useState<Date | null>(null);
+  const [now, setNow] = useState<Date>(() => new Date());
   // Live viewers ("fans in the room"); null = hidden (presence unavailable).
   const [viewerCount, setViewerCount] = useState<number | null>(null);
   const worldCupMatch = useMemo(() => parseWorldCupMatchFromGameId(gameId), [gameId]);
-  // Prefer live game-row teams, but fall back to the static schedule so the room
-  // still shows the correct matchup if Supabase/the game API is unavailable.
-  const awayTeam = game?.away_team ?? worldCupMatch?.awayTeam ?? "AWAY";
-  const homeTeam = game?.home_team ?? worldCupMatch?.homeTeam ?? "HOME";
+  const knockoutContext = useMemo(
+    () => (knockoutResolution ? buildKnockoutResolutionContext(knockoutResolution) : null),
+    [knockoutResolution],
+  );
+  const matchDisplay = useMemo(() => {
+    if (!worldCupMatch) {
+      return null;
+    }
+
+    return resolveMatchDisplay(worldCupMatch, knockoutContext, game);
+  }, [worldCupMatch, knockoutContext, game]);
+  const awayTeam = matchDisplay?.displayAwayTeam ?? game?.away_team ?? worldCupMatch?.awayTeam ?? "AWAY";
+  const homeTeam = matchDisplay?.displayHomeTeam ?? game?.home_team ?? worldCupMatch?.homeTeam ?? "HOME";
   const [claimPromptDismissed, setClaimPromptDismissed] = useState(false);
   const showClaimPrompt = useMemo(
     () =>
@@ -144,14 +157,19 @@ export function LiveArena({
   );
   const privateRoomValid = !roomCode ? true : privateRoomState.roomCode === roomCode ? privateRoomState.valid : null;
   const privateRoomError = !roomCode ? null : privateRoomState.roomCode === roomCode ? privateRoomState.error : null;
-  const worldCupRoomStatus = useMemo((): "scheduled" | "live" | "final" => {
+  const worldCupRoomStatus = useMemo((): "scheduled" | "live" | "final" | "awaiting" => {
     const startsAt = game?.starts_at ?? (worldCupMatch ? getWorldCupKickoffIso(worldCupMatch) : null);
-    if (game?.status && now) {
-      return resolveFeedGameStatus(game.status, startsAt, now);
+    if (!now || !startsAt) {
+      return "scheduled";
     }
 
-    return "scheduled";
-  }, [worldCupMatch, game?.status, game?.starts_at, now]);
+    const resolved = scheduleStatusFromFeed(game?.status, startsAt, now, game);
+    if (resolved === "awaiting_result") {
+      return "awaiting";
+    }
+
+    return resolved === "upcoming" ? "scheduled" : resolved;
+  }, [worldCupMatch, game, now]);
 
   const totalFeedCount = feedTakes.length;
   const visibleTakes = useMemo(() => feedTakes.slice(0, 30), [feedTakes]);
@@ -190,10 +208,18 @@ export function LiveArena({
         Object.fromEntries((quickPicks ?? []).map((quickPick) => [toQuickPickKey(quickPick.question_text), quickPick.result ?? "pending"])),
       );
 
+      const wcMatch = parseWorldCupMatchFromGameId(gameId);
+      const display =
+        wcMatch && knockoutResolution
+          ? resolveMatchDisplay(wcMatch, buildKnockoutResolutionContext(knockoutResolution), loadedGame)
+          : wcMatch
+            ? resolveMatchDisplay(wcMatch, null, loadedGame)
+            : null;
+
       const initialQueue = getQuickPickQuestions({
         game: loadedGame,
-        awayTeam: loadedGame?.away_team ?? "AWAY",
-        homeTeam: loadedGame?.home_team ?? "HOME",
+        awayTeam: display?.displayAwayTeam ?? loadedGame?.away_team ?? "AWAY",
+        homeTeam: display?.displayHomeTeam ?? loadedGame?.home_team ?? "HOME",
         recentKeys: [],
       })
         .filter((question) => !nextSelections[question.key])
@@ -220,15 +246,15 @@ export function LiveArena({
           setGame(nextGame);
         }
       });
-    }, 30_000);
+    }, 15_000);
 
     return () => {
       isMounted = false;
       window.clearInterval(refreshInterval);
     };
-  }, [gameId, guestUserId, refreshGuestSession]);
+  }, [gameId, guestUserId, knockoutResolution, refreshGuestSession]);
 
-  const previousRoomStatusRef = useRef<"scheduled" | "live" | "final" | null>(null);
+  const previousRoomStatusRef = useRef<"scheduled" | "live" | "final" | "awaiting" | null>(null);
 
   useEffect(() => {
     if (!worldCupMatch || roomCode || !now) {
@@ -346,7 +372,9 @@ export function LiveArena({
     }
 
     const sharePath = roomCode ? buildPrivateRoomPath(gameId, roomCode) : `/game/${gameId}`;
-    const shareText = buildGameRoomShareText(worldCupMatch);
+    const shareText = matchDisplay?.displayTitle
+      ? `Join me in the Lockt Game Room for ${matchDisplay.displayTitle}.`
+      : buildGameRoomShareText(worldCupMatch);
     const url = getShareUrl(sharePath);
     const outcome = await shareWithFallback({
       title: "Join my Lockt Game Room",
@@ -675,6 +703,8 @@ export function LiveArena({
         <ArenaScoreboard
           game={game}
           worldCupMatch={worldCupMatch}
+          homeTeam={homeTeam}
+          awayTeam={awayTeam}
           now={now}
           simplifiedRoom={simplifiedRoom && isWorldCupRoom}
           showQuickPicks={!simplifiedRoom && !isWorldCupRoom}
@@ -815,6 +845,8 @@ function parseWorldCupMatchFromGameId(gameId: string) {
 function ArenaScoreboard({
   game,
   worldCupMatch,
+  homeTeam,
+  awayTeam,
   now,
   simplifiedRoom,
   showQuickPicks,
@@ -828,6 +860,8 @@ function ArenaScoreboard({
 }: {
   game: Game | null;
   worldCupMatch: ReturnType<typeof getWorldCupMatchById>;
+  homeTeam: string;
+  awayTeam: string;
   now: Date | null;
   simplifiedRoom: boolean;
   showQuickPicks: boolean;
@@ -839,13 +873,22 @@ function ArenaScoreboard({
   quickPickCrowdLine: string;
   onQuickPick: (question: QuickPickQuestion, selectedSide: string) => void;
 }) {
-  const awayTeam = game?.away_team ?? worldCupMatch?.awayTeam ?? "AWAY";
-  const homeTeam = game?.home_team ?? worldCupMatch?.homeTeam ?? "HOME";
   const awayScore = String(game?.away_score ?? 0);
   const homeScore = String(game?.home_score ?? 0);
   const kickoffIso = game?.starts_at ?? (worldCupMatch ? getWorldCupKickoffIso(worldCupMatch) : null);
-  const status = now && game?.status ? resolveFeedGameStatus(game.status, kickoffIso, now) : game?.status ?? "scheduled";
-  const statusLabel = status === "live" ? "LIVE" : status === "final" ? "FINAL" : "SCHEDULED";
+  const resolvedFeedStatus =
+    now && kickoffIso
+      ? scheduleStatusFromFeed(game?.status, kickoffIso, now, game)
+      : game?.status ?? "scheduled";
+  const pastKickoff = Boolean(kickoffIso && now && new Date(kickoffIso).getTime() <= now.getTime());
+  const status =
+    resolvedFeedStatus === "awaiting_result"
+      ? "awaiting"
+      : resolvedFeedStatus === "scheduled" && pastKickoff
+        ? "awaiting"
+        : resolvedFeedStatus;
+  const statusLabel =
+    status === "live" ? "LIVE" : status === "final" ? "FINAL" : status === "awaiting" ? "AWAITING" : "SCHEDULED";
   const period = game?.period ?? (status === "live" ? "LIVE" : status === "final" ? "Final" : "Pregame");
   const clock = status === "live" ? game?.clock ?? "--:--" : null;
   const watching = game?.watching_count ?? 0;
@@ -869,7 +912,10 @@ function ArenaScoreboard({
   const venueLabel = worldCupMatch ? `${worldCupMatch.city} · ${worldCupMatch.venue}` : null;
   // Estimated match clock (display only), recomputed on each 60s `now` tick.
   // Null when schedule data is unavailable → fall back to existing status text.
-  const estimatedMatchDisplay = worldCupMatch && now ? getEstimatedMatchDisplay(worldCupMatch, now) : null;
+  const estimatedMatchDisplay =
+    worldCupMatch && now && status !== "awaiting" && status !== "final"
+      ? getEstimatedMatchDisplay(worldCupMatch, now)
+      : null;
 
   return (
     <section className="arena-scoreboard overflow-hidden rounded-[1.75rem] border border-white/10 p-4 pt-5 shadow-[0_26px_80px_rgba(0,0,0,0.56),0_0_34px_rgba(168,85,247,0.08)] sm:p-5">
@@ -882,6 +928,11 @@ function ArenaScoreboard({
       {status === "scheduled" && simplifiedRoom ? (
         <p className="mb-4 rounded-xl border border-white/10 bg-black/50 px-3 py-3 text-center text-sm font-semibold text-gray-300">
           Live room opens at kickoff.
+        </p>
+      ) : null}
+      {status === "awaiting" && simplifiedRoom ? (
+        <p className="mb-4 rounded-xl border border-amber-300/25 bg-amber-400/10 px-3 py-3 text-center text-sm font-semibold text-amber-100">
+          Match ended — final score syncing.
         </p>
       ) : null}
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2 text-center sm:gap-3">
@@ -897,13 +948,24 @@ function ArenaScoreboard({
             <span className="h-2 w-2 rounded-full bg-lime-400" />{" "}
             {status === "scheduled"
               ? `Kickoff ${startsAt}`
+              : status === "awaiting"
+                ? "Awaiting final score"
               : status === "live" && SHOW_FAKE_LIVE_ACTIVITY && watching > 0
                 ? `${formatCompact(watching)} in room`
                 : status === "live"
                   ? "Match live"
                   : "Final whistle"}
           </p>
-          <p className="text-[10px] font-black uppercase text-gray-500">{estimatedMatchDisplay ?? (status === "scheduled" ? "Upcoming" : status === "final" ? "Final" : "Live")}</p>
+          <p className="text-[10px] font-black uppercase text-gray-500">
+            {estimatedMatchDisplay ??
+              (status === "scheduled"
+                ? "Upcoming"
+                : status === "awaiting"
+                  ? "Awaiting result"
+                  : status === "final"
+                    ? "Final"
+                    : "Live")}
+          </p>
           <span className="mx-auto mt-3 grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/60 text-[10px] font-black text-gray-300">
             VS
           </span>
@@ -954,7 +1016,9 @@ function ArenaScoreboard({
         </div>
         <div className="text-left sm:text-right">
           <p className="text-[10px] font-black uppercase text-gray-400">Game State</p>
-          <p className="scoreboard-number mt-1 text-4xl text-purple-300">{status === "scheduled" ? "PRE" : status === "final" ? "FIN" : "LIVE"}</p>
+          <p className="scoreboard-number mt-1 text-4xl text-purple-300">
+            {status === "scheduled" ? "PRE" : status === "awaiting" ? "END" : status === "final" ? "FIN" : "LIVE"}
+          </p>
         </div>
       </div>
       ) : null}
