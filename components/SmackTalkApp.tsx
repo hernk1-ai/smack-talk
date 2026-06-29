@@ -11,7 +11,7 @@ import { TopTalkersScreen } from "@/components/screens/TopTalkersScreen";
 import { getWorldCupMatchId } from "@/data/worldCupSchedule";
 import { ACTIVE_GAME_ID } from "@/lib/supabase/games";
 import { resolveGameRoomNavTargetClient } from "@/lib/worldCupNavClient";
-import type { KnockoutResolutionData } from "@/lib/worldCup/knockoutMatchResolver";
+import type { ResolvedMatchContextInput } from "@/lib/worldCup/resolvedMatch";
 import type { Profile } from "@/lib/supabase/types";
 
 export function LocktApp({
@@ -20,14 +20,14 @@ export function LocktApp({
   receiptOwner,
   initialGameId = ACTIVE_GAME_ID,
   initialRoomCode = null,
-  knockoutResolution,
+  matchContext,
 }: {
   profile?: Profile | null;
   initialView?: AppView;
   receiptOwner?: ReceiptOwner | null;
   initialGameId?: string;
   initialRoomCode?: string | null;
-  knockoutResolution?: KnockoutResolutionData;
+  matchContext?: ResolvedMatchContextInput;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -97,11 +97,11 @@ export function LocktApp({
           gameId={activeGameRoomId}
           roomCode={activeRoomCode}
           profile={profile}
-          knockoutResolution={knockoutResolution}
+          matchContext={matchContext}
           onBack={goToArena}
         />
       ) : appView === "arena" ? (
-        <ArenaView onJoinLive={joinLive} profile={profile} knockoutResolution={knockoutResolution} />
+        <ArenaView onJoinLive={joinLive} profile={profile} matchContext={matchContext} />
       ) : appView === "receipts" ? (
         <ReceiptsView profile={profile} receiptOwner={receiptOwner} />
       ) : appView === "top-talkers" ? (
@@ -120,16 +120,16 @@ export function LocktApp({
 function ArenaView({
   onJoinLive,
   profile,
-  knockoutResolution,
+  matchContext,
 }: {
   onJoinLive: (gameId?: string) => void;
   profile?: Profile | null;
-  knockoutResolution?: KnockoutResolutionData;
+  matchContext?: ResolvedMatchContextInput;
 }) {
   return (
     <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white sm:py-6">
       <div className="feed-shell screen-safe-bottom">
-        <FeedScreen onEnterArena={onJoinLive} profile={profile} knockoutResolution={knockoutResolution} />
+        <FeedScreen onEnterArena={onJoinLive} profile={profile} matchContext={matchContext} />
       </div>
     </main>
   );

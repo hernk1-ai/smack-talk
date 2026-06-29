@@ -8,7 +8,7 @@ import {
 } from "@/data/worldCupSchedule";
 import { applyStaleLiveFinalFallback, normalizeFeedGameStatus } from "@/lib/worldCup/gameStatus";
 import { fetchKnockoutResolutionData } from "@/lib/worldCup/fetchKnockoutResolution";
-import { resolveMatchDisplayFromData } from "@/lib/worldCup/matchDisplay";
+import { buildResolvedMatchContext, resolveMatch } from "@/lib/worldCup/resolvedMatch";
 import type { KnockoutResolutionData } from "@/lib/worldCup/knockoutMatchResolver";
 import { shouldApplyEspnScorePatch, shouldApplyEspnStatusPatch } from "@/lib/worldCup/matchSelection";
 import { parseWorldCupRouteGameId } from "@/lib/supabase/resolveArenaGame";
@@ -394,10 +394,13 @@ function buildGameMatchingProfiles(
     return profiles;
   }
 
-  const resolved = resolveMatchDisplayFromData(parsed.worldCupMatch, knockoutResolution ?? null);
+  const resolved = resolveMatch(
+    parsed.worldCupMatch,
+    buildResolvedMatchContext({ knockoutResolution: knockoutResolution ?? { standings: [], bracket: [] } }),
+  );
   const resolvedProfile = {
-    home_team: resolved.displayHomeTeam,
-    away_team: resolved.displayAwayTeam,
+    home_team: resolved.home.name,
+    away_team: resolved.away.name,
     starts_at: game.starts_at ?? getWorldCupKickoffIso(parsed.worldCupMatch),
   };
 
@@ -744,9 +747,12 @@ async function applyEspnTeamAlignmentToGame(
   if (!alignment.confident) {
     const parsed = parseWorldCupRouteGameId(game.id);
     if (parsed) {
-      const resolved = resolveMatchDisplayFromData(parsed.worldCupMatch, options.knockoutResolution ?? null);
+      const resolved = resolveMatch(
+        parsed.worldCupMatch,
+        buildResolvedMatchContext({ knockoutResolution: options.knockoutResolution ?? { standings: [], bracket: [] } }),
+      );
       alignment = getEspnTeamAlignment(
-        { home_team: resolved.displayHomeTeam, away_team: resolved.displayAwayTeam },
+        { home_team: resolved.home.name, away_team: resolved.away.name },
         event,
       );
     }

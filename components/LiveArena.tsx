@@ -20,8 +20,15 @@ import { getWorldCupMatchById } from "@/data/worldCupSchedule";
 import { getEstimatedMatchDisplay } from "@/lib/worldCupMatchStatus";
 import { scheduleStatusFromFeed } from "@/lib/worldCup/matchSelection";
 import { getWorldCupKickoffIso, getWorldCupMatchId } from "@/data/worldCupSchedule";
-import type { KnockoutResolutionData } from "@/lib/worldCup/knockoutMatchResolver";
-import { buildKnockoutResolutionContext, resolveMatchDisplay } from "@/lib/worldCup/matchDisplay";
+import {
+  buildResolvedMatchContext,
+  buildResolvedMatchShareText,
+  resolveMatch,
+  resolveMatchByGameId,
+  withResolvedMatchGames,
+  type ResolvedMatch,
+  type ResolvedMatchContextInput,
+} from "@/lib/worldCup/resolvedMatch";
 import { resolveGameRoomNavTargetClient } from "@/lib/worldCupNavClient";
 import { useRouter } from "next/navigation";
 import {
@@ -29,7 +36,6 @@ import {
   SHOW_FAKE_LIVE_ACTIVITY,
   SHOW_REP_SYSTEM_PUBLICLY,
 } from "@/lib/productConfig";
-import { buildGameRoomShareText } from "@/lib/worldCupPublicNav";
 import { formatShareClipboardText, shareWithFallback } from "@/lib/share";
 import { getShareUrl } from "@/lib/site-url";
 import { getUserFacingErrorMessage } from "@/lib/userFacingError";
@@ -85,13 +91,13 @@ export function LiveArena({
   roomCode = null,
   onBack,
   profile = null,
-  knockoutResolution,
+  matchContext,
 }: {
   gameId?: string;
   roomCode?: string | null;
   onBack: () => void;
   profile?: Profile | null;
-  knockoutResolution?: KnockoutResolutionData;
+  matchContext?: ResolvedMatchContextInput;
 }) {
   const { showToast } = useToast();
   const gameRoomPath = `/game/${gameId}`;
@@ -135,19 +141,28 @@ export function LiveArena({
   // Live viewers ("fans in the room"); null = hidden (presence unavailable).
   const [viewerCount, setViewerCount] = useState<number | null>(null);
   const worldCupMatch = useMemo(() => parseWorldCupMatchFromGameId(gameId), [gameId]);
-  const knockoutContext = useMemo(
-    () => (knockoutResolution ? buildKnockoutResolutionContext(knockoutResolution) : null),
-    [knockoutResolution],
+  const resolvedContext = useMemo(
+    () =>
+      withResolvedMatchGames(
+        buildResolvedMatchContext({
+          knockoutResolution: matchContext?.knockoutResolution ?? { standings: [], bracket: [] },
+          games: matchContext?.games ?? [],
+          nowIso: now.toISOString(),
+        }),
+        game ? [game] : [],
+        now,
+      ),
+    [game, matchContext, now],
   );
-  const matchDisplay = useMemo(() => {
-    if (!worldCupMatch) {
-      return null;
+  const resolvedMatch = useMemo((): ResolvedMatch | null => {
+    if (worldCupMatch) {
+      return resolveMatch(worldCupMatch, resolvedContext);
     }
 
-    return resolveMatchDisplay(worldCupMatch, knockoutContext, game);
-  }, [worldCupMatch, knockoutContext, game]);
-  const awayTeam = matchDisplay?.displayAwayTeam ?? game?.away_team ?? worldCupMatch?.awayTeam ?? "AWAY";
-  const homeTeam = matchDisplay?.displayHomeTeam ?? game?.home_team ?? worldCupMatch?.homeTeam ?? "HOME";
+    return resolveMatchByGameId(gameId, resolvedContext);
+  }, [gameId, resolvedContext, worldCupMatch]);
+  const awayTeam = resolvedMatch?.away.name ?? game?.away_team ?? worldCupMatch?.awayTeam ?? "AWAY";
+  const homeTeam = resolvedMatch?.home.name ?? game?.home_team ?? worldCupMatch?.homeTeam ?? "HOME";
   const [claimPromptDismissed, setClaimPromptDismissed] = useState(false);
   const showClaimPrompt = useMemo(
     () =>
@@ -209,17 +224,23 @@ export function LiveArena({
       );
 
       const wcMatch = parseWorldCupMatchFromGameId(gameId);
-      const display =
-        wcMatch && knockoutResolution
-          ? resolveMatchDisplay(wcMatch, buildKnockoutResolutionContext(knockoutResolution), loadedGame)
-          : wcMatch
-            ? resolveMatchDisplay(wcMatch, null, loadedGame)
-            : null;
+      const loadedResolved = wcMatch
+        ? resolveMatch(
+            wcMatch,
+            withResolvedMatchGames(
+              buildResolvedMatchContext({
+                knockoutResolution: matchContext?.knockoutResolution ?? { standings: [], bracket: [] },
+                games: matchContext?.games ?? [],
+              }),
+              loadedGame ? [loadedGame] : [],
+            ),
+          )
+        : null;
 
       const initialQueue = getQuickPickQuestions({
         game: loadedGame,
-        awayTeam: display?.displayAwayTeam ?? loadedGame?.away_team ?? "AWAY",
-        homeTeam: display?.displayHomeTeam ?? loadedGame?.home_team ?? "HOME",
+        awayTeam: loadedResolved?.away.name ?? loadedGame?.away_team ?? "AWAY",
+        homeTeam: loadedResolved?.home.name ?? loadedGame?.home_team ?? "HOME",
         recentKeys: [],
       })
         .filter((question) => !nextSelections[question.key])
@@ -252,7 +273,7 @@ export function LiveArena({
       isMounted = false;
       window.clearInterval(refreshInterval);
     };
-  }, [gameId, guestUserId, knockoutResolution, refreshGuestSession]);
+  }, [gameId, guestUserId, matchContext, refreshGuestSession]);
 
   const previousRoomStatusRef = useRef<"scheduled" | "live" | "final" | "awaiting" | null>(null);
 
@@ -372,9 +393,9 @@ export function LiveArena({
     }
 
     const sharePath = roomCode ? buildPrivateRoomPath(gameId, roomCode) : `/game/${gameId}`;
-    const shareText = matchDisplay?.displayTitle
-      ? `Join me in the Lockt Game Room for ${matchDisplay.displayTitle}.`
-      : buildGameRoomShareText(worldCupMatch);
+    const shareText = resolvedMatch
+      ? buildResolvedMatchShareText(resolvedMatch)
+      : `Join me in the Lockt Game Room for ${homeTeam} vs ${awayTeam}.`;
     const url = getShareUrl(sharePath);
     const outcome = await shareWithFallback({
       title: "Join my Lockt Game Room",

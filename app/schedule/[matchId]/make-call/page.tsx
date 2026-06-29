@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { MakeCallPage } from "@/components/world-cup/MakeCallPage";
 import { getWorldCupMatchById, getWorldCupMatchId } from "@/data/worldCupSchedule";
-import { fetchKnockoutResolutionData } from "@/lib/worldCup/fetchKnockoutResolution";
-import { resolveMatchDisplayFromData } from "@/lib/worldCup/matchDisplay";
+import { fetchResolvedMatchContext } from "@/lib/worldCup/fetchResolvedMatchContext";
+import { resolveMatch } from "@/lib/worldCup/resolvedMatch";
 import { getSiteUrl } from "@/lib/site-url";
 import { ensureProfile } from "@/lib/supabase/profiles";
 import { createClient } from "@/lib/supabase/server";
@@ -22,12 +22,12 @@ export async function generateMetadata({ params }: { params: Promise<{ matchId: 
     };
   }
 
-  const knockoutResolution = await fetchKnockoutResolutionData();
-  const matchup = resolveMatchDisplayFromData(match, knockoutResolution);
+  const resolvedContext = await fetchResolvedMatchContext();
+  const resolved = resolveMatch(match, resolvedContext);
 
   const url = `${BASE_URL}/schedule/${encodeURIComponent(matchId)}/make-call`;
   return {
-    title: `MAKE YOUR CALL | ${matchup.displayTitle} | LOCKT`,
+    title: `MAKE YOUR CALL | ${resolved.title} | LOCKT`,
     description: "Lock your match pick before kickoff.",
     alternates: {
       canonical: url,
@@ -42,12 +42,12 @@ export default async function MatchMakeCallPage({ params }: { params: Promise<{ 
     redirect("/schedule");
   }
 
-  const knockoutResolution = await fetchKnockoutResolutionData();
-  const matchup = resolveMatchDisplayFromData(match, knockoutResolution);
+  const resolvedContext = await fetchResolvedMatchContext();
+  const resolved = resolveMatch(match, resolvedContext);
 
   const supabase = await createClient();
   if (!supabase) {
-    return <MakeCallPage match={match} matchupLabels={matchup} initialPick={null} profile={null} isAuthenticated={false} />;
+    return <MakeCallPage match={match} resolvedMatch={resolved} initialPick={null} profile={null} isAuthenticated={false} />;
   }
 
   const {
@@ -55,7 +55,7 @@ export default async function MatchMakeCallPage({ params }: { params: Promise<{ 
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return <MakeCallPage match={match} matchupLabels={matchup} initialPick={null} profile={null} isAuthenticated={false} />;
+    return <MakeCallPage match={match} resolvedMatch={resolved} initialPick={null} profile={null} isAuthenticated={false} />;
   }
 
   const { data: pick } = await supabase
@@ -67,5 +67,13 @@ export default async function MatchMakeCallPage({ params }: { params: Promise<{ 
 
   const { profile } = await ensureProfile(supabase, user);
 
-  return <MakeCallPage match={match} matchupLabels={matchup} initialPick={pick as MatchPick | null} profile={profile} isAuthenticated />;
+  return (
+    <MakeCallPage
+      match={match}
+      resolvedMatch={resolved}
+      initialPick={pick as MatchPick | null}
+      profile={profile}
+      isAuthenticated
+    />
+  );
 }

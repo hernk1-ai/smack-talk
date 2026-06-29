@@ -242,7 +242,7 @@ function parseKnockoutMatch(match: FifaMatchRow, round: string): KnockoutBracket
   };
 }
 
-async function fetchKnockoutBracket(): Promise<KnockoutBracketRound[]> {
+export async function fetchKnockoutBracketFromFifa(): Promise<KnockoutBracketRound[]> {
   const rounds: KnockoutBracketRound[] = [];
 
   for (const round of KNOCKOUT_ROUND_ORDER) {
@@ -260,10 +260,72 @@ async function fetchKnockoutBracket(): Promise<KnockoutBracketRound[]> {
   return rounds;
 }
 
-function bracketHasConfirmedMatchups(rounds: KnockoutBracketRound[]): boolean {
-  return rounds.some((round) =>
-    round.matches.some((match) => Boolean(match.homeTeam && match.awayTeam && match.homeTeam !== "TBD" && match.awayTeam !== "TBD")),
-  );
+function bracketHasAnyMatchups(rounds: KnockoutBracketRound[]): boolean {
+  return rounds.some((round) => round.matches.length > 0);
+}
+
+export function mergeKnockoutBracketRounds(
+  live: KnockoutBracketRound[],
+  cached: KnockoutBracketRound[],
+): KnockoutBracketRound[] {
+  const cachedById = new Map<string, KnockoutBracketMatch>();
+  const cachedByKickoff = new Map<string, KnockoutBracketMatch>();
+
+  for (const round of cached) {
+    for (const match of round.matches) {
+      cachedById.set(match.id, match);
+      if (match.date) {
+        cachedByKickoff.set(match.date, match);
+      }
+    }
+  }
+
+  function mergeMatch(liveMatch: KnockoutBracketMatch): KnockoutBracketMatch {
+    const cachedMatch =
+      cachedById.get(liveMatch.id) ?? (liveMatch.date ? cachedByKickoff.get(liveMatch.date) : undefined);
+
+    if (!cachedMatch) {
+      return liveMatch;
+    }
+
+    return {
+      ...liveMatch,
+      homeTeam: liveMatch.homeTeam ?? cachedMatch.homeTeam,
+      awayTeam: liveMatch.awayTeam ?? cachedMatch.awayTeam,
+      homeCode: liveMatch.homeCode ?? cachedMatch.homeCode,
+      awayCode: liveMatch.awayCode ?? cachedMatch.awayCode,
+      homeScore: liveMatch.homeScore ?? cachedMatch.homeScore,
+      awayScore: liveMatch.awayScore ?? cachedMatch.awayScore,
+    };
+  }
+
+  const mergedRounds = live.map((round) => ({
+    ...round,
+    matches: round.matches.map(mergeMatch),
+  }));
+
+  const liveIds = new Set(live.flatMap((round) => round.matches.map((match) => match.id)));
+  const extraMatches = cached
+    .flatMap((round) => round.matches)
+    .filter((match) => !liveIds.has(match.id));
+
+  if (!extraMatches.length) {
+    return mergedRounds;
+  }
+
+  const roundByName = new Map(mergedRounds.map((round) => [round.round, round]));
+  for (const match of extraMatches) {
+    const bucket = roundByName.get(match.round);
+    if (bucket) {
+      bucket.matches.push(match);
+    } else {
+      const round = { round: match.round, matches: [match] };
+      mergedRounds.push(round);
+      roundByName.set(match.round, round);
+    }
+  }
+
+  return mergedRounds;
 }
 
 export async function syncFifaWorldCupStandings(admin: AdminClient): Promise<FifaStandingsSyncSummary> {
@@ -274,7 +336,7 @@ export async function syncFifaWorldCupStandings(admin: AdminClient): Promise<Fif
   );
 
   const parsedRows = parseStandingRows(payload.Results ?? [], sourceUpdatedAt);
-  const knockoutRounds = await fetchKnockoutBracket();
+  const knockoutRounds = await fetchKnockoutBracketFromFifa();
 
   const { data: existingRows, error: existingError } = await admin
     .from("world_cup_standings")
@@ -305,7 +367,20 @@ export async function syncFifaWorldCupStandings(admin: AdminClient): Promise<Fif
     }
   }
 
-  const bracketPayload = bracketHasConfirmedMatchups(knockoutRounds) ? knockoutRounds : [];
+  const { data: existingMeta, error: existingMetaError } = await admin
+    .from("world_cup_standings_meta")
+    .select("payload")
+    .eq("key", "knockout_bracket")
+    .maybeSingle();
+
+  if (existingMetaError) {
+    throw new Error(existingMetaError.message);
+  }
+
+  const cachedBracket = Array.isArray(existingMeta?.payload) ? (existingMeta.payload as KnockoutBracketRound[]) : [];
+  const bracketPayload = bracketHasAnyMatchups(knockoutRounds)
+    ? mergeKnockoutBracketRounds(knockoutRounds, cachedBracket)
+    : cachedBracket;
 
   const { error: metaError } = await admin.from("world_cup_standings_meta").upsert(
     {

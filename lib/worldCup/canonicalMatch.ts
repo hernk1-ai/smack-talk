@@ -1,7 +1,7 @@
 import { getWorldCupMatchId, type WorldCupMatch } from "@/data/worldCupSchedule";
 import { getKickoffMs } from "@/lib/worldCup/localSchedule";
-import { isKnockoutScheduleMatch, type KnockoutResolutionContext } from "@/lib/worldCup/knockoutMatchResolver";
-import { resolveMatchDisplay } from "@/lib/worldCup/matchDisplay";
+import { isKnockoutScheduleMatch } from "@/lib/worldCup/knockoutMatchResolver";
+import { resolveMatch, type ResolvedMatchContext } from "@/lib/worldCup/resolvedMatch";
 import { isSelectableScheduleState } from "@/lib/worldCup/matchSelection";
 import {
   buildScheduleMatchStates,
@@ -25,7 +25,7 @@ function sortByScheduleKickoff(schedule: WorldCupMatch[]): WorldCupMatch[] {
  */
 function pickCanonicalUpcomingMatch(
   upcoming: WorldCupMatch[],
-  knockoutContext?: KnockoutResolutionContext | null,
+  resolvedContext?: ResolvedMatchContext | null,
 ): WorldCupMatch | null {
   if (!upcoming.length) {
     return null;
@@ -36,7 +36,7 @@ function pickCanonicalUpcomingMatch(
       return match;
     }
 
-    if (resolveMatchDisplay(match, knockoutContext).isResolved) {
+    if (resolvedContext && resolveMatch(match, resolvedContext).isResolved) {
       return match;
     }
   }
@@ -51,7 +51,7 @@ function pickCanonicalUpcomingMatch(
 export function getCanonicalCurrentOrNextMatch(
   schedule: WorldCupMatch[],
   matchStates: Record<number, ScheduleMatchState>,
-  knockoutContext?: KnockoutResolutionContext | null,
+  resolvedContext?: ResolvedMatchContext | null,
   now: Date = new Date(),
 ): CanonicalMatchFocus {
   const sorted = sortByScheduleKickoff(schedule);
@@ -65,7 +65,7 @@ export function getCanonicalCurrentOrNextMatch(
     const state = matchStates[match.id];
     return state ? isSelectableScheduleState(state, match, now) : false;
   });
-  const nextMatch = pickCanonicalUpcomingMatch(upcoming, knockoutContext);
+  const nextMatch = pickCanonicalUpcomingMatch(upcoming, resolvedContext);
   if (nextMatch) {
     return { mode: "upcoming", match: nextMatch };
   }
@@ -95,11 +95,11 @@ export function buildScheduleMatchStatesFromSnapshots(
 export function getCanonicalCurrentOrNextMatchFromGames(
   schedule: WorldCupMatch[],
   games: WorldCupGameSnapshot[],
-  knockoutContext?: KnockoutResolutionContext | null,
+  resolvedContext?: ResolvedMatchContext | null,
   now: Date = new Date(),
 ): CanonicalMatchFocus {
   const matchStates = buildScheduleMatchStatesFromSnapshots(games, now, schedule);
-  return getCanonicalCurrentOrNextMatch(schedule, matchStates, knockoutContext, now);
+  return getCanonicalCurrentOrNextMatch(schedule, matchStates, resolvedContext, now);
 }
 
 export function getCanonicalMatchGameId(

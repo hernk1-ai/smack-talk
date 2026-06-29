@@ -13,7 +13,7 @@ import {
   resolveFeedGameStatus,
   STALE_LIVE_FALLBACK_MS,
 } from "@/lib/worldCup/gameStatus";
-import type { KnockoutResolutionContext } from "@/lib/worldCup/knockoutMatchResolver";
+import type { ResolvedMatchContext } from "@/lib/worldCup/resolvedMatch";
 import { getEstimatedMatchDisplay, type WorldCupMatchLifecycle } from "@/lib/worldCupMatchStatus";
 import type { Game } from "@/lib/supabase/types";
 
@@ -130,9 +130,9 @@ export function getCurrentLiveWorldCupMatch(
   now: Date = new Date(),
   schedule: WorldCupMatch[] = worldCupSchedule,
   games: WorldCupGameSnapshot[] = [],
-  knockoutContext?: KnockoutResolutionContext | null,
+  resolvedContext?: ResolvedMatchContext | null,
 ): WorldCupMatch | null {
-  const focus = getCanonicalCurrentOrNextMatchFromGames(schedule, games, knockoutContext, now);
+  const focus = getCanonicalCurrentOrNextMatchFromGames(schedule, games, resolvedContext, now);
   return focus.mode === "live" ? focus.match : null;
 }
 
@@ -140,9 +140,9 @@ export function getCurrentLiveWorldCupMatchWithGame(
   now: Date = new Date(),
   schedule: WorldCupMatch[] = worldCupSchedule,
   games: WorldCupGameSnapshot[] = [],
-  knockoutContext?: KnockoutResolutionContext | null,
+  resolvedContext?: ResolvedMatchContext | null,
 ): { match: WorldCupMatch; game: WorldCupGameSnapshot | null } | null {
-  const focus = getCanonicalCurrentOrNextMatchFromGames(schedule, games, knockoutContext, now);
+  const focus = getCanonicalCurrentOrNextMatchFromGames(schedule, games, resolvedContext, now);
   if (focus.mode !== "live") {
     return null;
   }
@@ -158,9 +158,9 @@ export function getNextWorldCupMatch(
   now: Date = new Date(),
   schedule: WorldCupMatch[] = worldCupSchedule,
   games: WorldCupGameSnapshot[] = [],
-  knockoutContext?: KnockoutResolutionContext | null,
+  resolvedContext?: ResolvedMatchContext | null,
 ): WorldCupMatch | null {
-  const focus = getCanonicalCurrentOrNextMatchFromGames(schedule, games, knockoutContext, now);
+  const focus = getCanonicalCurrentOrNextMatchFromGames(schedule, games, resolvedContext, now);
   return focus.mode === "upcoming" ? focus.match : null;
 }
 
@@ -169,9 +169,9 @@ export function getCurrentOrNextWorldCupMatch(
   now: Date = new Date(),
   schedule: WorldCupMatch[] = worldCupSchedule,
   games: WorldCupGameSnapshot[] = [],
-  knockoutContext?: KnockoutResolutionContext | null,
+  resolvedContext?: ResolvedMatchContext | null,
 ): WorldCupMatch | null {
-  const focus = getCanonicalCurrentOrNextMatchFromGames(schedule, games, knockoutContext, now);
+  const focus = getCanonicalCurrentOrNextMatchFromGames(schedule, games, resolvedContext, now);
   return focus.mode === "complete" ? null : focus.match;
 }
 
@@ -185,9 +185,9 @@ export function getMatchHubFocus(
   now: Date = new Date(),
   schedule: WorldCupMatch[] = worldCupSchedule,
   games: WorldCupGameSnapshot[] = [],
-  knockoutContext?: KnockoutResolutionContext | null,
+  resolvedContext?: ResolvedMatchContext | null,
 ): MatchHubFocus {
-  const focus = getCanonicalCurrentOrNextMatchFromGames(schedule, games, knockoutContext, now);
+  const focus = getCanonicalCurrentOrNextMatchFromGames(schedule, games, resolvedContext, now);
 
   if (focus.mode === "live") {
     return {
@@ -250,9 +250,9 @@ export function resolveGameRoomNavTarget(
   now: Date = new Date(),
   schedule: WorldCupMatch[] = worldCupSchedule,
   games: WorldCupGameSnapshot[] = [],
-  knockoutContext?: KnockoutResolutionContext | null,
+  resolvedContext?: ResolvedMatchContext | null,
 ): GameRoomNavTarget {
-  const focus = getCanonicalCurrentOrNextMatchFromGames(schedule, games, knockoutContext, now);
+  const focus = getCanonicalCurrentOrNextMatchFromGames(schedule, games, resolvedContext, now);
 
   if (focus.mode === "live" || focus.mode === "upcoming") {
     const gameId = getWorldCupMatchId(focus.match);
@@ -283,9 +283,9 @@ export function resolveGameRoomNavHref(
   now: Date = new Date(),
   schedule: WorldCupMatch[] = worldCupSchedule,
   games: WorldCupGameSnapshot[] = [],
-  knockoutContext?: KnockoutResolutionContext | null,
+  resolvedContext?: ResolvedMatchContext | null,
 ): string {
-  return resolveGameRoomNavTarget(now, schedule, games, knockoutContext).href;
+  return resolveGameRoomNavTarget(now, schedule, games, resolvedContext).href;
 }
 
 const GAME_ROOM_ROUTE_PATTERN = /^\/game\/wc-2026-\d+$/;

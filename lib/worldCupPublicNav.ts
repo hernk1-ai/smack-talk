@@ -1,6 +1,7 @@
 import { getWorldCupKickoffIso, getWorldCupMatchId, type WorldCupMatch } from "@/data/worldCupSchedule";
 import { isFeedGameLive } from "@/lib/worldCup/gameStatus";
 import { SHOW_GAME_ROOM } from "@/lib/productConfig";
+import type { ResolvedMatch } from "@/lib/worldCup/resolvedMatch";
 
 export type WorldCupMatchCta = {
   label: string;
@@ -39,7 +40,12 @@ export function getWorldCupMatchPublicCta(
   };
 }
 
-export function buildGameRoomShareText(match: WorldCupMatch) {
+export function buildGameRoomShareText(resolved: ResolvedMatch): string {
+  return `Join me in the Lockt Game Room for ${resolved.title}.`;
+}
+
+/** @deprecated Use buildGameRoomShareText(resolvedMatch) */
+export function buildGameRoomShareTextFromSchedule(match: WorldCupMatch) {
   const away = match.awayTeam ?? "TBD";
   return `Join me in the Lockt Game Room for ${match.homeTeam} vs ${away}.`;
 }

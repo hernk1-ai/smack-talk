@@ -3,11 +3,16 @@ import { formatMatchupLabel } from "@/lib/worldCup/matchupDisplay";
 import {
   buildKnockoutResolutionContext,
   isKnockoutScheduleMatch,
-  isKnockoutSeedToken,
-  resolveKnockoutMatchup,
   type KnockoutResolutionContext,
   type KnockoutResolutionData,
 } from "@/lib/worldCup/knockoutMatchResolver";
+import {
+  buildResolvedMatchContext,
+  resolveMatch,
+  type MatchFeedRow,
+  type ResolvedMatch,
+  type ResolvedMatchContext,
+} from "@/lib/worldCup/resolvedMatch";
 
 export type MatchDisplay = {
   displayHomeTeam: string;
@@ -23,68 +28,68 @@ export type GameTeamSnapshot = {
 };
 
 export { buildKnockoutResolutionContext, type KnockoutResolutionContext, type KnockoutResolutionData };
+export type { ResolvedMatch, ResolvedMatchContext, MatchFeedRow } from "@/lib/worldCup/resolvedMatch";
+export {
+  buildResolvedMatchContext,
+  buildResolvedMatchMap,
+  getResolvedMatch,
+  resolveAllMatches,
+  resolveMatch,
+  resolveMatchByGameId,
+  resolveMatchById,
+  buildResolvedMatchShareText,
+  withResolvedMatchGames,
+} from "@/lib/worldCup/resolvedMatch";
+export type { ResolvedMatchContextInput } from "@/lib/worldCup/resolvedMatch";
 
-function buildFallbackLabel(match: WorldCupMatch): string {
-  return `${match.homeTeam} vs ${match.awayTeam ?? "TBD"}`;
+function toMatchDisplay(resolved: ResolvedMatch): MatchDisplay {
+  return {
+    displayHomeTeam: resolved.home.name,
+    displayAwayTeam: resolved.away.name,
+    displayTitle: resolved.title,
+    isResolved: resolved.isResolved,
+    fallbackLabel: resolved.fallbackTitle,
+  };
 }
 
-function isPlaceholderTeamLabel(value: string | null | undefined): boolean {
-  if (!value?.trim()) {
-    return true;
-  }
-
-  const normalized = value.trim().toLowerCase();
-  return normalized === "tbd" || normalized === "home" || normalized === "away";
-}
-
-function isRealTeamLabel(value: string): boolean {
-  return !isPlaceholderTeamLabel(value) && !isKnockoutSeedToken(value);
-}
-
-/**
- * Shared display resolver for Schedule, Match Hub, and Game Room.
- * Knockout matches always prefer FIFA standings/bracket resolution over stale game-row seeds.
- */
+/** @deprecated Prefer resolveMatch() — kept for incremental migration. */
 export function resolveMatchDisplay(
   match: WorldCupMatch,
   context: KnockoutResolutionContext | null | undefined,
-  game?: GameTeamSnapshot | null,
+  game?: GameTeamSnapshot | MatchFeedRow | null,
+  now: Date = new Date(),
 ): MatchDisplay {
-  const fallbackLabel = buildFallbackLabel(match);
-
-  if (!isKnockoutScheduleMatch(match)) {
-    const displayHomeTeam =
-      game?.home_team && isRealTeamLabel(game.home_team) ? game.home_team : match.homeTeam;
-    const displayAwayTeam =
-      game?.away_team && isRealTeamLabel(game.away_team) ? game.away_team : match.awayTeam ?? "TBD";
-
-    return {
-      displayHomeTeam,
-      displayAwayTeam,
-      displayTitle: formatMatchupLabel(displayHomeTeam, displayAwayTeam),
-      isResolved: false,
-      fallbackLabel,
-    };
-  }
-
-  const resolved = resolveKnockoutMatchup(match, context);
-  const isResolved =
-    isRealTeamLabel(resolved.homeTeam) || isRealTeamLabel(resolved.awayTeam);
-
-  return {
-    displayHomeTeam: resolved.homeTeam,
-    displayAwayTeam: resolved.awayTeam,
-    displayTitle: formatMatchupLabel(resolved.homeTeam, resolved.awayTeam),
-    isResolved,
-    fallbackLabel,
+  const resolvedContext: ResolvedMatchContext = {
+    knockoutContext: context ?? null,
+    gamesById: new Map(
+      game && "id" in game ? [[(game as MatchFeedRow).id, game as MatchFeedRow]] : [],
+    ),
+    teamFlags: buildResolvedMatchContext({ knockoutResolution: { standings: [], bracket: [] } }).teamFlags,
+    now,
   };
+
+  return toMatchDisplay(resolveMatch(match, resolvedContext));
 }
 
 export function resolveMatchDisplayFromData(
   match: WorldCupMatch,
   data: KnockoutResolutionData | null | undefined,
-  game?: GameTeamSnapshot | null,
+  game?: GameTeamSnapshot | MatchFeedRow | null,
+  now: Date = new Date(),
 ): MatchDisplay {
-  const context = data ? buildKnockoutResolutionContext(data) : null;
-  return resolveMatchDisplay(match, context, game);
+  const resolvedContext = buildResolvedMatchContext({
+    knockoutResolution: data ?? { standings: [], bracket: [] },
+    games: game && "id" in game ? [game as MatchFeedRow] : [],
+    nowIso: now.toISOString(),
+  });
+
+  return toMatchDisplay(resolveMatch(match, resolvedContext));
+}
+
+export function isKnockoutScheduleMatchExport(match: WorldCupMatch): boolean {
+  return isKnockoutScheduleMatch(match);
+}
+
+export function formatResolvedMatchupLabel(resolved: ResolvedMatch): string {
+  return formatMatchupLabel(resolved.home.name, resolved.away.name);
 }

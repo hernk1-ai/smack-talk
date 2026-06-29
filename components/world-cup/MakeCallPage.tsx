@@ -17,10 +17,10 @@ import type { MatchPick, Profile } from "@/lib/supabase/types";
 
 type MakeCallPageProps = {
   match: WorldCupMatch;
-  matchupLabels?: {
-    displayHomeTeam: string;
-    displayAwayTeam: string;
-    displayTitle?: string;
+  resolvedMatch: {
+    title: string;
+    home: { name: string };
+    away: { name: string };
   };
   initialPick: MatchPick | null;
   profile?: Profile | null;
@@ -38,11 +38,11 @@ type PendingCallDraft = {
 
 const pendingCallKey = "lockt_pending_match_call";
 
-export function MakeCallPage({ match, matchupLabels, initialPick, profile, isAuthenticated }: MakeCallPageProps) {
+export function MakeCallPage({ match, resolvedMatch, initialPick, profile, isAuthenticated }: MakeCallPageProps) {
   const { showToast } = useToast();
   const isGroupStage = match.stage === "Group Stage";
-  const homeLabel = matchupLabels?.displayHomeTeam ?? match.homeTeam;
-  const awayLabel = matchupLabels?.displayAwayTeam ?? match.awayTeam ?? "TBD";
+  const homeLabel = resolvedMatch.home.name;
+  const awayLabel = resolvedMatch.away.name;
   const lockClosed = isWorldCupMatchLocked(match);
   const [selectedWinner, setSelectedWinner] = useState<string>(initialPick?.selected_winner ?? "");
   const [homeScore, setHomeScore] = useState<string>(String(initialPick?.home_score ?? 0));
@@ -404,7 +404,7 @@ export function MakeCallPage({ match, matchupLabels, initialPick, profile, isAut
           <p className="mt-1 text-xs font-semibold text-gray-400">Feeling sharp? Call the exact score for a bigger rep swing.</p>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <label className="space-y-1">
-              <span className="text-xs font-semibold text-gray-300">{match.homeTeam}</span>
+              <span className="text-xs font-semibold text-gray-300">{homeLabel}</span>
               <input
                 type="number"
                 min={0}
@@ -416,7 +416,7 @@ export function MakeCallPage({ match, matchupLabels, initialPick, profile, isAut
               />
             </label>
             <label className="space-y-1">
-              <span className="text-xs font-semibold text-gray-300">{match.awayTeam ?? "TBD"}</span>
+              <span className="text-xs font-semibold text-gray-300">{awayLabel}</span>
               <input
                 type="number"
                 min={0}

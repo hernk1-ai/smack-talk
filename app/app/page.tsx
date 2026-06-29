@@ -4,7 +4,7 @@ import { LocktApp } from "@/components/LocktApp";
 import { SITEMAP_BASE_URL } from "@/lib/seo/sitemap";
 import { createClient } from "@/lib/supabase/server";
 import { ensureProfile } from "@/lib/supabase/profiles";
-import { fetchKnockoutResolutionData } from "@/lib/worldCup/fetchKnockoutResolution";
+import { fetchResolvedMatchContextInput } from "@/lib/worldCup/fetchResolvedMatchContext";
 
 const APP_URL = `${SITEMAP_BASE_URL}/app`;
 const APP_TITLE = "Lockt Match Hub | Watch the World Cup With Friends and Family";
@@ -27,11 +27,11 @@ export const metadata: Metadata = {
 };
 
 export default async function AppPage() {
-  const knockoutResolution = await fetchKnockoutResolutionData();
+  const matchContext = await fetchResolvedMatchContextInput();
   const supabase = await createClient();
 
   if (!supabase) {
-    return <LocktApp knockoutResolution={knockoutResolution} />;
+    return <LocktApp matchContext={matchContext} />;
   }
 
   const {
@@ -39,10 +39,10 @@ export default async function AppPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return <LocktApp knockoutResolution={knockoutResolution} />;
+    return <LocktApp matchContext={matchContext} />;
   }
 
   const { profile } = await ensureProfile(supabase, user);
 
-  return <LocktApp profile={profile} knockoutResolution={knockoutResolution} />;
+  return <LocktApp profile={profile} matchContext={matchContext} />;
 }

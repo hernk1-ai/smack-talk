@@ -1,18 +1,16 @@
 import type { Metadata } from "next";
 import { cache } from "react";
 
-import { createAdminClient } from "@/lib/supabase/admin";
-import { parseWorldCupRouteGameId } from "@/lib/supabase/resolveArenaGame";
-import type { Game } from "@/lib/supabase/types";
 import { SITEMAP_BASE_URL } from "@/lib/seo/sitemap";
 import {
   formatLocalKickoff,
   getLocalDateLabel,
   WORLD_CUP_SCHEDULE_FALLBACK_TIME_ZONE,
 } from "@/lib/worldCup/localSchedule";
-import { fetchKnockoutResolutionData } from "@/lib/worldCup/fetchKnockoutResolution";
-import { resolveMatchDisplayFromData } from "@/lib/worldCup/matchDisplay";
+import { fetchResolvedMatchContext } from "@/lib/worldCup/fetchResolvedMatchContext";
+import { resolveMatchByGameId } from "@/lib/worldCup/resolvedMatch";
 import { formatMatchupLabel } from "@/lib/worldCup/matchupDisplay";
+import { parseWorldCupRouteGameId } from "@/lib/supabase/resolveArenaGame";
 
 export type GameRoomPageData = {
   gameId: string;
@@ -30,30 +28,22 @@ export const resolveGameRoomPageData = cache(async (gameId: string): Promise<Gam
     return null;
   }
 
-  const { worldCupMatch } = parsed;
-  let game: Game | null = null;
-  const admin = createAdminClient();
-  if (admin) {
-    const { data } = await admin.from("games").select("*").eq("id", gameId).maybeSingle();
-    game = data;
+  const resolvedContext = await fetchResolvedMatchContext();
+  const resolved = resolveMatchByGameId(gameId, resolvedContext);
+  if (!resolved) {
+    return null;
   }
 
-  const knockoutResolution = await fetchKnockoutResolutionData();
-  const display = resolveMatchDisplayFromData(worldCupMatch, knockoutResolution, game);
-  const homeTeam = display.displayHomeTeam;
-  const awayTeam = display.displayAwayTeam;
   const timeZone = WORLD_CUP_SCHEDULE_FALLBACK_TIME_ZONE;
-  const kickoffLabel = `${getLocalDateLabel(worldCupMatch, timeZone)} · ${formatLocalKickoff(worldCupMatch, timeZone)} ET`;
-  const venueParts = [worldCupMatch.city, worldCupMatch.venue].filter(Boolean);
+  const kickoffLabel = `${getLocalDateLabel(resolved.match, timeZone)} · ${formatLocalKickoff(resolved.match, timeZone)} ET`;
+  const venueParts = [resolved.city, resolved.venue].filter(Boolean);
   const venueLine = venueParts.length ? venueParts.join(" · ") : null;
-  const stage =
-    game?.period?.trim() ||
-    (worldCupMatch.stage === "Group Stage" ? `Group ${worldCupMatch.group}` : worldCupMatch.stage);
+  const stage = resolved.feed.period?.trim() || resolved.stage;
 
   return {
     gameId,
-    homeTeam,
-    awayTeam,
+    homeTeam: resolved.home.name,
+    awayTeam: resolved.away.name,
     kickoffLabel,
     venueLine,
     stage,

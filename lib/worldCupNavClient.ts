@@ -1,32 +1,36 @@
 import { getArenaGames } from "@/lib/supabase/games";
 import { worldCupSchedule } from "@/data/worldCupSchedule";
-import { buildKnockoutResolutionContext, type KnockoutResolutionData } from "@/lib/worldCup/knockoutMatchResolver";
+import {
+  buildResolvedMatchContext,
+  withResolvedMatchGames,
+  type ResolvedMatchContextInput,
+} from "@/lib/worldCup/resolvedMatch";
 import {
   resolveGameRoomNavTarget,
   type GameRoomNavTarget,
   type WorldCupGameSnapshot,
 } from "@/lib/worldCupMatchResolver";
 
-const EMPTY_KNOCKOUT_RESOLUTION: KnockoutResolutionData = {
-  standings: [],
-  bracket: [],
+const EMPTY_MATCH_CONTEXT: ResolvedMatchContextInput = {
+  knockoutResolution: { standings: [], bracket: [] },
+  games: [],
 };
 
 function isWorldCupGameRow(game: { id: string; league?: string | null }) {
   return game.league === "World Cup" || game.id.startsWith("wc-2026-");
 }
 
-async function fetchKnockoutResolutionClient(): Promise<KnockoutResolutionData> {
+export async function fetchMatchContextInput(): Promise<ResolvedMatchContextInput> {
   try {
-    const response = await fetch("/api/world-cup/knockout-resolution", { cache: "no-store" });
+    const response = await fetch("/api/world-cup/match-context", { cache: "no-store" });
     if (response.ok) {
-      return (await response.json()) as KnockoutResolutionData;
+      return (await response.json()) as ResolvedMatchContextInput;
     }
   } catch (error) {
-    console.warn("[lockt:game-room-select] Failed to load knockout resolution:", error);
+    console.warn("[lockt:match-context] Failed to load match context:", error);
   }
 
-  return EMPTY_KNOCKOUT_RESOLUTION;
+  return EMPTY_MATCH_CONTEXT;
 }
 
 export async function fetchWorldCupGameSnapshots(): Promise<WorldCupGameSnapshot[]> {
@@ -45,23 +49,24 @@ export async function fetchWorldCupGameSnapshots(): Promise<WorldCupGameSnapshot
   }));
 }
 
-/** Resolve Game Room nav using the same canonical live/next logic as Schedule. */
+/** Resolve Game Room nav using the same canonical live/next logic as the Schedule page. */
 export async function resolveGameRoomNavTargetClient(now = new Date()): Promise<GameRoomNavTarget> {
-  const [games, knockoutResolution] = await Promise.all([
+  const [games, matchContextInput] = await Promise.all([
     fetchWorldCupGameSnapshots(),
-    fetchKnockoutResolutionClient(),
+    fetchMatchContextInput(),
   ]);
 
   if (games.length === 0) {
     console.warn("[lockt:game-room-select] No World Cup feed rows loaded; falling back to static schedule.");
   }
 
-  const knockoutContext =
-    knockoutResolution.standings.length || knockoutResolution.bracket.length
-      ? buildKnockoutResolutionContext(knockoutResolution)
-      : null;
+  const resolvedContext = withResolvedMatchGames(
+    buildResolvedMatchContext({ ...matchContextInput, nowIso: now.toISOString() }),
+    games,
+    now,
+  );
 
-  return resolveGameRoomNavTarget(now, worldCupSchedule, games, knockoutContext);
+  return resolveGameRoomNavTarget(now, worldCupSchedule, games, resolvedContext);
 }
 
 export async function resolveGameRoomNavHrefClient(now = new Date()): Promise<string> {

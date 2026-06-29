@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { buildKnockoutResolutionContext } from "@/lib/worldCup/knockoutMatchResolver";
-import { fetchKnockoutResolutionData } from "@/lib/worldCup/fetchKnockoutResolution";
+import { fetchResolvedMatchContext } from "@/lib/worldCup/fetchResolvedMatchContext";
+import { resolveMatch } from "@/lib/worldCup/resolvedMatch";
 import {
   getCurrentLiveWorldCupMatch,
   getNextWorldCupMatch,
@@ -20,21 +20,19 @@ export async function GET() {
   }
 
   const now = new Date();
-  const knockoutResolution = await fetchKnockoutResolutionData();
-  const knockoutContext =
-    knockoutResolution.standings.length || knockoutResolution.bracket.length
-      ? buildKnockoutResolutionContext(knockoutResolution)
-      : null;
-  const live = getCurrentLiveWorldCupMatch(now, undefined, [], knockoutContext);
-  const next = getNextWorldCupMatch(now, undefined, [], knockoutContext);
-  const navTarget = resolveGameRoomNavTarget(now, undefined, [], knockoutContext);
+  const resolvedContext = await fetchResolvedMatchContext(now);
+  const live = getCurrentLiveWorldCupMatch(now, undefined, [], resolvedContext);
+  const next = getNextWorldCupMatch(now, undefined, [], resolvedContext);
+  const navTarget = resolveGameRoomNavTarget(now, undefined, [], resolvedContext);
   const validation = validateWorldCupNav();
+  const liveResolved = live ? resolveMatch(live, resolvedContext) : null;
+  const nextResolved = next ? resolveMatch(next, resolvedContext) : null;
 
   return NextResponse.json(
     {
       now: now.toISOString(),
-      liveMatch: live ? { id: live.id, matchup: `${live.homeTeam} vs ${live.awayTeam ?? "TBD"}` } : null,
-      nextMatch: next ? { id: next.id, matchup: `${next.homeTeam} vs ${next.awayTeam ?? "TBD"}` } : null,
+      liveMatch: liveResolved ? { id: liveResolved.matchId, matchup: liveResolved.title } : null,
+      nextMatch: nextResolved ? { id: nextResolved.matchId, matchup: nextResolved.title } : null,
       navResolvesTo: navTarget.href,
       navLifecycle: navTarget.lifecycle,
       navSelectionReason: navTarget.selectionReason,

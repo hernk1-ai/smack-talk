@@ -13,8 +13,13 @@ import {
   getTodayLocalDateKey,
   WORLD_CUP_SCHEDULE_FALLBACK_TIME_ZONE,
 } from "@/lib/worldCup/localSchedule";
-import type { KnockoutResolutionContext, KnockoutResolutionData } from "@/lib/worldCup/knockoutMatchResolver";
-import { buildKnockoutResolutionContext, resolveMatchDisplay } from "@/lib/worldCup/matchDisplay";
+import {
+  buildResolvedMatchContext,
+  resolveMatch,
+  type ResolvedMatch,
+  type ResolvedMatchContext,
+  type ResolvedMatchContextInput,
+} from "@/lib/worldCup/resolvedMatch";
 import { getCanonicalCurrentOrNextMatch } from "@/lib/worldCup/canonicalMatch";
 import type { ScheduleMatchState, ScheduleMatchStatus } from "@/lib/worldCup/scheduleStatus";
 
@@ -49,8 +54,8 @@ type WorldCupScheduleProps = {
   matchStates?: Record<number, ScheduleMatchState>;
   /** Single server timestamp to keep first render + hydration grouping aligned. */
   initialNowIso?: string;
-  /** FIFA standings + bracket cache for knockout team resolution. */
-  knockoutResolution?: KnockoutResolutionData;
+  /** FIFA bracket + ESPN game rows for canonical match resolution. */
+  matchContext?: ResolvedMatchContextInput;
 };
 
 const FALLBACK_MATCH_STATE: ScheduleMatchState = { status: "upcoming", homeScore: null, awayScore: null };
@@ -78,13 +83,9 @@ export function WorldCupSchedule({
   showViewFullLink = false,
   matchStates = {},
   initialNowIso,
-  knockoutResolution,
+  matchContext,
 }: WorldCupScheduleProps) {
   const sourceUrls = getWorldCupFixtureSourceUrls();
-  const knockoutContext = useMemo(
-    () => (knockoutResolution ? buildKnockoutResolutionContext(knockoutResolution) : null),
-    [knockoutResolution],
-  );
   const [selectedGroup, setSelectedGroup] = useState<"ALL" | WorldCupGroup>("ALL");
   const [selectedCity, setSelectedCity] = useState("All Cities");
   const [selectedTeam, setSelectedTeam] = useState("All Teams");
@@ -101,6 +102,17 @@ export function WorldCupSchedule({
   }, []);
   const collator = useMemo(() => new Intl.Collator("en", { sensitivity: "base" }), []);
 
+  const referenceNow = useMemo(() => new Date(initialNowIso ?? new Date().toISOString()), [initialNowIso]);
+  const resolvedContext = useMemo(
+    () =>
+      buildResolvedMatchContext({
+        knockoutResolution: matchContext?.knockoutResolution ?? { standings: [], bracket: [] },
+        games: matchContext?.games ?? [],
+        nowIso: referenceNow.toISOString(),
+      }),
+    [matchContext, referenceNow],
+  );
+
   const cities = useMemo(
     () => ["All Cities", ...new Set(worldCupSchedule.map((match) => match.city))].sort((a, b) => (a === "All Cities" ? -1 : b === "All Cities" ? 1 : a.localeCompare(b))),
     [],
@@ -110,31 +122,29 @@ export function WorldCupSchedule({
       const teamNames = new Set(
         worldCupSchedule
           .flatMap((match) => {
-            const resolved = resolveMatchDisplay(match, knockoutContext);
-            return [resolved.displayHomeTeam, resolved.displayAwayTeam];
+            const resolved = resolveMatch(match, resolvedContext);
+            return [resolved.home.name, resolved.away.name];
           })
           .filter(isCountryTeamName),
       );
 
       return ["All Teams", ...[...teamNames].sort((a, b) => collator.compare(a, b))];
     },
-    [collator, knockoutContext],
+    [collator, resolvedContext],
   );
-  const referenceNow = useMemo(() => new Date(initialNowIso ?? new Date().toISOString()), [initialNowIso]);
-
   const filteredMatches = useMemo(() => {
     const matches = worldCupSchedule.filter((match) => {
       if (selectedGroup !== "ALL" && match.group !== selectedGroup) return false;
       if (selectedCity !== "All Cities" && match.city !== selectedCity) return false;
       if (selectedTeam !== "All Teams") {
-        const resolved = resolveMatchDisplay(match, knockoutContext);
-        if (resolved.displayHomeTeam !== selectedTeam && resolved.displayAwayTeam !== selectedTeam) return false;
+        const resolved = resolveMatch(match, resolvedContext);
+        if (resolved.home.name !== selectedTeam && resolved.away.name !== selectedTeam) return false;
       }
       return true;
     });
 
     return typeof limit === "number" ? matches.slice(0, limit) : matches;
-  }, [knockoutContext, limit, selectedCity, selectedGroup, selectedTeam]);
+  }, [resolvedContext, limit, selectedCity, selectedGroup, selectedTeam]);
 
   const displayMatches = useMemo(
     () =>
@@ -191,8 +201,8 @@ export function WorldCupSchedule({
       states[entry.match.id] = entry.state;
     }
 
-    return getCanonicalCurrentOrNextMatch(filteredMatches, states, knockoutContext, referenceNow);
-  }, [displayMatches, filteredMatches, knockoutContext, referenceNow]);
+    return getCanonicalCurrentOrNextMatch(filteredMatches, states, resolvedContext, referenceNow);
+  }, [displayMatches, filteredMatches, resolvedContext, referenceNow]);
 
   const statusLiveMatch = useMemo(() => {
     if (canonicalFocus.mode !== "live") {
@@ -311,7 +321,7 @@ export function WorldCupSchedule({
           liveMatch={statusLiveMatch}
           nextMatch={nextMatch}
           remainingCount={remainingCount}
-          knockoutContext={knockoutContext}
+          resolvedContext={resolvedContext}
         />
         {showViewFullLink ? (
           <Link href="/schedule" className="text-xs font-black uppercase tracking-[0.1em] text-purple-300 hover:text-purple-100">
@@ -329,7 +339,7 @@ export function WorldCupSchedule({
         ) : (
           <>
             {sectionList.map((section) => (
-              <MatchSectionCard key={section.key} section={section} knockoutContext={knockoutContext} />
+              <MatchSectionCard key={section.key} section={section} resolvedContext={resolvedContext} />
             ))}
             {!allCompleted && olderCompleted.length > 0 ? (
               <div className="rounded-2xl border border-white/10 bg-[var(--surface-card)] p-2.5 sm:p-3">
@@ -350,7 +360,7 @@ export function WorldCupSchedule({
                 {showEarlierResults ? (
                   <div className="mt-2 space-y-2.5 sm:space-y-3">
                     {earlierResultSections.map((section) => (
-                      <MatchSectionCard key={section.key} section={section} knockoutContext={knockoutContext} />
+                      <MatchSectionCard key={section.key} section={section} resolvedContext={resolvedContext} />
                     ))}
                   </div>
                 ) : null}
@@ -432,13 +442,13 @@ function StatusSummary({
   liveMatch,
   nextMatch,
   remainingCount,
-  knockoutContext,
+  resolvedContext,
 }: {
   allCompleted: boolean;
   liveMatch: DisplayMatch | null;
   nextMatch: DisplayMatch | null;
   remainingCount: number;
-  knockoutContext: KnockoutResolutionContext | null;
+  resolvedContext: ResolvedMatchContext;
 }) {
   if (allCompleted) {
     return (
@@ -452,13 +462,13 @@ function StatusSummary({
 
   if (liveMatch) {
     const cta = getScheduleCta(liveMatch.match, liveMatch.state.status);
-    const matchup = resolveMatchDisplay(liveMatch.match, knockoutContext);
+    const matchup = resolveMatch(liveMatch.match, resolvedContext);
 
     return (
       <div className="flex-1 rounded-2xl border border-lime-300/30 bg-[linear-gradient(135deg,rgba(163,230,53,0.16),rgba(255,255,255,0.03))] p-3 shadow-[0_0_30px_rgba(163,230,53,0.12)]">
         <p className="text-[10px] font-black uppercase tracking-[0.14em] text-lime-300">Live Now</p>
         <p className="mt-1 text-lg font-black text-white">
-          {matchup.displayHomeTeam} vs {matchup.displayAwayTeam}
+          {matchup.title}
         </p>
         <div className="mt-2 flex items-center justify-between gap-3">
           <Link
@@ -474,13 +484,13 @@ function StatusSummary({
   }
 
   if (nextMatch) {
-    const matchup = resolveMatchDisplay(nextMatch.match, knockoutContext);
+    const matchup = resolveMatch(nextMatch.match, resolvedContext);
 
     return (
       <div className="flex-1 rounded-2xl border border-white/10 bg-[linear-gradient(135deg,rgba(163,230,53,0.12),rgba(255,255,255,0.03))] p-3">
         <p className="text-[10px] font-black uppercase tracking-[0.14em] text-lime-300">Next Match</p>
         <p className="mt-1 text-lg font-black text-white">
-          {matchup.displayHomeTeam} vs {matchup.displayAwayTeam}
+          {matchup.title}
         </p>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs font-semibold text-gray-300">{nextMatch.kickoffLabel}</p>
@@ -501,10 +511,10 @@ function StatusSummary({
 
 function MatchSectionCard({
   section,
-  knockoutContext,
+  resolvedContext,
 }: {
   section: MatchSection;
-  knockoutContext: KnockoutResolutionContext | null;
+  resolvedContext: ResolvedMatchContext;
 }) {
   const headerToneClass =
     section.tone === "live" ? "text-lime-300" : section.tone === "results" ? "text-gray-300" : "text-gray-200";
@@ -522,7 +532,7 @@ function MatchSectionCard({
             match={entry.match}
             state={entry.state}
             kickoffLabel={entry.kickoffLabel}
-            knockoutContext={knockoutContext}
+            resolvedContext={resolvedContext}
           />
         ))}
       </div>
@@ -534,16 +544,16 @@ function MatchRow({
   match,
   state,
   kickoffLabel,
-  knockoutContext,
+  resolvedContext,
 }: {
   match: WorldCupMatch;
   state: ScheduleMatchState;
   kickoffLabel: string;
-  knockoutContext: KnockoutResolutionContext | null;
+  resolvedContext: ResolvedMatchContext;
 }) {
   const isKnockout = match.group === "KO";
   const cta = getScheduleCta(match, state.status);
-  const matchup = resolveMatchDisplay(match, knockoutContext);
+  const matchup = resolveMatch(match, resolvedContext);
   const hasScore = state.homeScore !== null && state.awayScore !== null;
   const showFinalScore = state.status === "final" && hasScore;
 
@@ -557,8 +567,8 @@ function MatchRow({
       <div className="min-w-0">
         <p className="truncate text-[15px] font-black text-white sm:text-base">
           {showFinalScore
-            ? `${matchup.displayHomeTeam} ${state.homeScore}–${state.awayScore} ${matchup.displayAwayTeam}`
-            : `${matchup.displayHomeTeam} vs ${matchup.displayAwayTeam}`}
+            ? `${matchup.home.name} ${state.homeScore}–${state.awayScore} ${matchup.away.name}`
+            : matchup.title}
         </p>
         <p className="truncate text-xs font-semibold text-gray-400 sm:text-[13px]">
           {match.city} · {match.venue}

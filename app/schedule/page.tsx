@@ -2,14 +2,13 @@ import { AppHeader } from "@/components/AppHeader";
 import { WorldCupSchedule } from "@/components/world-cup/WorldCupSchedule";
 import { RouteBottomNav } from "@/components/BottomNav";
 import { ensureProfile } from "@/lib/supabase/profiles";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { fetchKnockoutResolutionData } from "@/lib/worldCup/fetchKnockoutResolution";
-import { buildScheduleMatchStates, type ScheduleGameRow } from "@/lib/worldCup/scheduleStatus";
+import { fetchResolvedMatchContextInput } from "@/lib/worldCup/fetchResolvedMatchContext";
+import { buildScheduleMatchStates } from "@/lib/worldCup/scheduleStatus";
 
 export default async function SchedulePage() {
   const now = new Date();
-  const [knockoutResolution, supabase] = await Promise.all([fetchKnockoutResolutionData(), createClient()]);
+  const [matchContext, supabase] = await Promise.all([fetchResolvedMatchContextInput(), createClient()]);
   let profile = null;
 
   if (supabase) {
@@ -23,20 +22,7 @@ export default async function SchedulePage() {
     }
   }
 
-  // Merge live game state (score/status) from the games table when available.
-  // Falls back to kickoff-derived status when Supabase/admin is not configured.
-  let gameRows: ScheduleGameRow[] = [];
-  const admin = createAdminClient();
-  if (admin) {
-    const { data } = await admin
-      .from("games")
-      .select("id, status, home_score, away_score, starts_at, clock, period, event_name")
-      .eq("league", "World Cup");
-    if (data) {
-      gameRows = data as ScheduleGameRow[];
-    }
-  }
-  const matchStates = buildScheduleMatchStates(gameRows, now);
+  const matchStates = buildScheduleMatchStates(matchContext.games ?? [], now);
 
   return (
     <main className="min-h-screen bg-transparent px-4 py-5 pb-28 text-white sm:py-6">
@@ -49,7 +35,7 @@ export default async function SchedulePage() {
         <WorldCupSchedule
           matchStates={matchStates}
           initialNowIso={now.toISOString()}
-          knockoutResolution={knockoutResolution}
+          matchContext={matchContext}
         />
       </div>
       <RouteBottomNav activeView="schedule" />

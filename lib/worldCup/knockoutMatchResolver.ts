@@ -3,7 +3,7 @@ import type { KnockoutBracketRound } from "@/lib/sports/fifaWorldCupStandingsSyn
 import type { WorldCupStandingRow } from "@/lib/worldCup/standingsTypes";
 
 export type KnockoutResolutionData = {
-  standings: Pick<WorldCupStandingRow, "group_name" | "rank" | "team_name" | "status">[];
+  standings: Pick<WorldCupStandingRow, "group_name" | "rank" | "team_name" | "status" | "flag_url">[];
   bracket: KnockoutBracketRound[];
 };
 

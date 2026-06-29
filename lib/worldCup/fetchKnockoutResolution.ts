@@ -1,6 +1,10 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import type { KnockoutBracketRound } from "@/lib/sports/fifaWorldCupStandingsSync";
+import {
+  fetchKnockoutBracketFromFifa,
+  mergeKnockoutBracketRounds,
+  type KnockoutBracketRound,
+} from "@/lib/sports/fifaWorldCupStandingsSync";
 import type { KnockoutResolutionData } from "@/lib/worldCup/knockoutMatchResolver";
 import type { WorldCupStandingRow } from "@/lib/worldCup/standingsTypes";
 
@@ -17,6 +21,20 @@ function parseKnockoutBracket(payload: unknown): KnockoutBracketRound[] {
   return payload as KnockoutBracketRound[];
 }
 
+async function loadLiveKnockoutBracket(cached: KnockoutBracketRound[]): Promise<KnockoutBracketRound[]> {
+  try {
+    const live = await fetchKnockoutBracketFromFifa();
+    if (!live.length) {
+      return cached;
+    }
+
+    return mergeKnockoutBracketRounds(live, cached);
+  } catch (error) {
+    console.error("[knockout-resolution] failed to refresh FIFA bracket:", error);
+    return cached;
+  }
+}
+
 export async function fetchKnockoutResolutionData(): Promise<KnockoutResolutionData> {
   const admin = createAdminClient();
   const supabase = admin ?? (await createClient());
@@ -26,7 +44,7 @@ export async function fetchKnockoutResolutionData(): Promise<KnockoutResolutionD
   }
 
   const [{ data: standings, error: standingsError }, { data: meta, error: metaError }] = await Promise.all([
-    supabase.from("world_cup_standings").select("group_name, rank, team_name, status").order("group_name").order("rank"),
+    supabase.from("world_cup_standings").select("group_name, rank, team_name, status, flag_url").order("group_name").order("rank"),
     supabase.from("world_cup_standings_meta").select("payload").eq("key", "knockout_bracket").maybeSingle(),
   ]);
 
@@ -38,10 +56,12 @@ export async function fetchKnockoutResolutionData(): Promise<KnockoutResolutionD
     console.error("[knockout-resolution] failed to load bracket meta:", metaError.message);
   }
 
-  const rows = (standings ?? []) as Pick<WorldCupStandingRow, "group_name" | "rank" | "team_name" | "status">[];
+  const rows = (standings ?? []) as Pick<WorldCupStandingRow, "group_name" | "rank" | "team_name" | "status" | "flag_url">[];
+  const cachedBracket = parseKnockoutBracket(meta?.payload);
+  const bracket = await loadLiveKnockoutBracket(cachedBracket);
 
   return {
     standings: rows,
-    bracket: parseKnockoutBracket(meta?.payload),
+    bracket,
   };
 }

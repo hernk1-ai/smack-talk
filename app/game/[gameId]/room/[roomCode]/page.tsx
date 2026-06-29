@@ -1,5 +1,5 @@
 import { LocktApp } from "@/components/LocktApp";
-import { fetchKnockoutResolutionData } from "@/lib/worldCup/fetchKnockoutResolution";
+import { fetchResolvedMatchContextInput } from "@/lib/worldCup/fetchResolvedMatchContext";
 import { ensureProfile } from "@/lib/supabase/profiles";
 import { createClient } from "@/lib/supabase/server";
 
@@ -9,7 +9,7 @@ export default async function PrivateGameRoomPage({
   params: Promise<{ gameId: string; roomCode: string }>;
 }) {
   const { gameId, roomCode } = await params;
-  const knockoutResolution = await fetchKnockoutResolutionData();
+  const matchContext = await fetchResolvedMatchContextInput();
   const supabase = await createClient();
 
   if (!supabase) {
@@ -18,7 +18,7 @@ export default async function PrivateGameRoomPage({
         initialView="live-arena"
         initialGameId={gameId}
         initialRoomCode={roomCode}
-        knockoutResolution={knockoutResolution}
+        matchContext={matchContext}
       />
     );
   }
@@ -33,7 +33,7 @@ export default async function PrivateGameRoomPage({
         initialView="live-arena"
         initialGameId={gameId}
         initialRoomCode={roomCode}
-        knockoutResolution={knockoutResolution}
+        matchContext={matchContext}
       />
     );
   }
@@ -46,7 +46,7 @@ export default async function PrivateGameRoomPage({
       initialView="live-arena"
       initialGameId={gameId}
       initialRoomCode={roomCode}
-      knockoutResolution={knockoutResolution}
+      matchContext={matchContext}
     />
   );
 }

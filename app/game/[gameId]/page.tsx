@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { LocktApp } from "@/components/LocktApp";
 import { buildGameRoomPageMetadata, resolveGameRoomPageData } from "@/lib/seo/gameRoomPage";
-import { fetchKnockoutResolutionData } from "@/lib/worldCup/fetchKnockoutResolution";
+import { fetchResolvedMatchContextInput } from "@/lib/worldCup/fetchResolvedMatchContext";
 import { ensureProfile } from "@/lib/supabase/profiles";
 import { createClient } from "@/lib/supabase/server";
 
@@ -23,9 +23,9 @@ export async function generateMetadata({ params }: { params: Promise<{ gameId: s
 
 export default async function GameRoomPage({ params }: { params: Promise<{ gameId: string }> }) {
   const { gameId } = await params;
-  const [pageData, knockoutResolution] = await Promise.all([
+  const [pageData, matchContext] = await Promise.all([
     resolveGameRoomPageData(gameId),
-    fetchKnockoutResolutionData(),
+    fetchResolvedMatchContextInput(),
   ]);
 
   if (!pageData) {
@@ -35,7 +35,7 @@ export default async function GameRoomPage({ params }: { params: Promise<{ gameI
   const supabase = await createClient();
 
   if (!supabase) {
-    return <LocktApp initialView="live-arena" initialGameId={gameId} knockoutResolution={knockoutResolution} />;
+    return <LocktApp initialView="live-arena" initialGameId={gameId} matchContext={matchContext} />;
   }
 
   const {
@@ -43,7 +43,7 @@ export default async function GameRoomPage({ params }: { params: Promise<{ gameI
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return <LocktApp initialView="live-arena" initialGameId={gameId} knockoutResolution={knockoutResolution} />;
+    return <LocktApp initialView="live-arena" initialGameId={gameId} matchContext={matchContext} />;
   }
 
   const { profile } = await ensureProfile(supabase, user);
@@ -53,7 +53,7 @@ export default async function GameRoomPage({ params }: { params: Promise<{ gameI
       profile={profile}
       initialView="live-arena"
       initialGameId={gameId}
-      knockoutResolution={knockoutResolution}
+      matchContext={matchContext}
     />
   );
 }

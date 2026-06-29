@@ -44,8 +44,14 @@ import {
   type WorldCupGameSnapshot,
 } from "@/lib/worldCupMatchResolver";
 import { fetchWorldCupGameSnapshots } from "@/lib/worldCupNavClient";
-import type { KnockoutResolutionContext, KnockoutResolutionData } from "@/lib/worldCup/knockoutMatchResolver";
-import { buildKnockoutResolutionContext, resolveMatchDisplay } from "@/lib/worldCup/matchDisplay";
+import {
+  buildResolvedMatchContext,
+  resolveMatch,
+  withResolvedMatchGames,
+  type ResolvedMatch,
+  type ResolvedMatchContext,
+  type ResolvedMatchContextInput,
+} from "@/lib/worldCup/resolvedMatch";
 import {
   formatLocalKickoff,
   getKickoffMs,
@@ -249,11 +255,11 @@ const liveArenas: LiveArenaCard[] = worldCupLiveArenas as LiveArenaCard[];
 export function FeedScreen({
   onEnterArena,
   profile,
-  knockoutResolution,
+  matchContext,
 }: {
   onEnterArena: (gameId?: string) => void;
   profile?: Profile | null;
-  knockoutResolution?: KnockoutResolutionData;
+  matchContext?: ResolvedMatchContextInput;
 }) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -274,9 +280,13 @@ export function FeedScreen({
   const [reactionMessage, setReactionMessage] = useState("");
   const [recentActivity, setRecentActivity] = useState<string[]>([]);
   const [activeSport, setActiveSport] = useState<SportKey>(ACTIVE_SPORT);
-  const knockoutContext = useMemo(
-    () => (knockoutResolution ? buildKnockoutResolutionContext(knockoutResolution) : null),
-    [knockoutResolution],
+  const resolvedContext = useMemo(
+    () =>
+      buildResolvedMatchContext({
+        knockoutResolution: matchContext?.knockoutResolution ?? { standings: [], bracket: [] },
+        games: matchContext?.games ?? [],
+      }),
+    [matchContext],
   );
   const localProfile = profileOverride ?? profile ?? null;
   const profilePromptDismissed = localProfile?.id ? isProfileCompletionDismissed(localProfile.id) : false;
@@ -524,9 +534,9 @@ export function FeedScreen({
           />
         ) : null}
         <MatchHubIntro />
-        <MatchHubPrimaryFocus knockoutContext={knockoutContext} />
+        <MatchHubPrimaryFocus resolvedContext={resolvedContext} />
         <MatchHubWorldCupNews />
-        <WorldCupTodayMatches knockoutContext={knockoutContext} />
+        <WorldCupTodayMatches resolvedContext={resolvedContext} />
         <PreTournamentStorylines />
         <FeaturedPlayers />
         <HostCityCommentary />
@@ -613,12 +623,13 @@ export function FeedScreen({
   );
 }
 
-function MatchHubPrimaryFocus({ knockoutContext }: { knockoutContext: KnockoutResolutionContext | null }) {
+function MatchHubPrimaryFocus({ resolvedContext }: { resolvedContext: ResolvedMatchContext }) {
   const [now, setNow] = useState(() => new Date());
   const [games, setGames] = useState<WorldCupGameSnapshot[]>([]);
+  const liveContext = useMemo(() => withResolvedMatchGames(resolvedContext, games, now), [games, now, resolvedContext]);
   const focus = useMemo<MatchHubFocus>(
-    () => getMatchHubFocus(now, worldCupSchedule, games, knockoutContext),
-    [now, games, knockoutContext],
+    () => getMatchHubFocus(now, worldCupSchedule, games, liveContext),
+    [now, games, liveContext],
   );
 
   useEffect(() => {
@@ -650,35 +661,33 @@ function MatchHubPrimaryFocus({ knockoutContext }: { knockoutContext: KnockoutRe
   }, []);
 
   if (focus.mode === "live") {
-    return <LiveNowModule match={focus.match} game={focus.game} now={now} knockoutContext={knockoutContext} />;
+    return <LiveNowModule resolved={resolveMatch(focus.match, liveContext)} now={now} />;
   }
 
   if (focus.mode === "upcoming") {
-    return <NextMatchCountdown now={now} games={games} focusMatch={focus.match} knockoutContext={knockoutContext} />;
+    return <NextMatchCountdown now={now} resolved={resolveMatch(focus.match, liveContext)} />;
   }
 
   return <TournamentCompleteModule />;
 }
 
 function LiveNowModule({
-  match,
-  game,
+  resolved,
   now,
-  knockoutContext,
 }: {
-  match: WorldCupMatch;
-  game: WorldCupGameSnapshot | null;
+  resolved: ResolvedMatch;
   now: Date;
-  knockoutContext: KnockoutResolutionContext | null;
 }) {
-  const resolved = resolveMatchDisplay(match, knockoutContext, game);
-  const homeTeam = resolved.displayHomeTeam;
-  const awayTeam = resolved.displayAwayTeam;
-  const homeScore = game?.home_score ?? 0;
-  const awayScore = game?.away_score ?? 0;
-  const statusLabel = getLiveMatchStatusLabel(match, game, now);
-  const venueLine = [match.city, match.venue].filter(Boolean).join(" · ");
-  const gameRoomHref = `/game/${getWorldCupMatchId(match)}`;
+  const homeTeam = resolved.home.name;
+  const awayTeam = resolved.away.name;
+  const homeScore = resolved.feed.homeScore ?? 0;
+  const awayScore = resolved.feed.awayScore ?? 0;
+  const statusLabel =
+    resolved.feed.clock?.trim() && resolved.feed.period?.trim()
+      ? `${resolved.feed.period} · ${resolved.feed.clock}`
+      : getLiveMatchStatusLabel(resolved.match, null, now);
+  const venueLine = [resolved.city, resolved.venue].filter(Boolean).join(" · ");
+  const gameRoomHref = resolved.gameRoomHref;
 
   return (
     <FeedSection title="Live Now" icon="●" action="">
@@ -734,20 +743,18 @@ function TournamentCompleteModule() {
 
 function NextMatchCountdown({
   now,
-  games,
-  focusMatch,
-  knockoutContext,
+  resolved,
 }: {
   now: Date;
-  games: WorldCupGameSnapshot[];
-  focusMatch: WorldCupMatch;
-  knockoutContext: KnockoutResolutionContext | null;
+  resolved: ResolvedMatch;
 }) {
-  const nextMatch = focusMatch;
-  const matchup = resolveMatchDisplay(nextMatch, knockoutContext);
-  const nextGame = games.find((game) => game.id === getWorldCupMatchId(nextMatch));
-  const countdown = getCountdownLabel(nextMatch, now, gameSnapshotToFeedFields(nextGame));
-  const gameRoomHref = `/game/${getWorldCupMatchId(nextMatch)}`;
+  const countdown = getCountdownLabel(resolved.match, now, {
+    status: resolved.feed.status,
+    startsAt: resolved.feed.startsAt,
+    clock: resolved.feed.clock,
+    period: resolved.feed.period,
+    eventName: resolved.feed.eventName,
+  });
 
   return (
     <FeedSection title="Next Match Countdown" icon="◷" action="">
@@ -759,16 +766,14 @@ function NextMatchCountdown({
         </p>
         <div className="mt-4 rounded-xl border border-white/10 bg-black/40 p-3">
           <p className="text-[10px] font-black uppercase tracking-[0.12em] text-purple-300">Next Up</p>
-          <p className="mt-1 text-base font-black text-white">
-            {matchup.displayHomeTeam} vs {matchup.displayAwayTeam}
-          </p>
+          <p className="mt-1 text-base font-black text-white">{resolved.title}</p>
           <p className="mt-1 text-xs font-semibold text-gray-400">
-            {formatDateLabel(nextMatch.date)} · {nextMatch.kickoffET} · {nextMatch.city}
+            {formatDateLabel(resolved.match.date)} · {resolved.match.kickoffET} · {resolved.city}
           </p>
         </div>
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <Link
-            href={gameRoomHref}
+            href={resolved.gameRoomHref}
             className="grid min-h-11 place-items-center rounded-xl border border-purple-300/45 bg-purple-500/10 px-3 text-xs font-black uppercase tracking-[0.1em] text-purple-200"
           >
             Join Game Room
@@ -923,7 +928,7 @@ function MatchHubIntro() {
   );
 }
 
-function WorldCupTodayMatches({ knockoutContext }: { knockoutContext: KnockoutResolutionContext | null }) {
+function WorldCupTodayMatches({ resolvedContext }: { resolvedContext: ResolvedMatchContext }) {
   const [now, setNow] = useState(() => new Date());
   const [timeZone, setTimeZone] = useState(WORLD_CUP_SCHEDULE_FALLBACK_TIME_ZONE);
   const [games, setGames] = useState<WorldCupGameSnapshot[]>([]);
@@ -963,6 +968,7 @@ function WorldCupTodayMatches({ knockoutContext }: { knockoutContext: KnockoutRe
   }, []);
 
   const gamesById = useMemo(() => new Map(games.map((game) => [game.id, game])), [games]);
+  const liveContext = useMemo(() => withResolvedMatchGames(resolvedContext, games, now), [games, now, resolvedContext]);
 
   const todayMatches = useMemo(() => {
     const todayKey = getTodayLocalDateKey(timeZone, now);
@@ -990,16 +996,14 @@ function WorldCupTodayMatches({ knockoutContext }: { knockoutContext: KnockoutRe
               now,
               gamesById.get(getWorldCupMatchId(match))?.status,
             );
-            const matchup = resolveMatchDisplay(match, knockoutContext);
+            const matchup = resolveMatch(match, liveContext);
             return (
               <div
                 key={match.id}
                 className="grid gap-2 rounded-xl border border-white/10 bg-black/45 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-black text-white">
-                    {matchup.displayHomeTeam} vs {matchup.displayAwayTeam}
-                  </p>
+                  <p className="text-sm font-black text-white">{matchup.title}</p>
                   <p className="mt-0.5 text-xs font-semibold text-gray-400">
                     {formatLocalKickoff(match, timeZone)} · {match.city}
                   </p>
