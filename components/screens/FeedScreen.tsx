@@ -43,6 +43,8 @@ import {
   type WorldCupGameSnapshot,
 } from "@/lib/worldCupMatchResolver";
 import { fetchWorldCupGameSnapshots } from "@/lib/worldCupNavClient";
+import type { KnockoutResolutionContext, KnockoutResolutionData } from "@/lib/worldCup/knockoutMatchResolver";
+import { buildKnockoutResolutionContext, isKnockoutSeedToken, resolveKnockoutMatchup } from "@/lib/worldCup/knockoutMatchResolver";
 import {
   formatLocalKickoff,
   getKickoffMs,
@@ -243,7 +245,15 @@ const trendingTakes: TrendingTake[] = worldCupTrendingTakes;
 
 const liveArenas: LiveArenaCard[] = worldCupLiveArenas as LiveArenaCard[];
 
-export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: string) => void; profile?: Profile | null }) {
+export function FeedScreen({
+  onEnterArena,
+  profile,
+  knockoutResolution,
+}: {
+  onEnterArena: (gameId?: string) => void;
+  profile?: Profile | null;
+  knockoutResolution?: KnockoutResolutionData;
+}) {
   const router = useRouter();
   const { showToast } = useToast();
   const [profileOverride, setProfileOverride] = useState<Profile | null>(null);
@@ -263,6 +273,10 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   const [reactionMessage, setReactionMessage] = useState("");
   const [recentActivity, setRecentActivity] = useState<string[]>([]);
   const [activeSport, setActiveSport] = useState<SportKey>(ACTIVE_SPORT);
+  const knockoutContext = useMemo(
+    () => (knockoutResolution ? buildKnockoutResolutionContext(knockoutResolution) : null),
+    [knockoutResolution],
+  );
   const localProfile = profileOverride ?? profile ?? null;
   const profilePromptDismissed = localProfile?.id ? isProfileCompletionDismissed(localProfile.id) : false;
   const matchHubMode = isMatchHubMode();
@@ -509,9 +523,9 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
           />
         ) : null}
         <MatchHubIntro />
-        <MatchHubPrimaryFocus />
+        <MatchHubPrimaryFocus knockoutContext={knockoutContext} />
         <MatchHubWorldCupNews />
-        <WorldCupTodayMatches />
+        <WorldCupTodayMatches knockoutContext={knockoutContext} />
         <PreTournamentStorylines />
         <FeaturedPlayers />
         <HostCityCommentary />
@@ -598,7 +612,7 @@ export function FeedScreen({ onEnterArena, profile }: { onEnterArena: (gameId?: 
   );
 }
 
-function MatchHubPrimaryFocus() {
+function MatchHubPrimaryFocus({ knockoutContext }: { knockoutContext: KnockoutResolutionContext | null }) {
   const [now, setNow] = useState(() => new Date());
   const [games, setGames] = useState<WorldCupGameSnapshot[]>([]);
   const focus = useMemo<MatchHubFocus>(() => getMatchHubFocus(now, worldCupSchedule, games), [now, games]);
@@ -632,11 +646,11 @@ function MatchHubPrimaryFocus() {
   }, []);
 
   if (focus.mode === "live") {
-    return <LiveNowModule match={focus.match} game={focus.game} now={now} />;
+    return <LiveNowModule match={focus.match} game={focus.game} now={now} knockoutContext={knockoutContext} />;
   }
 
   if (focus.mode === "upcoming") {
-    return <NextMatchCountdown now={now} games={games} focusMatch={focus.match} />;
+    return <NextMatchCountdown now={now} games={games} focusMatch={focus.match} knockoutContext={knockoutContext} />;
   }
 
   return <TournamentCompleteModule />;
@@ -646,13 +660,16 @@ function LiveNowModule({
   match,
   game,
   now,
+  knockoutContext,
 }: {
   match: WorldCupMatch;
   game: WorldCupGameSnapshot | null;
   now: Date;
+  knockoutContext: KnockoutResolutionContext | null;
 }) {
-  const homeTeam = game?.home_team ?? match.homeTeam;
-  const awayTeam = game?.away_team ?? match.awayTeam ?? "TBD";
+  const resolved = resolveKnockoutMatchup(match, knockoutContext);
+  const homeTeam = game?.home_team && !isKnockoutSeedToken(game.home_team) ? game.home_team : resolved.homeTeam;
+  const awayTeam = game?.away_team && !isKnockoutSeedToken(game.away_team) ? game.away_team : resolved.awayTeam;
   const homeScore = game?.home_score ?? 0;
   const awayScore = game?.away_score ?? 0;
   const statusLabel = getLiveMatchStatusLabel(match, game, now);
@@ -715,12 +732,15 @@ function NextMatchCountdown({
   now,
   games,
   focusMatch,
+  knockoutContext,
 }: {
   now: Date;
   games: WorldCupGameSnapshot[];
   focusMatch: WorldCupMatch;
+  knockoutContext: KnockoutResolutionContext | null;
 }) {
   const nextMatch = focusMatch;
+  const matchup = resolveKnockoutMatchup(nextMatch, knockoutContext);
   const nextGame = games.find((game) => game.id === getWorldCupMatchId(nextMatch));
   const countdown = getCountdownLabelForMatch(nextMatch, now, nextGame?.status);
   const nextCta = getWorldCupMatchPublicCta(nextMatch, now, nextGame?.status);
@@ -736,7 +756,7 @@ function NextMatchCountdown({
         <div className="mt-4 rounded-xl border border-white/10 bg-black/40 p-3">
           <p className="text-[10px] font-black uppercase tracking-[0.12em] text-purple-300">Next Up</p>
           <p className="mt-1 text-base font-black text-white">
-            {nextMatch.homeTeam} vs {nextMatch.awayTeam ?? "TBD"}
+            {matchup.homeTeam} vs {matchup.awayTeam}
           </p>
           <p className="mt-1 text-xs font-semibold text-gray-400">
             {formatDateLabel(nextMatch.date)} · {nextMatch.kickoffET} · {nextMatch.city}
@@ -918,7 +938,7 @@ function MatchHubIntro() {
   );
 }
 
-function WorldCupTodayMatches() {
+function WorldCupTodayMatches({ knockoutContext }: { knockoutContext: KnockoutResolutionContext | null }) {
   const [now, setNow] = useState(() => new Date());
   const [timeZone, setTimeZone] = useState(WORLD_CUP_SCHEDULE_FALLBACK_TIME_ZONE);
   const [games, setGames] = useState<WorldCupGameSnapshot[]>([]);
@@ -985,6 +1005,7 @@ function WorldCupTodayMatches() {
               now,
               gamesById.get(getWorldCupMatchId(match))?.status,
             );
+            const matchup = resolveKnockoutMatchup(match, knockoutContext);
             return (
               <div
                 key={match.id}
@@ -992,7 +1013,7 @@ function WorldCupTodayMatches() {
               >
                 <div className="min-w-0">
                   <p className="text-sm font-black text-white">
-                    {match.homeTeam} vs {match.awayTeam ?? "TBD"}
+                    {matchup.homeTeam} vs {matchup.awayTeam}
                   </p>
                   <p className="mt-0.5 text-xs font-semibold text-gray-400">
                     {formatLocalKickoff(match, timeZone)} · {match.city}

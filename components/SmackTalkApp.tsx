@@ -11,6 +11,7 @@ import { TopTalkersScreen } from "@/components/screens/TopTalkersScreen";
 import { getWorldCupMatchId } from "@/data/worldCupSchedule";
 import { ACTIVE_GAME_ID } from "@/lib/supabase/games";
 import { resolveGameRoomNavTargetClient } from "@/lib/worldCupNavClient";
+import type { KnockoutResolutionData } from "@/lib/worldCup/knockoutMatchResolver";
 import type { Profile } from "@/lib/supabase/types";
 
 export function LocktApp({
@@ -19,12 +20,14 @@ export function LocktApp({
   receiptOwner,
   initialGameId = ACTIVE_GAME_ID,
   initialRoomCode = null,
+  knockoutResolution,
 }: {
   profile?: Profile | null;
   initialView?: AppView;
   receiptOwner?: ReceiptOwner | null;
   initialGameId?: string;
   initialRoomCode?: string | null;
+  knockoutResolution?: KnockoutResolutionData;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -92,7 +95,7 @@ export function LocktApp({
       {appView === "live-arena" ? (
         <LiveArena gameId={activeGameRoomId} roomCode={activeRoomCode} profile={profile} onBack={goToArena} />
       ) : appView === "arena" ? (
-        <ArenaView onJoinLive={joinLive} profile={profile} />
+        <ArenaView onJoinLive={joinLive} profile={profile} knockoutResolution={knockoutResolution} />
       ) : appView === "receipts" ? (
         <ReceiptsView profile={profile} receiptOwner={receiptOwner} />
       ) : appView === "top-talkers" ? (
@@ -108,11 +111,19 @@ export function LocktApp({
   );
 }
 
-function ArenaView({ onJoinLive, profile }: { onJoinLive: (gameId?: string) => void; profile?: Profile | null }) {
+function ArenaView({
+  onJoinLive,
+  profile,
+  knockoutResolution,
+}: {
+  onJoinLive: (gameId?: string) => void;
+  profile?: Profile | null;
+  knockoutResolution?: KnockoutResolutionData;
+}) {
   return (
     <main className="min-h-dvh overflow-x-hidden bg-transparent py-5 text-white sm:py-6">
       <div className="feed-shell screen-safe-bottom">
-        <FeedScreen onEnterArena={onJoinLive} profile={profile} />
+        <FeedScreen onEnterArena={onJoinLive} profile={profile} knockoutResolution={knockoutResolution} />
       </div>
     </main>
   );

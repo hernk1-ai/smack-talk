@@ -17,6 +17,7 @@ import type { MatchPick, Profile } from "@/lib/supabase/types";
 
 type MakeCallPageProps = {
   match: WorldCupMatch;
+  matchupLabels?: { homeTeam: string; awayTeam: string };
   initialPick: MatchPick | null;
   profile?: Profile | null;
   isAuthenticated: boolean;
@@ -33,9 +34,11 @@ type PendingCallDraft = {
 
 const pendingCallKey = "lockt_pending_match_call";
 
-export function MakeCallPage({ match, initialPick, profile, isAuthenticated }: MakeCallPageProps) {
+export function MakeCallPage({ match, matchupLabels, initialPick, profile, isAuthenticated }: MakeCallPageProps) {
   const { showToast } = useToast();
   const isGroupStage = match.stage === "Group Stage";
+  const homeLabel = matchupLabels?.homeTeam ?? match.homeTeam;
+  const awayLabel = matchupLabels?.awayTeam ?? match.awayTeam ?? "TBD";
   const lockClosed = isWorldCupMatchLocked(match);
   const [selectedWinner, setSelectedWinner] = useState<string>(initialPick?.selected_winner ?? "");
   const [homeScore, setHomeScore] = useState<string>(String(initialPick?.home_score ?? 0));
@@ -343,7 +346,7 @@ export function MakeCallPage({ match, initialPick, profile, isAuthenticated }: M
             {match.stage === "Group Stage" ? "Group Stage" : match.stage} {match.group !== "KO" ? `· Group ${match.group}` : ""}
           </p>
           <h2 className="mt-2 text-xl font-black text-white">
-            {match.homeTeam} vs {match.awayTeam ?? "TBD"}
+            {homeLabel} vs {awayLabel}
           </h2>
           <p className="mt-1 text-xs font-semibold text-gray-400">Venue: {match.city} · {match.venue}</p>
           <p className="mt-1 text-xs font-semibold text-gray-400">Kickoff: {kickoffLabel}</p>
@@ -365,7 +368,7 @@ export function MakeCallPage({ match, initialPick, profile, isAuthenticated }: M
           <p className="text-[10px] font-black uppercase tracking-[0.12em] text-gray-400">Win/Loss/Tie Call</p>
           <p className="mt-1 text-xs font-semibold text-gray-400">Pick the result and lock your call before kickoff.</p>
           <div className="mt-2 grid gap-2 sm:grid-cols-3">
-            {buildWinnerOptions(match.homeTeam, match.awayTeam ?? "TBD", isGroupStage).map((option) => (
+            {buildWinnerOptions(homeLabel, awayLabel, isGroupStage).map((option) => (
               <button
                 key={option.value}
                 type="button"

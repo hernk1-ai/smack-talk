@@ -4,11 +4,12 @@ import { RouteBottomNav } from "@/components/BottomNav";
 import { ensureProfile } from "@/lib/supabase/profiles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { fetchKnockoutResolutionData } from "@/lib/worldCup/fetchKnockoutResolution";
 import { buildScheduleMatchStates, type ScheduleGameRow } from "@/lib/worldCup/scheduleStatus";
 
 export default async function SchedulePage() {
   const now = new Date();
-  const supabase = await createClient();
+  const [knockoutResolution, supabase] = await Promise.all([fetchKnockoutResolutionData(), createClient()]);
   let profile = null;
 
   if (supabase) {
@@ -45,7 +46,11 @@ export default async function SchedulePage() {
           profile={profile}
           rightAriaLabel="Account"
         />
-        <WorldCupSchedule matchStates={matchStates} initialNowIso={now.toISOString()} />
+        <WorldCupSchedule
+          matchStates={matchStates}
+          initialNowIso={now.toISOString()}
+          knockoutResolution={knockoutResolution}
+        />
       </div>
       <RouteBottomNav activeView="schedule" />
     </main>
