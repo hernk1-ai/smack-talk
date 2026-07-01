@@ -902,12 +902,13 @@ function ArenaScoreboard({
       ? scheduleStatusFromFeed(game?.status, kickoffIso, now, game)
       : game?.status ?? "scheduled";
   const pastKickoff = Boolean(kickoffIso && now && new Date(kickoffIso).getTime() <= now.getTime());
+  const normalizedFeedStatus = resolvedFeedStatus === "upcoming" ? "scheduled" : resolvedFeedStatus;
   const status =
-    resolvedFeedStatus === "awaiting_result"
+    normalizedFeedStatus === "awaiting_result"
       ? "awaiting"
-      : resolvedFeedStatus === "scheduled" && pastKickoff
+      : normalizedFeedStatus === "scheduled" && pastKickoff
         ? "awaiting"
-        : resolvedFeedStatus;
+        : normalizedFeedStatus;
   const statusLabel =
     status === "live" ? "LIVE" : status === "final" ? "FINAL" : status === "awaiting" ? "AWAITING" : "SCHEDULED";
   const period = game?.period ?? (status === "live" ? "LIVE" : status === "final" ? "Final" : "Pregame");
@@ -971,11 +972,13 @@ function ArenaScoreboard({
               ? `Kickoff ${startsAt}`
               : status === "awaiting"
                 ? "Awaiting final score"
-              : status === "live" && SHOW_FAKE_LIVE_ACTIVITY && watching > 0
-                ? `${formatCompact(watching)} in room`
-                : status === "live"
-                  ? "Match live"
-                  : "Final whistle"}
+                : status === "live" && SHOW_FAKE_LIVE_ACTIVITY && watching > 0
+                  ? `${formatCompact(watching)} in room`
+                  : status === "live"
+                    ? "Match live"
+                    : status === "final"
+                      ? "Final whistle"
+                      : `Kickoff ${startsAt}`}
           </p>
           <p className="text-[10px] font-black uppercase text-gray-500">
             {estimatedMatchDisplay ??

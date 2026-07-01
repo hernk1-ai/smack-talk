@@ -1,11 +1,13 @@
 /**
  * Sync World Cup group standings and knockout bracket from FIFA's official API.
- * Source: https://api.fifa.com/api/v3/calendar/{competition}/{season}/{stage}/Standing
+ * Standings: https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/standings
+ * Fixtures: https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/scores-fixtures?country=US&wtw-filter=ALL
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database, Json } from "@/lib/supabase/types";
+import type { WorldCupStandingRow } from "@/lib/worldCup/standingsTypes";
 
 type AdminClient = SupabaseClient<Database>;
 
@@ -13,6 +15,14 @@ const FIFA_API_ROOT = "https://api.fifa.com/api/v3";
 const FIFA_COMPETITION_ID = "17";
 const FIFA_SEASON_ID = "285023";
 const FIFA_GROUP_STAGE_ID = "289273";
+
+/** Official scores & fixtures page — source of truth for knockout display. */
+export const FIFA_SCORES_FIXTURES_URL =
+  "https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/scores-fixtures?country=US&wtw-filter=ALL";
+
+/** Official standings page — source of truth for group and third-place tables. */
+export const FIFA_STANDINGS_URL =
+  "https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/standings";
 
 const KNOCKOUT_STAGE_IDS: Record<string, string> = {
   "Round of 32": "289287",
@@ -87,6 +97,11 @@ type FifaMatchRow = {
   IdMatch?: string;
   Date?: string;
   StageName?: FifaLocalized[];
+  MatchStatus?: number;
+  Stadium?: {
+    Name?: FifaLocalized[];
+    CityName?: FifaLocalized[];
+  };
   Home?: FifaMatchTeam | null;
   Away?: FifaMatchTeam | null;
 };
@@ -101,10 +116,15 @@ export type KnockoutBracketMatch = {
   date: string | null;
   homeTeam: string | null;
   homeCode: string | null;
+  homeFlagUrl: string | null;
   awayTeam: string | null;
   awayCode: string | null;
+  awayFlagUrl: string | null;
   homeScore: number | null;
   awayScore: number | null;
+  venue: string | null;
+  city: string | null;
+  status: "final" | "upcoming";
 };
 
 export type KnockoutBracketRound = {
@@ -225,9 +245,71 @@ function parseStandingRows(rows: FifaStandingRow[], sourceUpdatedAt: string) {
   });
 }
 
-function parseKnockoutMatch(match: FifaMatchRow, round: string): KnockoutBracketMatch {
+export type ParsedStandingRow = ReturnType<typeof parseStandingRows>[number];
+
+function standingRowKey(row: { group_name: string; team_code: string }) {
+  return `${row.group_name}::${row.team_code}`;
+}
+
+export function mergeStandingRows(live: ParsedStandingRow[], cached: WorldCupStandingRow[]): WorldCupStandingRow[] {
+  const cachedByKey = new Map(cached.map((row) => [standingRowKey(row), row]));
+  const fallbackUpdatedAt = live[0]?.source_updated_at ?? new Date().toISOString();
+
+  return live.map((parsed) => {
+    const cachedRow = cachedByKey.get(standingRowKey(parsed));
+
+    return {
+      id: cachedRow?.id ?? `fifa-${parsed.group_name}-${parsed.team_code}`,
+      group_name: parsed.group_name,
+      rank: parsed.rank,
+      team_name: parsed.team_name,
+      team_code: parsed.team_code,
+      flag_url: parsed.flag_url,
+      played: parsed.played,
+      wins: parsed.wins,
+      draws: parsed.draws,
+      losses: parsed.losses,
+      goals_for: parsed.goals_for,
+      goals_against: parsed.goals_against,
+      goal_difference: parsed.goal_difference,
+      points: parsed.points,
+      form: parsed.form,
+      status: parsed.status,
+      source: parsed.source,
+      source_updated_at: parsed.source_updated_at,
+      updated_at: cachedRow?.updated_at ?? fallbackUpdatedAt,
+    };
+  });
+}
+
+export async function fetchGroupStandingsFromFifa(): Promise<ParsedStandingRow[]> {
+  const sourceUpdatedAt = new Date().toISOString();
+  const payload = await fetchFifaJson<FifaStandingResponse>(
+    `/calendar/${FIFA_COMPETITION_ID}/${FIFA_SEASON_ID}/${FIFA_GROUP_STAGE_ID}/Standing?language=en`,
+  );
+
+  return parseStandingRows(payload.Results ?? [], sourceUpdatedAt);
+}
+
+/** Live FIFA group standings for the Standings page (official standings source of truth). */
+export async function fetchStandingsGroupTables(cached: WorldCupStandingRow[] = []): Promise<WorldCupStandingRow[]> {
+  try {
+    const live = await fetchGroupStandingsFromFifa();
+    if (live.length > 0) {
+      return mergeStandingRows(live, cached);
+    }
+  } catch (error) {
+    console.error("[standings] failed to load live FIFA group standings:", error);
+  }
+
+  return cached;
+}
+
+function parseKnockoutMatch(match: FifaMatchRow, fallbackRound: string): KnockoutBracketMatch {
   const home = match.Home ?? null;
   const away = match.Away ?? null;
+  const round = localizedValue(match.StageName, fallbackRound);
+  const isFinal = match.MatchStatus === 0;
 
   return {
     id: match.IdMatch ?? `${round}-${match.Date ?? "tbd"}`,
@@ -235,10 +317,15 @@ function parseKnockoutMatch(match: FifaMatchRow, round: string): KnockoutBracket
     date: match.Date ?? null,
     homeTeam: home ? localizedValue(home.TeamName, home.ShortClubName ?? home.Abbreviation ?? undefined) : null,
     homeCode: home?.Abbreviation ?? home?.IdCountry ?? null,
+    homeFlagUrl: flagUrl(home?.PictureUrl),
     awayTeam: away ? localizedValue(away.TeamName, away.ShortClubName ?? away.Abbreviation ?? undefined) : null,
     awayCode: away?.Abbreviation ?? away?.IdCountry ?? null,
-    homeScore: home?.Score ?? null,
-    awayScore: away?.Score ?? null,
+    awayFlagUrl: flagUrl(away?.PictureUrl),
+    homeScore: isFinal ? (home?.Score ?? null) : null,
+    awayScore: isFinal ? (away?.Score ?? null) : null,
+    venue: localizedValue(match.Stadium?.Name) || null,
+    city: localizedValue(match.Stadium?.CityName) || null,
+    status: isFinal ? "final" : "upcoming",
   };
 }
 
@@ -294,8 +381,13 @@ export function mergeKnockoutBracketRounds(
       awayTeam: liveMatch.awayTeam ?? cachedMatch.awayTeam,
       homeCode: liveMatch.homeCode ?? cachedMatch.homeCode,
       awayCode: liveMatch.awayCode ?? cachedMatch.awayCode,
+      homeFlagUrl: liveMatch.homeFlagUrl ?? cachedMatch.homeFlagUrl,
+      awayFlagUrl: liveMatch.awayFlagUrl ?? cachedMatch.awayFlagUrl,
       homeScore: liveMatch.homeScore ?? cachedMatch.homeScore,
       awayScore: liveMatch.awayScore ?? cachedMatch.awayScore,
+      venue: liveMatch.venue ?? cachedMatch.venue,
+      city: liveMatch.city ?? cachedMatch.city,
+      status: liveMatch.status ?? cachedMatch.status,
     };
   }
 
@@ -328,14 +420,27 @@ export function mergeKnockoutBracketRounds(
   return mergedRounds;
 }
 
+/** Live FIFA knockout fixtures for the Standings page (scores-fixtures source of truth). */
+export async function fetchStandingsKnockoutBracket(cached: KnockoutBracketRound[] = []): Promise<KnockoutBracketRound[]> {
+  try {
+    const live = await fetchKnockoutBracketFromFifa();
+    if (bracketHasAnyMatchups(live)) {
+      return mergeKnockoutBracketRounds(live, cached);
+    }
+  } catch (error) {
+    console.error("[standings] failed to load live FIFA knockout fixtures:", error);
+  }
+
+  return cached;
+}
+
 export async function syncFifaWorldCupStandings(admin: AdminClient): Promise<FifaStandingsSyncSummary> {
   const sourceUpdatedAt = new Date().toISOString();
 
-  const payload = await fetchFifaJson<FifaStandingResponse>(
-    `/calendar/${FIFA_COMPETITION_ID}/${FIFA_SEASON_ID}/${FIFA_GROUP_STAGE_ID}/Standing?language=en`,
-  );
-
-  const parsedRows = parseStandingRows(payload.Results ?? [], sourceUpdatedAt);
+  const parsedRows = (await fetchGroupStandingsFromFifa()).map((row) => ({
+    ...row,
+    source_updated_at: sourceUpdatedAt,
+  }));
   const knockoutRounds = await fetchKnockoutBracketFromFifa();
 
   const { data: existingRows, error: existingError } = await admin

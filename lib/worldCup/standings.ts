@@ -1,6 +1,10 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import type { KnockoutBracketRound } from "@/lib/sports/fifaWorldCupStandingsSync";
+import {
+  fetchStandingsGroupTables,
+  fetchStandingsKnockoutBracket,
+  type KnockoutBracketRound,
+} from "@/lib/sports/fifaWorldCupStandingsSync";
 import { worldCupGroupOrder } from "@/data/worldCupGroups";
 import type { StandingsPageData, WorldCupStandingRow } from "@/lib/worldCup/standingsTypes";
 
@@ -82,7 +86,11 @@ export async function fetchWorldCupStandingsPageData(): Promise<StandingsPageDat
     console.error("[standings] failed to load knockout bracket meta:", metaError.message);
   }
 
-  const rows = (standings ?? []) as WorldCupStandingRow[];
+  const cachedRows = (standings ?? []) as WorldCupStandingRow[];
+  const [rows, knockoutBracket] = await Promise.all([
+    fetchStandingsGroupTables(cachedRows),
+    fetchStandingsKnockoutBracket(parseKnockoutBracket(meta?.payload)),
+  ]);
   const thirdPlace = sortThirdPlaceRows(rows.filter((row) => row.rank === 3));
   const lastUpdated =
     rows.reduce<string | null>((latest, row) => {
@@ -100,7 +108,7 @@ export async function fetchWorldCupStandingsPageData(): Promise<StandingsPageDat
   return {
     groups: groupStandingsByName(rows),
     thirdPlace,
-    knockoutBracket: parseKnockoutBracket(meta?.payload),
+    knockoutBracket,
     lastUpdated,
     isEmpty: rows.length === 0,
   };
